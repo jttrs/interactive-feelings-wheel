@@ -1,43 +1,46 @@
-# Plutchik's Feelings Wheel - Interactive Emotion Explorer
+# Feelings Wheel - Interactive Emotion Explorer
 
-An interactive web application combining Robert Plutchik's scientific emotion theory with Geoffrey Roberts' practical Emotional Word Wheel approach. This tool helps users explore emotional vocabulary through an engaging, rotatable interface.
+An interactive web application displaying a therapeutic feelings wheel based on Geoffrey Roberts' Emotional Word Wheel design. This tool helps users explore emotional vocabulary through an engaging, rotatable interface with visual emphasis for selected emotions.
 
 ## 🎯 Features
 
-### Interactive Wheel
-- **Full Rotation**: Click and drag, mouse wheel, or keyboard controls
-- **Touch Support**: Mobile-friendly rotation and interaction
-- **Responsive Design**: Works on all device sizes
-- **Accessibility**: Screen reader support and keyboard navigation
+### Interactive Wheel Design
+- **7 Core Emotions**: Happy, Surprised, Bad, Fearful, Angry, Disgusted, Sad
+- **Three-Ring Structure**: Core emotions in center, secondary emotions in middle ring, tertiary emotions in outer ring
+- **Authentic Colors**: Each core emotion has its own color family that lightens toward the outer rings
+- **Dynamic Sizing**: Wheel automatically fills available browser space
 
-### Emotional Framework
-- **8 Primary Emotions**: Joy, Trust, Fear, Surprise, Sadness, Disgust, Anger, Anticipation
-- **Intensity Variations**: Multiple levels of emotional intensity
-- **Combined Emotions**: Plutchik's dyads (Love, Optimism, Awe, etc.)
-- **Therapeutic Insights**: Professional guidance for each emotion
+### Interactive Controls
+- **Full Rotation**: Click and drag to rotate the wheel smoothly
+- **Mouse Wheel Support**: Scroll to rotate the wheel
+- **Multi-Selection**: Click wedges to emphasize multiple emotions simultaneously
+- **Visual Emphasis**: Selected wedges get enhanced colors, brightness, and subtle shadows
+- **Reset Function**: Small reset button positioned just inside the wheel's edge
+
+### Advanced Visual Features
+- **Layered Shadows**: Shadows render over unemphasized wedges but never cover emphasized ones
+- **Radial Text**: All emotion labels are oriented along radii toward the center
+- **Text Rotation**: Text maintains proper orientation as the wheel rotates
+- **Responsive Design**: Adapts to any screen size and aspect ratio
 
 ### User Experience
-- **State Persistence**: Saves rotation and selection preferences
-- **Related Emotions**: Suggestions for emotional exploration
-- **Comprehensive Information**: Definitions, examples, and therapeutic insights
-- **Help System**: Built-in guidance and keyboard shortcuts
+- **Minimal Interface**: Clean design with only essential elements
+- **No Side Panels**: Focus remains entirely on the wheel
+- **Smooth Animations**: Elegant transitions for all interactions
+- **Touch Support**: Works on mobile devices
 
 ## 🎨 Attribution & Credits
 
-### Scientific Foundation
-**Robert Plutchik's Wheel of Emotions (1980)**
-- Psychoevolutionary theory of emotions
-- 8 primary emotions and their combinations
-- Scientific framework for emotional understanding
+### Concept & Design
+**Concept borrowed from [feelingswheel.com](https://feelingswheel.com)**
+- Original therapeutic feelings wheel concept
 
-### Practical Implementation
-**Geoffrey Roberts' Emotional Word Wheel**
-- Created for [The Whitehouse Church](https://www.whitehousechurch.com.au/) community
+**Wheel borrowed from [Geoffrey Roberts](https://www.whitehousechurch.com.au/)**
+- Emotional Word Wheel design and structure
 - Progressive Christian community in Canberra, Australia
-- Practical approach to emotional vocabulary development
 
-### Interactive Development
-This web application combines both approaches to create an educational tool for emotional literacy and therapeutic exploration.
+### Interactive Implementation
+This web application faithfully recreates the therapeutic feelings wheel with modern web technologies for interactive exploration.
 
 ## 🚀 Getting Started
 
@@ -47,16 +50,11 @@ This web application combines both approaches to create an educational tool for 
 3. No server setup required - runs entirely in the browser
 
 ### Usage
-- **Rotate**: Click and drag the wheel or use mouse scroll
-- **Explore**: Click any emotion to learn more about it
-- **Navigate**: Use related emotion suggestions
-- **Reset**: Clear selections or reset wheel orientation
-
-### Keyboard Shortcuts
-- `Arrow Keys`: Rotate wheel left/right
-- `Ctrl+R`: Reset selection
-- `Ctrl+H`: Show help dialog
-- `Ctrl+C`: Show credits and attribution
+- **Rotate**: Click and drag anywhere on the wheel or use mouse scroll
+- **Select**: Click any emotion wedge to emphasize it
+- **Multi-Select**: Click multiple wedges to emphasize several emotions
+- **Reset**: Click the small reset button (⟲) in the bottom-right corner of the wheel
+- **Deselect**: Click an emphasized wedge again to deselect it
 
 ## 📁 File Structure
 
@@ -64,19 +62,42 @@ This web application combines both approaches to create an educational tool for 
 feelings-wheel/
 ├── index.html          # Main HTML structure
 ├── styles.css          # Complete styling and responsive design
-├── app.js             # Main application logic
-├── wheel-generator.js  # SVG wheel generation and rotation
-├── feelings-data.js    # Emotion data and definitions
-└── README.md          # This file
+├── app.js             # Main application logic and event handling
+├── wheel-generator.js  # SVG wheel generation, rotation, and layering
+├── feelings-data.js    # Complete emotion data structure
+└── README.md          # This documentation
 ```
 
-## 🎓 Educational Use
+## 🔧 Technical Implementation
+
+### Wheel Structure
+- **Core Ring**: 7 emotions with dynamic sizing based on secondary emotion count
+- **Middle Ring**: Secondary emotions with equal-width wedges within each core section
+- **Outer Ring**: Tertiary emotions with half-width wedges for detailed specificity
+
+### Visual Hierarchy
+- **Base Layer**: All unemphasized wedges and text
+- **Shadow Layer**: Shadows of emphasized wedges (renders above unemphasized, below emphasized)
+- **Top Layer**: Emphasized wedges and their text (always visible, never covered)
+
+### Dynamic Features
+- **Responsive Sizing**: Wheel uses 99% of available space, adapting to container dimensions
+- **Smart Positioning**: Reset button dynamically positions based on actual wheel boundaries
+- **Color Gradients**: Systematic lightening from core (original colors) to middle (25% lighter) to outer (70% lighter)
+
+### Technologies Used
+- **HTML5**: Semantic structure
+- **CSS3**: Modern styling with filters and transforms
+- **JavaScript (ES6+)**: Dynamic SVG generation and interaction
+- **SVG**: Scalable vector graphics for crisp rendering at any size
+
+## 🎓 Therapeutic Use
 
 This tool is designed for:
-- **Therapeutic Settings**: Helping clients identify and explore emotions
-- **Educational Environments**: Teaching emotional literacy
-- **Personal Development**: Self-exploration and emotional awareness
-- **Research**: Understanding emotional relationships and patterns
+- **Emotional Identification**: Helping users recognize and name their emotions
+- **Therapeutic Sessions**: Supporting counselors and therapists in emotion exploration
+- **Self-Reflection**: Personal emotional awareness and vocabulary building
+- **Educational Settings**: Teaching emotional literacy and intelligence
 
 ## 🌐 Browser Compatibility
 
@@ -88,52 +109,45 @@ This tool is designed for:
 
 ## 📱 Mobile Support
 
-- Touch-based rotation
+- Touch-based rotation and selection
 - Responsive design for all screen sizes
 - Optimized performance for mobile devices
-- Accessibility features for mobile screen readers
+- Dynamic sizing based on screen orientation
 
-## 🔧 Technical Details
+## 🎨 Design Principles
 
-### Technologies Used
-- **HTML5**: Semantic structure and accessibility
-- **CSS3**: Modern styling with gradients and animations
-- **JavaScript (ES6+)**: Interactive functionality
-- **SVG**: Scalable wheel graphics
-- **Local Storage**: State persistence
+### Minimalism
+- Clean, uncluttered interface
+- Focus entirely on the wheel
+- No unnecessary UI elements
 
-### Performance Features
-- Efficient SVG rendering
-- Smooth rotation animations
-- Optimized for 60fps interactions
-- Minimal memory footprint
+### Accessibility
+- High contrast between text and backgrounds
+- Clear visual hierarchy
+- Intuitive interaction patterns
+
+### Authenticity
+- Faithful recreation of the original therapeutic wheel
+- Accurate emotion groupings and relationships
+- Professional therapeutic color scheme
 
 ## 🤝 Contributing
 
-This project honors the work of both Robert Plutchik and Geoffrey Roberts. Contributions should maintain:
-- Scientific accuracy to Plutchik's model
-- Respect for Roberts' practical approach
-- Accessibility and educational value
+This project honors the original therapeutic feelings wheel design. Contributions should maintain:
+- Accuracy to the original emotion structure
 - Professional therapeutic standards
+- Clean, minimal design principles
+- Accessibility and usability
 
 ## 📄 License
 
-This implementation is created for educational and therapeutic purposes. Please respect the original work of:
-- Robert Plutchik's scientific research
-- Geoffrey Roberts and The Whitehouse Church community
+This implementation is created for educational and therapeutic purposes. Please respect the original work of the feelings wheel concept and Geoffrey Roberts' Emotional Word Wheel design.
 
 ## 🔗 Links
 
-- [The Whitehouse Church](https://www.whitehousechurch.com.au/) - Original Emotional Word Wheel
-- [Plutchik's Research](https://en.wikipedia.org/wiki/Robert_Plutchik) - Scientific foundation
-- [Emotion Theory](https://www.6seconds.org/2022/03/13/plutchik-wheel-emotions/) - Educational resources
-
-## 📞 Support
-
-For questions about the interactive implementation, please refer to the built-in help system (Ctrl+H) or credits dialog (Ctrl+C).
-
-For information about the original Emotional Word Wheel, visit [The Whitehouse Church](https://www.whitehousechurch.com.au/).
+- [feelingswheel.com](https://feelingswheel.com) - Original concept
+- [The Whitehouse Church](https://www.whitehousechurch.com.au/) - Geoffrey Roberts' community
 
 ---
 
-*This tool combines scientific rigor with practical application, creating an accessible way to explore the rich landscape of human emotions.* 
+*A faithful interactive recreation of the therapeutic feelings wheel, designed to support emotional exploration and awareness.* 

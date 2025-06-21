@@ -151,10 +151,24 @@ class FeelingsWheelGenerator {
         this.svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
         this.svg.style.cursor = "grab";
         
-        // Create main group for rotation with proper transform origin
-        this.wheelGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        this.wheelGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
-        this.svg.appendChild(this.wheelGroup);
+        // Create three layers for proper shadow rendering
+        // 1. Base layer for unemphasized wedges
+        this.baseGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        this.baseGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
+        this.svg.appendChild(this.baseGroup);
+        
+        // 2. Shadow layer (renders above unemphasized, below emphasized)
+        this.shadowGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        this.shadowGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
+        this.svg.appendChild(this.shadowGroup);
+        
+        // 3. Top layer for emphasized wedges
+        this.topGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        this.topGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
+        this.svg.appendChild(this.topGroup);
+        
+        // Keep wheelGroup as alias for baseGroup for compatibility
+        this.wheelGroup = this.baseGroup;
         
         // Calculate core angles
         const coreAngles = this.calculateCoreAngles();
@@ -406,11 +420,6 @@ class FeelingsWheelGenerator {
         });
     }
 
-    updateRotation() {
-        this.wheelGroup.style.transform = `rotate(${this.currentRotation}deg)`;
-        this.updateTextRotations();
-    }
-
     handleWedgeClick(event) {
         const wedge = event.target;
         const emotion = wedge.getAttribute('data-emotion');
@@ -421,9 +430,17 @@ class FeelingsWheelGenerator {
         if (this.selectedWedges.has(wedgeId)) {
             this.selectedWedges.delete(wedgeId);
             wedge.classList.remove('selected');
+            this.removeShadowCopy(wedgeId);
+            // Move wedge and its text back to base layer
+            this.baseGroup.appendChild(wedge);
+            this.moveTextForWedge(emotion, this.baseGroup);
         } else {
             this.selectedWedges.add(wedgeId);
             wedge.classList.add('selected');
+            this.createShadowCopy(wedge, wedgeId);
+            // Move wedge and its text to top layer
+            this.topGroup.appendChild(wedge);
+            this.moveTextForWedge(emotion, this.topGroup);
         }
         
         // Dispatch custom event for app to handle
@@ -433,15 +450,76 @@ class FeelingsWheelGenerator {
         document.dispatchEvent(customEvent);
     }
 
+    createShadowCopy(originalWedge, wedgeId) {
+        // Create a group to hold the shadow with offset
+        const shadowGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        shadowGroup.setAttribute('transform', 'translate(4, 4)');
+        shadowGroup.setAttribute('data-shadow-id', wedgeId);
+        
+        // Create a copy of the wedge for shadow layer
+        const shadowWedge = originalWedge.cloneNode(true);
+        shadowWedge.setAttribute('class', 'wedge shadow-wedge');
+        
+        // Make shadow copy visible with a different color to test
+        shadowWedge.setAttribute('fill', 'rgba(0, 0, 0, 0.4)');
+        shadowWedge.setAttribute('stroke', 'none');
+        shadowWedge.style.filter = 'blur(2px)';
+        shadowWedge.style.pointerEvents = 'none';
+        
+        console.log('DEBUG - Creating shadow copy:', wedgeId, shadowWedge);
+        
+        shadowGroup.appendChild(shadowWedge);
+        this.shadowGroup.appendChild(shadowGroup);
+    }
+
+    removeShadowCopy(wedgeId) {
+        const shadowGroup = this.shadowGroup.querySelector(`[data-shadow-id="${wedgeId}"]`);
+        if (shadowGroup) {
+            this.shadowGroup.removeChild(shadowGroup);
+        }
+    }
+
+    moveTextForWedge(emotion, targetGroup) {
+        // Find and move the text element for this emotion
+        const textElements = this.container.querySelectorAll('text');
+        textElements.forEach(textEl => {
+            if (textEl.textContent === emotion) {
+                targetGroup.appendChild(textEl);
+            }
+        });
+    }
+
+    updateRotation() {
+        this.baseGroup.style.transform = `rotate(${this.currentRotation}deg)`;
+        this.shadowGroup.style.transform = `rotate(${this.currentRotation}deg)`;
+        this.topGroup.style.transform = `rotate(${this.currentRotation}deg)`;
+        this.updateTextRotations();
+    }
+
     reset() {
         // Clear all selections
         this.selectedWedges.clear();
         
-        // Reset all wedge styles
+        // Reset all wedge styles and move back to base layer
         const wedges = this.container.querySelectorAll('.wedge');
         wedges.forEach(wedge => {
             wedge.classList.remove('selected');
+            // Move wedge back to base layer if it's not already there
+            if (wedge.parentNode !== this.baseGroup) {
+                this.baseGroup.appendChild(wedge);
+            }
         });
+        
+        // Move all text elements back to base layer
+        const textElements = this.container.querySelectorAll('text');
+        textElements.forEach(textEl => {
+            if (textEl.parentNode !== this.baseGroup) {
+                this.baseGroup.appendChild(textEl);
+            }
+        });
+        
+        // Clear all shadow copies
+        this.shadowGroup.innerHTML = '';
         
         // Reset rotation
         this.currentRotation = 0;

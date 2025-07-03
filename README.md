@@ -33,11 +33,10 @@ An interactive web application displaying a therapeutic feelings wheel based on 
 
 ### Concept & Design
 **Concept borrowed from [feelingswheel.com](https://feelingswheel.com)**
-- Original therapeutic feelings wheel concept
+- Available feelings wheel online concept
 
 **Wheel borrowed from [Geoffrey Roberts](https://www.whitehousechurch.com.au/)**
 - Emotional Word Wheel design and structure
-- Progressive Christian community in Canberra, Australia
 
 ### Interactive Implementation
 This web application faithfully recreates the therapeutic feelings wheel with modern web technologies for interactive exploration.

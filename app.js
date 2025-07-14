@@ -26,6 +26,12 @@ class FeelingsWheelApp {
             this.wheelGenerator.reset();
         });
 
+        // Setup children's mode toggle
+        const childrenModeToggle = document.getElementById('children-mode');
+        childrenModeToggle.addEventListener('change', (event) => {
+            this.wheelGenerator.setChildrenMode(event.target.checked);
+        });
+
         // Listen for emotion selection events
         document.addEventListener('emotionSelected', (event) => {
             // Currently no side panel, so we don't need to do anything

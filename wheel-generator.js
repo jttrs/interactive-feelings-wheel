@@ -5,9 +5,7 @@ class FeelingsWheelGenerator {
         this.data = data;
         this.centerX = 300;
         this.centerY = 300;
-        this.coreRadius = 60;
-        this.middleRadius = 150;
-        this.outerRadius = 240;
+        this.isChildrenMode = false;
         this.selectedWedges = new Set();
         
         // Rotation state
@@ -17,6 +15,44 @@ class FeelingsWheelGenerator {
         this.svg = null;
         this.wheelGroup = null;
         this.textElements = [];
+        
+        // Set dynamic radii based on mode
+        this.updateRadii();
+    }
+    
+    updateRadii() {
+        if (this.isChildrenMode) {
+            // In children's mode, use the full available space for just two rings
+            this.coreRadius = 80;
+            this.middleRadius = 200;
+            this.outerRadius = 240; // Not used in children's mode
+        } else {
+            // Normal mode with three rings
+            this.coreRadius = 60;
+            this.middleRadius = 150;
+            this.outerRadius = 240;
+        }
+    }
+    
+    setChildrenMode(enabled) {
+        this.isChildrenMode = enabled;
+        this.updateRadii();
+        this.regenerateWheel();
+    }
+    
+    regenerateWheel() {
+        // Clear existing wheel
+        this.selectedWedges.clear();
+        this.textElements = [];
+        
+        // Remove existing content
+        if (this.svg) {
+            this.svg.innerHTML = '';
+        }
+        
+        // Generate new wheel
+        this.generateWheel();
+        this.positionResetButton();
     }
 
     // Helper function to lighten colors for middle and outer rings
@@ -264,62 +300,67 @@ class FeelingsWheelGenerator {
             });
         });
         
-        // Create outer ring (tertiary emotions)
-        coreAngles.forEach(core => {
-            const secondaryEmotions = this.data.secondary[core.name];
-            const anglePerSecondary = core.size / secondaryEmotions.length;
-            
-            secondaryEmotions.forEach((emotion, index) => {
-                const tertiaryEmotions = this.data.tertiary[emotion] || [];
-                const secondaryStartAngle = core.start + (index * anglePerSecondary);
-                const anglePerTertiary = anglePerSecondary / tertiaryEmotions.length;
+        // Create primary emotion division lines
+        this.createPrimaryDivisionLines(coreAngles);
+        
+        // Create outer ring (tertiary emotions) - only in full mode
+        if (!this.isChildrenMode) {
+            coreAngles.forEach(core => {
+                const secondaryEmotions = this.data.secondary[core.name];
+                const anglePerSecondary = core.size / secondaryEmotions.length;
                 
-                tertiaryEmotions.forEach((tertiary, tertiaryIndex) => {
-                    const startAngle = secondaryStartAngle + (tertiaryIndex * anglePerTertiary);
-                    const endAngle = startAngle + anglePerTertiary;
+                secondaryEmotions.forEach((emotion, index) => {
+                    const tertiaryEmotions = this.data.tertiary[emotion] || [];
+                    const secondaryStartAngle = core.start + (index * anglePerSecondary);
+                    const anglePerTertiary = anglePerSecondary / tertiaryEmotions.length;
                     
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", this.createWedgePath(
-                        this.centerX, this.centerY, this.middleRadius, this.outerRadius,
-                        startAngle, endAngle
-                    ));
-                    path.setAttribute("fill", this.lightenColor(core.color, 70));
-                    path.setAttribute("stroke", "#333");
-                    path.setAttribute("stroke-width", "1");
-                    path.setAttribute("class", "wedge tertiary-wedge");
-                    path.setAttribute("data-emotion", tertiary);
-                    path.setAttribute("data-level", "tertiary");
-                    path.setAttribute("data-parent", emotion);
-                    path.setAttribute("data-grandparent", core.name);
-                    path.style.cursor = "pointer";
-                    
-                    this.wheelGroup.appendChild(path);
-                    
-                    // Add tertiary text
-                    const textPos = this.positionText(this.centerX, this.centerY, (this.middleRadius + this.outerRadius) / 2, startAngle, endAngle);
-                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    text.setAttribute("x", textPos.x);
-                    text.setAttribute("y", textPos.y);
-                    text.setAttribute("text-anchor", "middle");
-                    text.setAttribute("dominant-baseline", "middle");
-                    text.setAttribute("font-size", "10");
-                    text.setAttribute("font-weight", "normal");
-                    text.setAttribute("fill", "#333");
-                    text.setAttribute("pointer-events", "none");
-                    text.textContent = tertiary;
-                    
-                    // Store text element for dynamic rotation
-                    this.textElements.push({
-                        element: text,
-                        baseAngle: textPos.baseAngle,
-                        x: textPos.x,
-                        y: textPos.y
+                    tertiaryEmotions.forEach((tertiary, tertiaryIndex) => {
+                        const startAngle = secondaryStartAngle + (tertiaryIndex * anglePerTertiary);
+                        const endAngle = startAngle + anglePerTertiary;
+                        
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        path.setAttribute("d", this.createWedgePath(
+                            this.centerX, this.centerY, this.middleRadius, this.outerRadius,
+                            startAngle, endAngle
+                        ));
+                        path.setAttribute("fill", this.lightenColor(core.color, 70));
+                        path.setAttribute("stroke", "#333");
+                        path.setAttribute("stroke-width", "1");
+                        path.setAttribute("class", "wedge tertiary-wedge");
+                        path.setAttribute("data-emotion", tertiary);
+                        path.setAttribute("data-level", "tertiary");
+                        path.setAttribute("data-parent", emotion);
+                        path.setAttribute("data-grandparent", core.name);
+                        path.style.cursor = "pointer";
+                        
+                        this.wheelGroup.appendChild(path);
+                        
+                        // Add tertiary text
+                        const textPos = this.positionText(this.centerX, this.centerY, (this.middleRadius + this.outerRadius) / 2, startAngle, endAngle);
+                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        text.setAttribute("x", textPos.x);
+                        text.setAttribute("y", textPos.y);
+                        text.setAttribute("text-anchor", "middle");
+                        text.setAttribute("dominant-baseline", "middle");
+                        text.setAttribute("font-size", "10");
+                        text.setAttribute("font-weight", "normal");
+                        text.setAttribute("fill", "#333");
+                        text.setAttribute("pointer-events", "none");
+                        text.textContent = tertiary;
+                        
+                        // Store text element for dynamic rotation
+                        this.textElements.push({
+                            element: text,
+                            baseAngle: textPos.baseAngle,
+                            x: textPos.x,
+                            y: textPos.y
+                        });
+                        
+                        this.wheelGroup.appendChild(text);
                     });
-                    
-                    this.wheelGroup.appendChild(text);
                 });
             });
-        });
+        }
         
         // Set initial text rotations
         this.updateTextRotations();
@@ -430,6 +471,10 @@ class FeelingsWheelGenerator {
         if (this.selectedWedges.has(wedgeId)) {
             this.selectedWedges.delete(wedgeId);
             wedge.classList.remove('selected');
+            // Clear any lingering visual effects
+            wedge.style.filter = '';
+            wedge.style.opacity = '';
+            wedge.style.transform = '';
             this.removeShadowCopy(wedgeId);
             // Move wedge and its text back to base layer
             this.baseGroup.appendChild(wedge);
@@ -453,28 +498,32 @@ class FeelingsWheelGenerator {
     createShadowCopy(originalWedge, wedgeId) {
         // Create a group to hold the shadow with offset
         const shadowGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        shadowGroup.setAttribute('transform', 'translate(4, 4)');
         shadowGroup.setAttribute('data-shadow-id', wedgeId);
         
         // Create a copy of the wedge for shadow layer
         const shadowWedge = originalWedge.cloneNode(true);
         shadowWedge.setAttribute('class', 'wedge shadow-wedge');
         
-        // Make shadow copy visible with a different color to test
-        shadowWedge.setAttribute('fill', 'rgba(0, 0, 0, 0.4)');
+        // Make shadow copy visible with proper shadow styling
+        shadowWedge.setAttribute('fill', 'rgba(0, 0, 0, 0.3)');
         shadowWedge.setAttribute('stroke', 'none');
-        shadowWedge.style.filter = 'blur(2px)';
+        shadowWedge.style.filter = 'blur(3px)';
         shadowWedge.style.pointerEvents = 'none';
-        
-        console.log('DEBUG - Creating shadow copy:', wedgeId, shadowWedge);
         
         shadowGroup.appendChild(shadowWedge);
         this.shadowGroup.appendChild(shadowGroup);
+        
+        // Update shadow transform for fixed light source
+        this.updateShadowTransform(shadowGroup);
     }
 
     removeShadowCopy(wedgeId) {
         const shadowGroup = this.shadowGroup.querySelector(`[data-shadow-id="${wedgeId}"]`);
         if (shadowGroup) {
+            // Clear any lingering transforms or effects
+            shadowGroup.style.transform = '';
+            shadowGroup.style.filter = '';
+            shadowGroup.style.opacity = '';
             this.shadowGroup.removeChild(shadowGroup);
         }
     }
@@ -491,9 +540,64 @@ class FeelingsWheelGenerator {
 
     updateRotation() {
         this.baseGroup.style.transform = `rotate(${this.currentRotation}deg)`;
-        this.shadowGroup.style.transform = `rotate(${this.currentRotation}deg)`;
         this.topGroup.style.transform = `rotate(${this.currentRotation}deg)`;
         this.updateTextRotations();
+        this.updateAllShadowTransforms();
+    }
+    
+    updateShadowTransform(shadowGroup) {
+        // Calculate shadow offset based on fixed light source (top-left)
+        const shadowOffsetX = 4;
+        const shadowOffsetY = 4;
+        
+        // Apply rotation to shadow content but offset for fixed light source
+        const rotationRad = (this.currentRotation * Math.PI) / 180;
+        const cosRot = Math.cos(rotationRad);
+        const sinRot = Math.sin(rotationRad);
+        
+        // Calculate rotated offset to maintain fixed light source appearance
+        const offsetX = shadowOffsetX * cosRot - shadowOffsetY * sinRot;
+        const offsetY = shadowOffsetX * sinRot + shadowOffsetY * cosRot;
+        
+        shadowGroup.setAttribute('transform', 
+            `translate(${offsetX}, ${offsetY}) rotate(${this.currentRotation} ${this.centerX} ${this.centerY})`);
+    }
+    
+    updateAllShadowTransforms() {
+        const shadowGroups = this.shadowGroup.querySelectorAll('[data-shadow-id]');
+        shadowGroups.forEach(shadowGroup => {
+            this.updateShadowTransform(shadowGroup);
+        });
+    }
+    
+    createPrimaryDivisionLines(coreAngles) {
+        // Create thicker division lines between primary emotion families
+        coreAngles.forEach((core, index) => {
+            const nextCore = coreAngles[(index + 1) % coreAngles.length];
+            const divisionAngle = core.end; // End of current core = start of next core
+            
+            // Create division line from center to outer edge
+            const divisionAngleRad = divisionAngle * Math.PI / 180;
+            const x1 = this.centerX + this.coreRadius * Math.cos(divisionAngleRad);
+            const y1 = this.centerY + this.coreRadius * Math.sin(divisionAngleRad);
+            
+            // Use middle radius in children's mode, outer radius in full mode
+            const endRadius = this.isChildrenMode ? this.middleRadius : this.outerRadius;
+            const x2 = this.centerX + endRadius * Math.cos(divisionAngleRad);
+            const y2 = this.centerY + endRadius * Math.sin(divisionAngleRad);
+            
+            const divisionLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            divisionLine.setAttribute("x1", x1);
+            divisionLine.setAttribute("y1", y1);
+            divisionLine.setAttribute("x2", x2);
+            divisionLine.setAttribute("y2", y2);
+            divisionLine.setAttribute("stroke", "#333");
+            divisionLine.setAttribute("stroke-width", "2.5");
+            divisionLine.setAttribute("class", "primary-division-line");
+            divisionLine.style.pointerEvents = "none";
+            
+            this.wheelGroup.appendChild(divisionLine);
+        });
     }
 
     reset() {
@@ -504,6 +608,10 @@ class FeelingsWheelGenerator {
         const wedges = this.container.querySelectorAll('.wedge');
         wedges.forEach(wedge => {
             wedge.classList.remove('selected');
+            // Clear any lingering visual effects
+            wedge.style.filter = '';
+            wedge.style.opacity = '';
+            wedge.style.transform = '';
             // Move wedge back to base layer if it's not already there
             if (wedge.parentNode !== this.baseGroup) {
                 this.baseGroup.appendChild(wedge);

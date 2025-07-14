@@ -16,33 +16,83 @@ class FeelingsWheelGenerator {
         this.wheelGroup = null;
         this.textElements = [];
         
+        // State management for mode switching
+        this.fullModeState = {
+            rotation: 0,
+            selectedWedges: new Set(),
+            hasBeenInitialized: false
+        };
+        this.simplifiedModeState = {
+            rotation: 0,
+            selectedWedges: new Set(),
+            hasBeenInitialized: false
+        };
+        
         // Set dynamic radii based on mode
         this.updateRadii();
     }
     
     updateRadii() {
-        if (this.isChildrenMode) {
-            // In children's mode, use the full available space for just two rings
-            this.coreRadius = 80;
-            this.middleRadius = 200;
-            this.outerRadius = 240; // Not used in children's mode
+        // Radii are now calculated dynamically in the generate() method
+        // based on container size and mode. This method is kept for compatibility
+        // but actual calculation happens in generate().
+    }
+
+    calculateFontSize(level) {
+        // Calculate responsive font size based on container size
+        // Base font sizes scale with container size - no upper limit to remain proportional
+        const baseSize = this.containerSize * 0.02; // 2% of container size as base
+        
+        switch (level) {
+            case 'core':
+                return Math.max(10, baseSize * 0.8); // 80% of base, min 10px, no max
+            case 'secondary':
+                return Math.max(8, baseSize * 0.7); // 70% of base, min 8px, no max
+            case 'tertiary':
+                return Math.max(6, baseSize * 0.6); // 60% of base, min 6px, no max
+            default:
+                return baseSize;
+        }
+    }
+    
+    saveCurrentState() {
+        const currentState = this.isChildrenMode ? this.simplifiedModeState : this.fullModeState;
+        currentState.rotation = this.currentRotation;
+        currentState.selectedWedges = new Set(this.selectedWedges);
+        currentState.hasBeenInitialized = true;
+    }
+    
+    restoreState(targetMode) {
+        const targetState = targetMode ? this.simplifiedModeState : this.fullModeState;
+        
+        if (targetState.hasBeenInitialized) {
+            // Restore previous state
+            this.currentRotation = targetState.rotation;
+            this.selectedWedges = new Set(targetState.selectedWedges);
         } else {
-            // Normal mode with three rings
-            this.coreRadius = 60;
-            this.middleRadius = 150;
-            this.outerRadius = 240;
+            // First time seeing this mode - reset state
+            this.currentRotation = 0;
+            this.selectedWedges = new Set();
         }
     }
     
     setChildrenMode(enabled) {
+        // Save current state before switching
+        this.saveCurrentState();
+        
+        // Switch mode
         this.isChildrenMode = enabled;
         this.updateRadii();
+        
+        // Restore state for new mode
+        this.restoreState(enabled);
+        
+        // Regenerate wheel
         this.regenerateWheel();
     }
     
     regenerateWheel() {
         // Clear existing wheel
-        this.selectedWedges.clear();
         this.textElements = [];
         
         // Remove existing content
@@ -51,8 +101,44 @@ class FeelingsWheelGenerator {
         }
         
         // Generate new wheel
-        this.generateWheel();
-        this.positionResetButton();
+        this.generate();
+        
+        // Apply current state to the new wheel
+        this.updateRotation();
+        this.applySelectedWedges();
+    }
+    
+    applySelectedWedges() {
+        // Re-apply selection state to wedges after regeneration
+        this.selectedWedges.forEach(wedgeId => {
+            // Parse the stored wedgeId format: "level-emotion"
+            const [level, emotion] = wedgeId.split('-', 2);
+            
+            // Skip tertiary emotions in simplified mode since they don't exist
+            if (this.isChildrenMode && level === 'tertiary') {
+                return;
+            }
+            
+            const wedge = this.container.querySelector(`.wedge[data-emotion="${emotion}"][data-level="${level}"]`);
+            if (wedge) {
+                // Find the wedge click handler logic and apply it
+                wedge.classList.add('selected');
+                
+                // Apply emphasis effect (move to top layer, add shadow)
+                this.topGroup.appendChild(wedge);
+                
+                // Find corresponding text and move it too
+                const textElements = this.container.querySelectorAll('text');
+                textElements.forEach(textEl => {
+                    if (textEl.textContent === emotion) {
+                        this.topGroup.appendChild(textEl);
+                    }
+                });
+                
+                // Create shadow copy
+                this.createShadowCopy(wedge, wedgeId);
+            }
+        });
     }
 
     // Helper function to lighten colors for middle and outer rings
@@ -174,9 +260,22 @@ class FeelingsWheelGenerator {
         this.centerY = size / 2;
         // Use 99% of available space for the wheel, with proper proportions
         const maxRadius = (size * 0.495); // 49.5% of size = 99% diameter
-        this.outerRadius = maxRadius;
-        this.middleRadius = maxRadius * 0.625; // 62.5% of outer radius
-        this.coreRadius = maxRadius * 0.25;    // 25% of outer radius
+        
+        // Store size for font scaling
+        this.containerSize = size;
+        
+        // Calculate radii based on mode and available space
+        if (this.isChildrenMode) {
+            // In simplified mode, use more space since no outer ring
+            this.middleRadius = maxRadius; // Use full available space
+            this.coreRadius = maxRadius * 0.4; // 40% of available space
+            this.outerRadius = maxRadius; // Not used but set for consistency
+        } else {
+            // Normal mode with three rings
+            this.outerRadius = maxRadius;
+            this.middleRadius = maxRadius * 0.625; // 62.5% of outer radius
+            this.coreRadius = maxRadius * 0.25;    // 25% of outer radius
+        }
         
 
         
@@ -187,18 +286,23 @@ class FeelingsWheelGenerator {
         this.svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
         this.svg.style.cursor = "grab";
         
-        // Create three layers for proper shadow rendering
+        // Create four layers for proper rendering
         // 1. Base layer for unemphasized wedges
         this.baseGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
         this.baseGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
         this.svg.appendChild(this.baseGroup);
         
-        // 2. Shadow layer (renders above unemphasized, below emphasized)
+        // 2. Division lines layer (always on top, not affected by wedge movement)
+        this.divisionLinesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        this.divisionLinesGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
+        this.svg.appendChild(this.divisionLinesGroup);
+        
+        // 3. Shadow layer (renders above unemphasized, below emphasized)
         this.shadowGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
         this.shadowGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
         this.svg.appendChild(this.shadowGroup);
         
-        // 3. Top layer for emphasized wedges
+        // 4. Top layer for emphasized wedges
         this.topGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
         this.topGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
         this.svg.appendChild(this.topGroup);
@@ -233,7 +337,7 @@ class FeelingsWheelGenerator {
             text.setAttribute("y", textPos.y);
             text.setAttribute("text-anchor", "middle");
             text.setAttribute("dominant-baseline", "middle");
-            text.setAttribute("font-size", "12");
+            text.setAttribute("font-size", this.calculateFontSize('core'));
             text.setAttribute("font-weight", "normal");
             text.setAttribute("fill", "#333");
             text.setAttribute("pointer-events", "none");
@@ -282,7 +386,7 @@ class FeelingsWheelGenerator {
                 text.setAttribute("y", textPos.y);
                 text.setAttribute("text-anchor", "middle");
                 text.setAttribute("dominant-baseline", "middle");
-                text.setAttribute("font-size", "11");
+                text.setAttribute("font-size", this.calculateFontSize('secondary'));
                 text.setAttribute("font-weight", "normal");
                 text.setAttribute("fill", "#333");
                 text.setAttribute("pointer-events", "none");
@@ -299,9 +403,6 @@ class FeelingsWheelGenerator {
                 this.wheelGroup.appendChild(text);
             });
         });
-        
-        // Create primary emotion division lines
-        this.createPrimaryDivisionLines(coreAngles);
         
         // Create outer ring (tertiary emotions) - only in full mode
         if (!this.isChildrenMode) {
@@ -342,7 +443,7 @@ class FeelingsWheelGenerator {
                         text.setAttribute("y", textPos.y);
                         text.setAttribute("text-anchor", "middle");
                         text.setAttribute("dominant-baseline", "middle");
-                        text.setAttribute("font-size", "10");
+                        text.setAttribute("font-size", this.calculateFontSize('tertiary'));
                         text.setAttribute("font-weight", "normal");
                         text.setAttribute("fill", "#333");
                         text.setAttribute("pointer-events", "none");
@@ -362,6 +463,9 @@ class FeelingsWheelGenerator {
             });
         }
         
+        // Create all division lines with gradient thickness after all rings are created
+        this.createAllDivisionLines(coreAngles);
+        
         // Set initial text rotations
         this.updateTextRotations();
         
@@ -370,12 +474,21 @@ class FeelingsWheelGenerator {
         // Position reset button based on actual wheel boundaries
         this.positionResetButton(containerRect);
         
+        // Mark current mode as initialized
+        const currentState = this.isChildrenMode ? this.simplifiedModeState : this.fullModeState;
+        currentState.hasBeenInitialized = true;
+        
         this.setupEventListeners();
     }
 
     positionResetButton(containerRect) {
         const resetButton = this.container.parentElement.querySelector('.reset-icon');
         if (!resetButton) return;
+        
+        // Get container rect if not provided
+        if (!containerRect) {
+            containerRect = this.container.getBoundingClientRect();
+        }
         
         // Calculate wheel boundaries within container
         const containerWidth = containerRect.width;
@@ -540,6 +653,7 @@ class FeelingsWheelGenerator {
 
     updateRotation() {
         this.baseGroup.style.transform = `rotate(${this.currentRotation}deg)`;
+        this.divisionLinesGroup.style.transform = `rotate(${this.currentRotation}deg)`;
         this.topGroup.style.transform = `rotate(${this.currentRotation}deg)`;
         this.updateTextRotations();
         this.updateAllShadowTransforms();
@@ -550,15 +664,17 @@ class FeelingsWheelGenerator {
         const shadowOffsetX = 4;
         const shadowOffsetY = 4;
         
-        // Apply rotation to shadow content but offset for fixed light source
-        const rotationRad = (this.currentRotation * Math.PI) / 180;
+        // For a fixed light source, shadow should move opposite to wheel rotation
+        // This creates the illusion that the light source stays fixed while the wheel rotates
+        const rotationRad = (-this.currentRotation * Math.PI) / 180; // Negative rotation
         const cosRot = Math.cos(rotationRad);
         const sinRot = Math.sin(rotationRad);
         
-        // Calculate rotated offset to maintain fixed light source appearance
+        // Calculate shadow offset that maintains fixed light source appearance
         const offsetX = shadowOffsetX * cosRot - shadowOffsetY * sinRot;
         const offsetY = shadowOffsetX * sinRot + shadowOffsetY * cosRot;
         
+        // Apply only the offset - the shadow content rotates with the wheel
         shadowGroup.setAttribute('transform', 
             `translate(${offsetX}, ${offsetY}) rotate(${this.currentRotation} ${this.centerX} ${this.centerY})`);
     }
@@ -570,16 +686,30 @@ class FeelingsWheelGenerator {
         });
     }
     
-    createPrimaryDivisionLines(coreAngles) {
-        // Create thicker division lines between primary emotion families
+    createAllDivisionLines(coreAngles) {
+        // Create division lines with gradient thickness based on hierarchy
+        
+        // 1. Primary divisions (thickest, 2.5px): Between core emotions
+        this.createPrimaryDivisions(coreAngles);
+        
+        // 2. Secondary divisions (medium, 1.5px): Between secondary emotions within each core group
+        this.createSecondaryDivisions(coreAngles);
+        
+        // 3. Dyad divisions (thinnest, 1px): Between emotions within each dyad pair
+        if (!this.isChildrenMode) {
+            this.createDyadDivisions(coreAngles);
+        }
+    }
+    
+    createPrimaryDivisions(coreAngles) {
+        // Create thickest division lines between primary emotion families
         coreAngles.forEach((core, index) => {
-            const nextCore = coreAngles[(index + 1) % coreAngles.length];
             const divisionAngle = core.end; // End of current core = start of next core
             
-            // Create division line from center to outer edge
+            // Create division line from center to outer edge (like radii)
             const divisionAngleRad = divisionAngle * Math.PI / 180;
-            const x1 = this.centerX + this.coreRadius * Math.cos(divisionAngleRad);
-            const y1 = this.centerY + this.coreRadius * Math.sin(divisionAngleRad);
+            const x1 = this.centerX; // Start from center
+            const y1 = this.centerY; // Start from center
             
             // Use middle radius in children's mode, outer radius in full mode
             const endRadius = this.isChildrenMode ? this.middleRadius : this.outerRadius;
@@ -596,7 +726,80 @@ class FeelingsWheelGenerator {
             divisionLine.setAttribute("class", "primary-division-line");
             divisionLine.style.pointerEvents = "none";
             
-            this.wheelGroup.appendChild(divisionLine);
+            this.divisionLinesGroup.appendChild(divisionLine);
+        });
+    }
+    
+    createSecondaryDivisions(coreAngles) {
+        // Create medium thickness division lines between secondary emotions
+        coreAngles.forEach(core => {
+            const secondaryEmotions = this.data.secondary[core.name];
+            const anglePerSecondary = core.size / secondaryEmotions.length;
+            
+            secondaryEmotions.forEach((emotion, index) => {
+                if (index > 0) { // Skip first emotion (no line before it)
+                    const divisionAngle = core.start + (index * anglePerSecondary);
+                    const divisionAngleRad = divisionAngle * Math.PI / 180;
+                    
+                    // Line from core radius to outer edge
+                    const x1 = this.centerX + this.coreRadius * Math.cos(divisionAngleRad);
+                    const y1 = this.centerY + this.coreRadius * Math.sin(divisionAngleRad);
+                    
+                    const endRadius = this.isChildrenMode ? this.middleRadius : this.outerRadius;
+                    const x2 = this.centerX + endRadius * Math.cos(divisionAngleRad);
+                    const y2 = this.centerY + endRadius * Math.sin(divisionAngleRad);
+                    
+                    const divisionLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    divisionLine.setAttribute("x1", x1);
+                    divisionLine.setAttribute("y1", y1);
+                    divisionLine.setAttribute("x2", x2);
+                    divisionLine.setAttribute("y2", y2);
+                    divisionLine.setAttribute("stroke", "#333");
+                    divisionLine.setAttribute("stroke-width", "1.5");
+                    divisionLine.setAttribute("class", "secondary-division-line");
+                    divisionLine.style.pointerEvents = "none";
+                    
+                    this.divisionLinesGroup.appendChild(divisionLine);
+                }
+            });
+        });
+    }
+    
+    createDyadDivisions(coreAngles) {
+        // Create thinnest division lines between emotions within each dyad pair
+        coreAngles.forEach(core => {
+            const secondaryEmotions = this.data.secondary[core.name];
+            const anglePerSecondary = core.size / secondaryEmotions.length;
+            
+            secondaryEmotions.forEach((emotion, index) => {
+                const tertiaryEmotions = this.data.tertiary[emotion] || [];
+                if (tertiaryEmotions.length === 2) { // Should always be 2 for dyad pairs
+                    const secondaryStartAngle = core.start + (index * anglePerSecondary);
+                    const anglePerTertiary = anglePerSecondary / tertiaryEmotions.length;
+                    
+                    // Create division line between the two emotions in the dyad
+                    const divisionAngle = secondaryStartAngle + anglePerTertiary;
+                    const divisionAngleRad = divisionAngle * Math.PI / 180;
+                    
+                    // Line from middle radius to outer radius
+                    const x1 = this.centerX + this.middleRadius * Math.cos(divisionAngleRad);
+                    const y1 = this.centerY + this.middleRadius * Math.sin(divisionAngleRad);
+                    const x2 = this.centerX + this.outerRadius * Math.cos(divisionAngleRad);
+                    const y2 = this.centerY + this.outerRadius * Math.sin(divisionAngleRad);
+                    
+                    const divisionLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    divisionLine.setAttribute("x1", x1);
+                    divisionLine.setAttribute("y1", y1);
+                    divisionLine.setAttribute("x2", x2);
+                    divisionLine.setAttribute("y2", y2);
+                    divisionLine.setAttribute("stroke", "#333");
+                    divisionLine.setAttribute("stroke-width", "0.25");
+                    divisionLine.setAttribute("class", "dyad-division-line");
+                    divisionLine.style.pointerEvents = "none";
+                    
+                    this.divisionLinesGroup.appendChild(divisionLine);
+                }
+            });
         });
     }
 
@@ -632,5 +835,11 @@ class FeelingsWheelGenerator {
         // Reset rotation
         this.currentRotation = 0;
         this.updateRotation();
+        
+        // Update the stored state for current mode only
+        const currentState = this.isChildrenMode ? this.simplifiedModeState : this.fullModeState;
+        currentState.rotation = 0;
+        currentState.selectedWedges = new Set();
+        currentState.hasBeenInitialized = true;
     }
 } 

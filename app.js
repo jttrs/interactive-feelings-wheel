@@ -26,10 +26,10 @@ class FeelingsWheelApp {
             this.wheelGenerator.reset();
         });
 
-        // Setup children's mode toggle
-        const childrenModeToggle = document.getElementById('children-mode');
-        childrenModeToggle.addEventListener('change', (event) => {
-            this.wheelGenerator.setChildrenMode(event.target.checked);
+        // Setup simplified mode toggle
+        const simplifiedModeToggle = document.getElementById('simplified-mode');
+        simplifiedModeToggle.addEventListener('change', (event) => {
+            this.wheelGenerator.setSimplifiedMode(event.target.checked);
         });
 
         // Listen for emotion selection events

@@ -10,20 +10,24 @@
     <div class="container">
         <header>
             <h1>Feelings Wheel</h1>
-            <div class="mode-toggle">
-                <label for="children-mode">
-                    <input type="checkbox" id="children-mode" />
-                    <span class="toggle-label">Simplified Version</span>
-                </label>
-            </div>
         </header>
         
         <main class="main-content">
             <div class="wheel-container">
+                <div class="wheel-controls">
+                    <div class="mode-toggle">
+                        <input type="checkbox" id="simplified-mode" class="toggle-input" />
+                        <label for="simplified-mode" class="toggle-switch">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Simplified</span>
+                        </label>
+                    </div>
+                    <button id="reset-btn" class="reset-btn" title="Reset all selections">
+                        <span class="reset-icon">⟲</span>
+                        <span class="reset-text">Reset</span>
+                    </button>
+                </div>
                 <div id="wheel-container"></div>
-                <button id="reset-btn" class="reset-icon" title="Reset all selections">
-                    ⟲
-                </button>
             </div>
         </main>
         

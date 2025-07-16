@@ -31,7 +31,7 @@ header {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
 }
 
 header h1 {
@@ -40,91 +40,91 @@ header h1 {
     margin: 0;
 }
 
-/* Mode toggle styling */
+/* Wheel Controls Container */
+.wheel-controls {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+/* Modern Toggle Switch */
 .mode-toggle {
     display: flex;
     align-items: center;
-    font-size: 0.9rem;
+    gap: 0.5rem;
 }
 
-.mode-toggle label {
+.toggle-input {
+    display: none;
+}
+
+.toggle-switch {
     display: flex;
     align-items: center;
+    gap: 0.5rem;
     cursor: pointer;
     user-select: none;
-    position: relative;
-}
-
-/* Hide default checkbox */
-.mode-toggle input[type="checkbox"] {
-    opacity: 0;
-    position: absolute;
-    width: 0;
-    height: 0;
-}
-
-/* Custom toggle switch */
-.toggle-label {
-    font-size: 0.9rem;
-    color: white;
-    position: relative;
-    padding-left: 3.5rem;
+    font-size: 0.8rem;
+    color: #666;
     font-weight: 500;
-    transition: color 0.3s ease;
 }
 
-.toggle-label::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 2.8rem;
-    height: 1.4rem;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 0.7rem;
+.toggle-slider {
+    position: relative;
+    width: 2.4rem;
+    height: 1.3rem;
+    background: #e0e0e0;
+    border-radius: 0.65rem;
     transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-.toggle-label::after {
+.toggle-slider::after {
     content: '';
     position: absolute;
+    top: 0.15rem;
     left: 0.15rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1.1rem;
-    height: 1.1rem;
+    width: 1rem;
+    height: 1rem;
     background: white;
     border-radius: 50%;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Checked state */
-.mode-toggle input[type="checkbox"]:checked + .toggle-label::before {
-    background: rgba(255, 255, 255, 0.5);
-    border-color: rgba(255, 255, 255, 0.6);
+/* Active/Checked State */
+.toggle-input:checked + .toggle-switch .toggle-slider {
+    background: #4a90e2;
 }
 
-.mode-toggle input[type="checkbox"]:checked + .toggle-label::after {
-    transform: translateY(-50%) translateX(1.4rem);
-    background: #f0f8ff;
+.toggle-input:checked + .toggle-switch .toggle-slider::after {
+    transform: translateX(1.1rem);
 }
 
-/* Hover state */
-.mode-toggle label:hover .toggle-label::before {
-    background: rgba(255, 255, 255, 0.4);
+.toggle-input:checked + .toggle-switch .toggle-label {
+    color: #4a90e2;
+    font-weight: 600;
 }
 
-.mode-toggle label:hover .toggle-label::after {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+/* Hover Effects */
+.toggle-switch:hover .toggle-slider {
+    background: #d0d0d0;
 }
 
-/* Focus state for accessibility */
-.mode-toggle input[type="checkbox"]:focus + .toggle-label::before {
-    outline: 2px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
+.toggle-input:checked + .toggle-switch:hover .toggle-slider {
+    background: #357abd;
+}
+
+.toggle-switch:hover .toggle-slider::after {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* Main Content - fill remaining space */
@@ -159,31 +159,48 @@ header h1 {
     transition: filter 0.2s ease;
 }
 
-/* Reset icon - positioned dynamically by JavaScript */
-.reset-icon {
-    position: absolute;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(74, 144, 226, 0.9);
-    color: white;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
+/* Modern Reset Button */
+.reset-btn {
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    z-index: 10;
+    gap: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    color: #666;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
 }
 
-.reset-icon:hover {
-    background: rgba(74, 144, 226, 1);
-    transform: scale(1.1);
+.reset-btn:hover {
+    background: #e9ecef;
+    border-color: #4a90e2;
+    color: #4a90e2;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
 }
 
-.reset-icon:active {
-    transform: scale(0.95);
+.reset-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(74, 144, 226, 0.3);
+}
+
+.reset-icon {
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+}
+
+.reset-btn:hover .reset-icon {
+    transform: rotate(180deg);
+}
+
+.reset-text {
+    font-size: 0.75rem;
+    line-height: 1;
 }
 
 /* Footer - minimal */

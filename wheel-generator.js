@@ -5,7 +5,7 @@ class FeelingsWheelGenerator {
         this.data = data;
         this.centerX = 300;
         this.centerY = 300;
-        this.isChildrenMode = false;
+        this.isSimplifiedMode = false;
         this.selectedWedges = new Set();
         
         // Rotation state
@@ -42,12 +42,7 @@ class FeelingsWheelGenerator {
         // Calculate optimal font sizes for each ring based on available wedge space
         // This analyzes all wedges in each ring to find the constraining factor
         
-        console.log('=== DEBUGGING DYNAMIC FONT SIZES ===');
-        console.log('Container size:', this.containerSize);
-        console.log('Core radius:', this.coreRadius);
-        console.log('Middle radius:', this.middleRadius);
-        console.log('Outer radius:', this.outerRadius);
-        console.log('Mode:', this.isChildrenMode ? 'Simplified' : 'Full');
+        // Calculate optimal font sizes for each ring based on available wedge space
         
         const coreAngles = this.calculateCoreAngles();
         const fontSizes = {};
@@ -61,7 +56,7 @@ class FeelingsWheelGenerator {
             return constraint;
         });
         fontSizes.core = Math.min(...coreConstraints);
-        console.log('Final core font size:', fontSizes.core.toFixed(1), 'px');
+
         
         // Calculate secondary emotion font sizes
         const secondaryConstraints = [];
@@ -79,10 +74,10 @@ class FeelingsWheelGenerator {
             });
         });
         fontSizes.secondary = Math.min(...secondaryConstraints);
-        console.log('Final secondary font size:', fontSizes.secondary.toFixed(1), 'px');
+
         
         // Calculate tertiary emotion font sizes (only in full mode)
-        if (!this.isChildrenMode) {
+        if (!this.isSimplifiedMode) {
             const tertiaryConstraints = [];
             coreAngles.forEach(core => {
                 const secondaryEmotions = this.data.secondary[core.name];
@@ -102,17 +97,12 @@ class FeelingsWheelGenerator {
                 });
             });
             fontSizes.tertiary = tertiaryConstraints.length > 0 ? Math.min(...tertiaryConstraints) : 12;
-            console.log('Final tertiary font size:', fontSizes.tertiary.toFixed(1), 'px');
         }
-        
-        console.log('=== FINAL FONT SIZES ===', fontSizes);
         return fontSizes;
     }
     
     calculateOptimalTextSize(radialWidth, angularWidth, textLength) {
         // Calculate optimal font size based on wedge dimensions and text requirements
-        
-        console.log(`    calculateOptimalTextSize: radial=${radialWidth.toFixed(1)}, angular=${angularWidth.toFixed(1)}°, textLen=${textLength}`);
         
         // For radial text, the constraints are:
         // 1. Font height must fit within ring thickness (radial width)
@@ -120,7 +110,6 @@ class FeelingsWheelGenerator {
         
         // Primary constraint: font height fits in ring thickness
         const maxHeightFromRing = radialWidth * 0.6; // Use 60% of ring thickness for text height
-        console.log(`    maxHeightFromRing=${maxHeightFromRing.toFixed(1)}`);
         
         // Secondary constraint: text length fits along radial span
         // For radial text, we have the full radial width to work with
@@ -132,19 +121,15 @@ class FeelingsWheelGenerator {
         
         // Calculate maximum font size that allows text to fit within radial span
         const maxSizeFromLength = availableRadialLength / (textLength * averageCharWidth);
-        console.log(`    availableRadialLength=${availableRadialLength.toFixed(1)}, maxSizeFromLength=${maxSizeFromLength.toFixed(1)}`);
         
         // Take the smaller of the two constraints
         let optimalSize = Math.min(maxHeightFromRing, maxSizeFromLength);
-        console.log(`    initial optimalSize = min(${maxHeightFromRing.toFixed(1)}, ${maxSizeFromLength.toFixed(1)}) = ${optimalSize.toFixed(1)}`);
         
         // Apply reasonable bounds
         const minSize = Math.max(6, this.containerSize * 0.008); // Minimum readable size
         const maxSize = this.containerSize * 0.08; // Maximum reasonable size
         
         optimalSize = Math.max(minSize, Math.min(maxSize, optimalSize));
-        console.log(`    bounds: min=${minSize.toFixed(1)}, max=${maxSize.toFixed(1)}`);
-        console.log(`    FINAL SIZE: ${optimalSize.toFixed(1)}px`);
         
         return optimalSize;
     }
@@ -152,13 +137,10 @@ class FeelingsWheelGenerator {
     calculateFontSize(level) {
         // Legacy method - now dynamically calculated sizes are stored and retrieved
         if (this.dynamicFontSizes) {
-            const dynamicSize = this.dynamicFontSizes[level] || this.containerSize * 0.02;
-            console.log(`calculateFontSize(${level}): Using dynamic size ${dynamicSize.toFixed(1)}px`);
-            return dynamicSize;
+            return this.dynamicFontSizes[level] || this.containerSize * 0.02;
         }
         
         // Fallback to old system if dynamic sizes not yet calculated
-        console.log(`calculateFontSize(${level}): FALLBACK - dynamic sizes not available!`);
         const baseSize = this.containerSize * 0.02;
         switch (level) {
             case 'core':
@@ -173,7 +155,7 @@ class FeelingsWheelGenerator {
     }
     
     saveCurrentState() {
-        const currentState = this.isChildrenMode ? this.simplifiedModeState : this.fullModeState;
+        const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
         currentState.rotation = this.currentRotation;
         currentState.selectedWedges = new Set(this.selectedWedges);
         currentState.hasBeenInitialized = true;
@@ -193,12 +175,12 @@ class FeelingsWheelGenerator {
         }
     }
     
-    setChildrenMode(enabled) {
+    setSimplifiedMode(enabled) {
         // Save current state before switching
         this.saveCurrentState();
         
         // Switch mode
-        this.isChildrenMode = enabled;
+        this.isSimplifiedMode = enabled;
         this.updateRadii();
         
         // Restore state for new mode
@@ -232,7 +214,7 @@ class FeelingsWheelGenerator {
             const [level, emotion] = wedgeId.split('-', 2);
             
             // Skip tertiary emotions in simplified mode since they don't exist
-            if (this.isChildrenMode && level === 'tertiary') {
+            if (this.isSimplifiedMode && level === 'tertiary') {
                 return;
             }
             
@@ -382,16 +364,16 @@ class FeelingsWheelGenerator {
         this.containerSize = size;
         
         // Calculate radii based on mode and available space
-        if (this.isChildrenMode) {
+        if (this.isSimplifiedMode) {
             // In simplified mode, use more space since no outer ring
             this.middleRadius = maxRadius; // Use full available space
-            this.coreRadius = maxRadius * 0.4; // 40% of available space
+            this.coreRadius = maxRadius * 0.5; // 50% of available space (increased from 40%)
             this.outerRadius = maxRadius; // Not used but set for consistency
         } else {
             // Normal mode with three rings
             this.outerRadius = maxRadius;
             this.middleRadius = maxRadius * 0.625; // 62.5% of outer radius
-            this.coreRadius = maxRadius * 0.25;    // 25% of outer radius
+            this.coreRadius = maxRadius * 0.35;    // 35% of outer radius (increased from 25%)
         }
         
         // Calculate dynamic font sizes based on wedge dimensions and available space
@@ -524,7 +506,7 @@ class FeelingsWheelGenerator {
         });
         
         // Create outer ring (tertiary emotions) - only in full mode
-        if (!this.isChildrenMode) {
+        if (!this.isSimplifiedMode) {
             coreAngles.forEach(core => {
                 const secondaryEmotions = this.data.secondary[core.name];
                 const anglePerSecondary = core.size / secondaryEmotions.length;
@@ -590,55 +572,14 @@ class FeelingsWheelGenerator {
         
         this.container.appendChild(this.svg);
         
-        // Position reset button based on actual wheel boundaries
-        this.positionResetButton(containerRect);
-        
         // Mark current mode as initialized
-        const currentState = this.isChildrenMode ? this.simplifiedModeState : this.fullModeState;
+        const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
         currentState.hasBeenInitialized = true;
         
         this.setupEventListeners();
     }
 
-    positionResetButton(containerRect) {
-        const resetButton = this.container.parentElement.querySelector('.reset-icon');
-        if (!resetButton) return;
-        
-        // Get container rect if not provided
-        if (!containerRect) {
-            containerRect = this.container.getBoundingClientRect();
-        }
-        
-        // Calculate wheel boundaries within container
-        const containerWidth = containerRect.width;
-        const containerHeight = containerRect.height;
-        const wheelDiameter = this.outerRadius * 2;
-        
-        // Calculate the gap between wheel edge and container edge
-        let rightGapPercent, bottomGapPercent;
-        
-        if (containerWidth > containerHeight) {
-            // Width is larger - wheel is limited by height
-            const horizontalGap = (containerWidth - wheelDiameter) / 2;
-            rightGapPercent = (horizontalGap / containerWidth) * 100;
-            bottomGapPercent = 0.5; // Minimal gap for height-limited case
-        } else {
-            // Height is larger - wheel is limited by width
-            const verticalGap = (containerHeight - wheelDiameter) / 2;
-            bottomGapPercent = (verticalGap / containerHeight) * 100;
-            rightGapPercent = 0.5; // Minimal gap for width-limited case
-        }
-        
-        // Position reset button just inside wheel edge
-        // rightGapPercent is the distance from container edge to wheel edge
-        // We want the button slightly inside the wheel edge
-        const buttonMargin = 10; // pixels inside wheel edge
-        const rightPosition = rightGapPercent + (buttonMargin / containerWidth * 100);
-        const bottomPosition = bottomGapPercent + (buttonMargin / containerHeight * 100);
-        
-        resetButton.style.right = `${rightPosition}%`;
-        resetButton.style.bottom = `${bottomPosition}%`;
-    }
+
 
     setupEventListeners() {
         // Mouse events for rotation
@@ -815,7 +756,7 @@ class FeelingsWheelGenerator {
         this.createSecondaryDivisions(coreAngles);
         
         // 3. Dyad divisions (thinnest, 1px): Between emotions within each dyad pair
-        if (!this.isChildrenMode) {
+        if (!this.isSimplifiedMode) {
             this.createDyadDivisions(coreAngles);
         }
     }
@@ -830,8 +771,8 @@ class FeelingsWheelGenerator {
             const x1 = this.centerX; // Start from center
             const y1 = this.centerY; // Start from center
             
-            // Use middle radius in children's mode, outer radius in full mode
-            const endRadius = this.isChildrenMode ? this.middleRadius : this.outerRadius;
+                    // Use middle radius in simplified mode, outer radius in full mode
+        const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
             const x2 = this.centerX + endRadius * Math.cos(divisionAngleRad);
             const y2 = this.centerY + endRadius * Math.sin(divisionAngleRad);
             
@@ -864,7 +805,7 @@ class FeelingsWheelGenerator {
                     const x1 = this.centerX + this.coreRadius * Math.cos(divisionAngleRad);
                     const y1 = this.centerY + this.coreRadius * Math.sin(divisionAngleRad);
                     
-                    const endRadius = this.isChildrenMode ? this.middleRadius : this.outerRadius;
+                    const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
                     const x2 = this.centerX + endRadius * Math.cos(divisionAngleRad);
                     const y2 = this.centerY + endRadius * Math.sin(divisionAngleRad);
                     
@@ -956,7 +897,7 @@ class FeelingsWheelGenerator {
         this.updateRotation();
         
         // Update the stored state for current mode only
-        const currentState = this.isChildrenMode ? this.simplifiedModeState : this.fullModeState;
+        const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
         currentState.rotation = 0;
         currentState.selectedWedges = new Set();
         currentState.hasBeenInitialized = true;

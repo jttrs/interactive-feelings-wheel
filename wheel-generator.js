@@ -47,7 +47,7 @@ class FeelingsWheelGenerator {
         
         // Calculate core emotion font sizes
         const coreConstraints = coreAngles.map(core => {
-            const radialWidth = this.coreRadius;
+            const radialWidth = this.coreRadius * 0.8; // Core is a circle, use 80% of radius for text space
             const angularWidth = core.size;
             return this.calculateOptimalTextSize(radialWidth, angularWidth, core.name.length);
         });
@@ -58,7 +58,7 @@ class FeelingsWheelGenerator {
         coreAngles.forEach(core => {
             const secondaryEmotions = this.data.secondary[core.name];
             const anglePerSecondary = core.size / secondaryEmotions.length;
-            const radialWidth = this.middleRadius - this.coreRadius;
+            const radialWidth = this.middleRadius - this.coreRadius; // Ring thickness
             
             secondaryEmotions.forEach(emotion => {
                 const constraint = this.calculateOptimalTextSize(radialWidth, anglePerSecondary, emotion.length);
@@ -78,7 +78,7 @@ class FeelingsWheelGenerator {
                     const tertiaryEmotions = this.data.tertiary[emotion] || [];
                     if (tertiaryEmotions.length > 0) {
                         const anglePerTertiary = anglePerSecondary / tertiaryEmotions.length;
-                        const radialWidth = this.outerRadius - this.middleRadius;
+                        const radialWidth = this.outerRadius - this.middleRadius; // Ring thickness
                         
                         tertiaryEmotions.forEach(tertiary => {
                             const constraint = this.calculateOptimalTextSize(radialWidth, anglePerTertiary, tertiary.length);
@@ -97,27 +97,31 @@ class FeelingsWheelGenerator {
         // Calculate optimal font size based on wedge dimensions and text requirements
         
         // Convert angular width from degrees to approximate linear width at middle of radial span
-        const radius = radialWidth / 2; // Use middle radius for calculation
-        const linearAngularWidth = (angularWidth * Math.PI / 180) * radius;
+        const middleRadius = radialWidth / 2; // Middle point of the ring
+        const linearAngularWidth = (angularWidth * Math.PI / 180) * middleRadius;
         
-        // Constraints for radial text (text runs along radius toward center)
-        const maxHeightFromRadial = radialWidth * 0.7; // Use 70% of radial width for text height
-        const maxWidthFromAngular = linearAngularWidth * 0.6; // Use 60% of angular width for text clearance
+        // For radial text, the primary constraints are:
+        // 1. Radial height (how much of the ring width the text can use)
+        // 2. Angular clearance (spacing between adjacent text)
         
-        // Estimate character width: approximately 0.6 * font-size for typical fonts
-        const charWidthRatio = 0.6;
-        const estimatedTextWidth = textLength * charWidthRatio;
+        const maxRadialHeight = radialWidth * 0.6; // Use 60% of ring width for text height
+        const maxAngularClearance = linearAngularWidth * 0.8; // Use 80% of angular space
         
-        // Calculate font size constraints
-        const fontSizeFromHeight = maxHeightFromRadial; // Font size ≈ text height
-        const fontSizeFromWidth = maxWidthFromAngular / (estimatedTextWidth / maxHeightFromRadial); 
+        // For radial text, font size approximately equals text height
+        let optimalSize = maxRadialHeight;
         
-        // Use the more constraining factor, with reasonable bounds
-        const optimalSize = Math.min(fontSizeFromHeight, fontSizeFromWidth);
-        const containerBasedMax = this.containerSize * 0.025; // Max 2.5% of container
-        const containerBasedMin = this.containerSize * 0.008; // Min 0.8% of container
+        // Check if text width would fit in angular space at this size
+        const estimatedTextWidth = textLength * optimalSize * 0.55; // Character width ratio
+        if (estimatedTextWidth > maxAngularClearance) {
+            // Scale down to fit angular constraints
+            optimalSize = maxAngularClearance / (textLength * 0.55);
+        }
         
-        return Math.max(containerBasedMin, Math.min(optimalSize, containerBasedMax));
+        // Apply reasonable bounds - much more permissive to allow ring differentiation
+        const absoluteMin = Math.max(6, this.containerSize * 0.005); // 0.5% of container, min 6px  
+        const absoluteMax = this.containerSize * 0.08; // 8% of container (much more generous)
+        
+        return Math.max(absoluteMin, Math.min(optimalSize, absoluteMax));
     }
 
     calculateFontSize(level) {

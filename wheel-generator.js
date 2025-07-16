@@ -38,18 +38,103 @@ class FeelingsWheelGenerator {
         // but actual calculation happens in generate().
     }
 
-    calculateFontSize(level) {
-        // Calculate responsive font size based on container size
-        // Base font sizes scale with container size - no upper limit to remain proportional
-        const baseSize = this.containerSize * 0.02; // 2% of container size as base
+    calculateDynamicFontSizes() {
+        // Calculate optimal font sizes for each ring based on available wedge space
+        // This analyzes all wedges in each ring to find the constraining factor
         
+        const coreAngles = this.calculateCoreAngles();
+        const fontSizes = {};
+        
+        // Calculate core emotion font sizes
+        const coreConstraints = coreAngles.map(core => {
+            const radialWidth = this.coreRadius;
+            const angularWidth = core.size;
+            return this.calculateOptimalTextSize(radialWidth, angularWidth, core.name.length);
+        });
+        fontSizes.core = Math.min(...coreConstraints);
+        
+        // Calculate secondary emotion font sizes
+        const secondaryConstraints = [];
+        coreAngles.forEach(core => {
+            const secondaryEmotions = this.data.secondary[core.name];
+            const anglePerSecondary = core.size / secondaryEmotions.length;
+            const radialWidth = this.middleRadius - this.coreRadius;
+            
+            secondaryEmotions.forEach(emotion => {
+                const constraint = this.calculateOptimalTextSize(radialWidth, anglePerSecondary, emotion.length);
+                secondaryConstraints.push(constraint);
+            });
+        });
+        fontSizes.secondary = Math.min(...secondaryConstraints);
+        
+        // Calculate tertiary emotion font sizes (only in full mode)
+        if (!this.isChildrenMode) {
+            const tertiaryConstraints = [];
+            coreAngles.forEach(core => {
+                const secondaryEmotions = this.data.secondary[core.name];
+                const anglePerSecondary = core.size / secondaryEmotions.length;
+                
+                secondaryEmotions.forEach(emotion => {
+                    const tertiaryEmotions = this.data.tertiary[emotion] || [];
+                    if (tertiaryEmotions.length > 0) {
+                        const anglePerTertiary = anglePerSecondary / tertiaryEmotions.length;
+                        const radialWidth = this.outerRadius - this.middleRadius;
+                        
+                        tertiaryEmotions.forEach(tertiary => {
+                            const constraint = this.calculateOptimalTextSize(radialWidth, anglePerTertiary, tertiary.length);
+                            tertiaryConstraints.push(constraint);
+                        });
+                    }
+                });
+            });
+            fontSizes.tertiary = tertiaryConstraints.length > 0 ? Math.min(...tertiaryConstraints) : 12;
+        }
+        
+        return fontSizes;
+    }
+    
+    calculateOptimalTextSize(radialWidth, angularWidth, textLength) {
+        // Calculate optimal font size based on wedge dimensions and text requirements
+        
+        // Convert angular width from degrees to approximate linear width at middle of radial span
+        const radius = radialWidth / 2; // Use middle radius for calculation
+        const linearAngularWidth = (angularWidth * Math.PI / 180) * radius;
+        
+        // Constraints for radial text (text runs along radius toward center)
+        const maxHeightFromRadial = radialWidth * 0.7; // Use 70% of radial width for text height
+        const maxWidthFromAngular = linearAngularWidth * 0.6; // Use 60% of angular width for text clearance
+        
+        // Estimate character width: approximately 0.6 * font-size for typical fonts
+        const charWidthRatio = 0.6;
+        const estimatedTextWidth = textLength * charWidthRatio;
+        
+        // Calculate font size constraints
+        const fontSizeFromHeight = maxHeightFromRadial; // Font size ≈ text height
+        const fontSizeFromWidth = maxWidthFromAngular / (estimatedTextWidth / maxHeightFromRadial); 
+        
+        // Use the more constraining factor, with reasonable bounds
+        const optimalSize = Math.min(fontSizeFromHeight, fontSizeFromWidth);
+        const containerBasedMax = this.containerSize * 0.025; // Max 2.5% of container
+        const containerBasedMin = this.containerSize * 0.008; // Min 0.8% of container
+        
+        return Math.max(containerBasedMin, Math.min(optimalSize, containerBasedMax));
+    }
+
+    calculateFontSize(level) {
+        // Legacy method - now dynamically calculated sizes are stored and retrieved
+        if (this.dynamicFontSizes) {
+            return this.dynamicFontSizes[level] || this.containerSize * 0.02;
+        }
+        
+        // Fallback to old system if dynamic sizes not yet calculated
+        const baseSize = this.containerSize * 0.02;
         switch (level) {
             case 'core':
-                return Math.max(10, baseSize * 0.8); // 80% of base, min 10px, no max
+                return Math.max(10, baseSize * 0.8);
             case 'secondary':
-                return Math.max(8, baseSize * 0.7); // 70% of base, min 8px, no max
+                return Math.max(8, baseSize * 0.7);
             case 'tertiary':
-                return Math.max(6, baseSize * 0.6); // 60% of base, min 6px, no max
+                return Math.max(6, baseSize * 0.6);
             default:
                 return baseSize;
         }
@@ -277,7 +362,9 @@ class FeelingsWheelGenerator {
             this.coreRadius = maxRadius * 0.25;    // 25% of outer radius
         }
         
-
+        // Calculate dynamic font sizes based on wedge dimensions and available space
+        // This ensures text is optimally sized for each ring while maintaining uniformity
+        this.dynamicFontSizes = this.calculateDynamicFontSizes();
         
         // Create SVG - fill container completely
         this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");

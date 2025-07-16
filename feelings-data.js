@@ -1,14 +1,15 @@
 // Feelings Wheel Data - Exact match to reference image provided by user
 const FEELINGS_DATA = {
     // Core emotions (center circle) - 7 primary emotions in clockwise order starting with Angry at 0°
+    // Colors designed using modern design system principles with balanced saturation and accessibility
     core: [
-        { name: "Angry", color: "#FFB3B3" }, // Pastel Red - at 0 degrees
-        { name: "Disgusted", color: "#D3D3D3" }, // Gray
-        { name: "Sad", color: "#B3C6FF" }, // Pastel Blue
-        { name: "Happy", color: "#FFFF99" }, // Pastel Yellow
-        { name: "Surprised", color: "#D4B3FF" }, // Pastel Purple  
-        { name: "Bad", color: "#B3FFB3" }, // Pastel Green
-        { name: "Fearful", color: "#FFD4A3" } // Pastel Orange
+        { name: "Angry", color: "#D73527" }, // Balanced red - assertive but not overwhelming
+        { name: "Disgusted", color: "#8B7355" }, // Warm brown-gray - natural aversion response
+        { name: "Sad", color: "#4A90B8" }, // Deep muted blue - contemplative and calm
+        { name: "Happy", color: "#F4C430" }, // Warm golden yellow - optimistic but not harsh
+        { name: "Surprised", color: "#8E6EB7" }, // Sophisticated purple - wonder and curiosity
+        { name: "Bad", color: "#7A9B76" }, // Muted sage green - grounding and stable
+        { name: "Fearful", color: "#DA8B47" } // Warm amber - alert but not alarming
     ],
 
     // Secondary emotions (middle ring) - reading clockwise from reference image

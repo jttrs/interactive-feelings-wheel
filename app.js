@@ -70,6 +70,8 @@ class FeelingsWheelApp {
         fullscreenEvents.forEach(eventName => {
             document.addEventListener(eventName, () => {
                 this.updateFullscreenButton();
+                // Force controls repositioning on fullscreen state changes
+                this.handleFullscreenChange();
             });
         });
         
@@ -161,6 +163,26 @@ class FeelingsWheelApp {
             fullscreenText.textContent = 'Fullscreen';
             fullscreenIcon.textContent = '⛶';
             fullscreenButton.title = 'Enter fullscreen (F11)';
+        }
+    }
+    
+    handleFullscreenChange() {
+        // Force controls repositioning with multiple attempts to handle dimension changes
+        if (this.wheelGenerator && this.wheelGenerator.positionControlsIntelligently) {
+            // Immediate repositioning
+            setTimeout(() => {
+                this.wheelGenerator.positionControlsIntelligently();
+            }, 50);
+            
+            // Secondary attempt after DOM settles
+            setTimeout(() => {
+                this.wheelGenerator.positionControlsIntelligently();
+            }, 200);
+            
+            // Final attempt to ensure stability
+            setTimeout(() => {
+                this.wheelGenerator.positionControlsIntelligently();
+            }, 500);
         }
     }
 }

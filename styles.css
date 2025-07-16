@@ -22,23 +22,7 @@ body {
     overflow: hidden;
 }
 
-/* Header - minimal */
-header {
-    background: #4a90e2;
-    color: white;
-    padding: 0.5rem 1rem;
-    text-align: center;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
-header h1 {
-    font-size: 1.2rem;
-    font-weight: normal;
-    margin: 0;
-}
 
 /* Wheel Controls Container - Dynamic Positioning */
 .wheel-controls {
@@ -290,8 +274,9 @@ header h1 {
 .fullscreen-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.4rem;
-    padding: 0.4rem 0.6rem;
+    padding: 0.5rem; /* Square padding for icon-only buttons */
     background: #f8f9fa;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
@@ -301,6 +286,8 @@ header h1 {
     cursor: pointer;
     transition: all 0.2s ease;
     text-decoration: none;
+    min-width: 32px; /* Ensure consistent size */
+    min-height: 32px;
 }
 
 .reset-btn:hover,
@@ -334,8 +321,7 @@ header h1 {
 
 .reset-text,
 .fullscreen-text {
-    font-size: 0.75rem;
-    line-height: 1;
+    display: none; /* Hide text for cleaner icon-only design */
 }
 
 /* Fullscreen Active State */
@@ -374,16 +360,6 @@ footer a:hover {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    header {
-        padding: 0.3rem 0.5rem;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    header h1 {
-        font-size: 1rem;
-    }
-    
     .mode-toggle {
         font-size: 0.8rem;
     }

@@ -42,6 +42,13 @@ class FeelingsWheelGenerator {
         // Calculate optimal font sizes for each ring based on available wedge space
         // This analyzes all wedges in each ring to find the constraining factor
         
+        console.log('=== DEBUGGING DYNAMIC FONT SIZES ===');
+        console.log('Container size:', this.containerSize);
+        console.log('Core radius:', this.coreRadius);
+        console.log('Middle radius:', this.middleRadius);
+        console.log('Outer radius:', this.outerRadius);
+        console.log('Mode:', this.isChildrenMode ? 'Simplified' : 'Full');
+        
         const coreAngles = this.calculateCoreAngles();
         const fontSizes = {};
         
@@ -49,9 +56,12 @@ class FeelingsWheelGenerator {
         const coreConstraints = coreAngles.map(core => {
             const radialWidth = this.coreRadius * 0.8; // Core is a circle, use 80% of radius for text space
             const angularWidth = core.size;
-            return this.calculateOptimalTextSize(radialWidth, angularWidth, core.name.length);
+            const constraint = this.calculateOptimalTextSize(radialWidth, angularWidth, core.name.length);
+            console.log(`Core "${core.name}": radial=${radialWidth.toFixed(1)}, angular=${angularWidth.toFixed(1)}°, chars=${core.name.length}, constraint=${constraint.toFixed(1)}px`);
+            return constraint;
         });
         fontSizes.core = Math.min(...coreConstraints);
+        console.log('Final core font size:', fontSizes.core.toFixed(1), 'px');
         
         // Calculate secondary emotion font sizes
         const secondaryConstraints = [];
@@ -60,12 +70,16 @@ class FeelingsWheelGenerator {
             const anglePerSecondary = core.size / secondaryEmotions.length;
             const radialWidth = this.middleRadius - this.coreRadius; // Ring thickness
             
+            console.log(`\nSecondary ring for ${core.name}: ring thickness=${radialWidth.toFixed(1)}, angle per emotion=${anglePerSecondary.toFixed(1)}°`);
+            
             secondaryEmotions.forEach(emotion => {
                 const constraint = this.calculateOptimalTextSize(radialWidth, anglePerSecondary, emotion.length);
+                console.log(`  "${emotion}": chars=${emotion.length}, constraint=${constraint.toFixed(1)}px`);
                 secondaryConstraints.push(constraint);
             });
         });
         fontSizes.secondary = Math.min(...secondaryConstraints);
+        console.log('Final secondary font size:', fontSizes.secondary.toFixed(1), 'px');
         
         // Calculate tertiary emotion font sizes (only in full mode)
         if (!this.isChildrenMode) {
@@ -88,17 +102,22 @@ class FeelingsWheelGenerator {
                 });
             });
             fontSizes.tertiary = tertiaryConstraints.length > 0 ? Math.min(...tertiaryConstraints) : 12;
+            console.log('Final tertiary font size:', fontSizes.tertiary.toFixed(1), 'px');
         }
         
+        console.log('=== FINAL FONT SIZES ===', fontSizes);
         return fontSizes;
     }
     
     calculateOptimalTextSize(radialWidth, angularWidth, textLength) {
         // Calculate optimal font size based on wedge dimensions and text requirements
         
+        console.log(`    calculateOptimalTextSize: radial=${radialWidth.toFixed(1)}, angular=${angularWidth.toFixed(1)}°, textLen=${textLength}`);
+        
         // Convert angular width from degrees to approximate linear width at middle of radial span
         const middleRadius = radialWidth / 2; // Middle point of the ring
         const linearAngularWidth = (angularWidth * Math.PI / 180) * middleRadius;
+        console.log(`    middleRadius=${middleRadius.toFixed(1)}, linearAngularWidth=${linearAngularWidth.toFixed(1)}`);
         
         // For radial text, the primary constraints are:
         // 1. Radial height (how much of the ring width the text can use)
@@ -106,31 +125,43 @@ class FeelingsWheelGenerator {
         
         const maxRadialHeight = radialWidth * 0.6; // Use 60% of ring width for text height
         const maxAngularClearance = linearAngularWidth * 0.8; // Use 80% of angular space
+        console.log(`    maxRadialHeight=${maxRadialHeight.toFixed(1)}, maxAngularClearance=${maxAngularClearance.toFixed(1)}`);
         
         // For radial text, font size approximately equals text height
         let optimalSize = maxRadialHeight;
+        console.log(`    initial optimalSize from radial=${optimalSize.toFixed(1)}`);
         
         // Check if text width would fit in angular space at this size
         const estimatedTextWidth = textLength * optimalSize * 0.55; // Character width ratio
+        console.log(`    estimatedTextWidth=${estimatedTextWidth.toFixed(1)} vs maxAngularClearance=${maxAngularClearance.toFixed(1)}`);
+        
         if (estimatedTextWidth > maxAngularClearance) {
             // Scale down to fit angular constraints
             optimalSize = maxAngularClearance / (textLength * 0.55);
+            console.log(`    scaled down optimalSize=${optimalSize.toFixed(1)}`);
         }
         
         // Apply reasonable bounds - much more permissive to allow ring differentiation
         const absoluteMin = Math.max(6, this.containerSize * 0.005); // 0.5% of container, min 6px  
         const absoluteMax = this.containerSize * 0.08; // 8% of container (much more generous)
+        console.log(`    bounds: min=${absoluteMin.toFixed(1)}, max=${absoluteMax.toFixed(1)}`);
         
-        return Math.max(absoluteMin, Math.min(optimalSize, absoluteMax));
+        const finalSize = Math.max(absoluteMin, Math.min(optimalSize, absoluteMax));
+        console.log(`    FINAL SIZE: ${finalSize.toFixed(1)}px`);
+        
+        return finalSize;
     }
 
     calculateFontSize(level) {
         // Legacy method - now dynamically calculated sizes are stored and retrieved
         if (this.dynamicFontSizes) {
-            return this.dynamicFontSizes[level] || this.containerSize * 0.02;
+            const dynamicSize = this.dynamicFontSizes[level] || this.containerSize * 0.02;
+            console.log(`calculateFontSize(${level}): Using dynamic size ${dynamicSize.toFixed(1)}px`);
+            return dynamicSize;
         }
         
         // Fallback to old system if dynamic sizes not yet calculated
+        console.log(`calculateFontSize(${level}): FALLBACK - dynamic sizes not available!`);
         const baseSize = this.containerSize * 0.02;
         switch (level) {
             case 'core':

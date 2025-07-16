@@ -934,17 +934,61 @@ class FeelingsWheelGenerator {
     positionControlsIntelligently() {
         if (!this.controlsContainer) return;
         
+        console.log('=== DEBUGGING CONTROLS POSITIONING ===');
+        
         const containerRect = this.container.getBoundingClientRect();
         const controlsRect = this.controlsContainer.getBoundingClientRect();
         
+        console.log('Container rect:', {
+            width: containerRect.width,
+            height: containerRect.height,
+            left: containerRect.left,
+            top: containerRect.top
+        });
+        
+        console.log('Controls rect (before positioning):', {
+            width: controlsRect.width,
+            height: controlsRect.height
+        });
+        
         // Calculate wheel boundaries
         const wheelBounds = this.calculateWheelBounds(containerRect);
+        console.log('Calculated wheel bounds:', wheelBounds);
+        
+        // Check actual SVG dimensions for comparison
+        if (this.svg) {
+            const svgRect = this.svg.getBoundingClientRect();
+            console.log('Actual SVG rect:', {
+                width: svgRect.width,
+                height: svgRect.height,
+                left: svgRect.left - containerRect.left,
+                top: svgRect.top - containerRect.top
+            });
+            
+            console.log('Wheel radius properties:', {
+                containerSize: this.containerSize,
+                outerRadius: this.outerRadius,
+                wheelDiameter: this.outerRadius * 2
+            });
+        }
         
         // Determine optimal positioning strategy
         const strategy = this.determinePositioningStrategy(wheelBounds, controlsRect, containerRect);
+        console.log('Selected strategy:', strategy);
         
         // Apply the positioning strategy
         this.applyPositioningStrategy(strategy);
+        
+        // Verify final position
+        setTimeout(() => {
+            const finalRect = this.controlsContainer.getBoundingClientRect();
+            console.log('Final controls position:', {
+                left: finalRect.left - containerRect.left,
+                top: finalRect.top - containerRect.top,
+                width: finalRect.width,
+                height: finalRect.height
+            });
+        }, 10);
     }
     
     calculateWheelBounds(containerRect) {

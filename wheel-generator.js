@@ -205,6 +205,11 @@ class FeelingsWheelGenerator {
         // Apply current state to the new wheel
         this.updateRotation();
         this.applySelectedWedges();
+        
+        // Reposition controls after wheel regeneration
+        setTimeout(() => {
+            this.positionControlsIntelligently();
+        }, 50); // Small delay to ensure DOM is updated
     }
     
     applySelectedWedges() {
@@ -572,6 +577,9 @@ class FeelingsWheelGenerator {
         
         this.container.appendChild(this.svg);
         
+        // Setup intelligent responsive controls positioning
+        this.setupSmartControlsPositioning();
+        
         // Mark current mode as initialized
         const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
         currentState.hasBeenInitialized = true;
@@ -901,5 +909,211 @@ class FeelingsWheelGenerator {
         currentState.rotation = 0;
         currentState.selectedWedges = new Set();
         currentState.hasBeenInitialized = true;
+    }
+
+    setupSmartControlsPositioning() {
+        // Get the controls container
+        const controls = this.container.parentElement.querySelector('.wheel-controls');
+        if (!controls) return;
+        
+        // Store reference for resize handling
+        this.controlsContainer = controls;
+        
+        // Calculate optimal positioning
+        this.positionControlsIntelligently();
+        
+        // Setup resize observer for dynamic adaptation
+        this.setupControlsResizeObserver();
+        
+        // Setup window resize handler
+        window.addEventListener('resize', () => {
+            this.debounceControlsPositioning();
+        });
+    }
+    
+    positionControlsIntelligently() {
+        if (!this.controlsContainer) return;
+        
+        const containerRect = this.container.getBoundingClientRect();
+        const controlsRect = this.controlsContainer.getBoundingClientRect();
+        
+        // Calculate wheel boundaries
+        const wheelBounds = this.calculateWheelBounds(containerRect);
+        
+        // Determine optimal positioning strategy
+        const strategy = this.determinePositioningStrategy(wheelBounds, controlsRect, containerRect);
+        
+        // Apply the positioning strategy
+        this.applyPositioningStrategy(strategy);
+    }
+    
+    calculateWheelBounds(containerRect) {
+        // Calculate the actual wheel boundaries within the container
+        const containerWidth = containerRect.width;
+        const containerHeight = containerRect.height;
+        const containerAspect = containerWidth / containerHeight;
+        
+        // The wheel uses the full available space, constrained by the smaller dimension
+        const wheelSize = Math.min(containerWidth, containerHeight) * 0.99; // 99% for small margin
+        
+        // Calculate wheel position (centered)
+        const wheelLeft = (containerWidth - wheelSize) / 2;
+        const wheelTop = (containerHeight - wheelSize) / 2;
+        const wheelRight = wheelLeft + wheelSize;
+        const wheelBottom = wheelTop + wheelSize;
+        
+        return {
+            left: wheelLeft,
+            top: wheelTop,
+            right: wheelRight,
+            bottom: wheelBottom,
+            width: wheelSize,
+            height: wheelSize,
+            centerX: containerWidth / 2,
+            centerY: containerHeight / 2
+        };
+    }
+    
+    determinePositioningStrategy(wheelBounds, controlsRect, containerRect) {
+        const controlsWidth = controlsRect.width;
+        const controlsHeight = controlsRect.height;
+        const margin = 16; // Minimum margin from edges and wheel
+        
+        // Calculate available spaces around the wheel
+        const spaces = {
+            topRight: {
+                available: wheelBounds.right < containerRect.width - controlsWidth - margin &&
+                          wheelBounds.top > controlsHeight + margin,
+                x: wheelBounds.right + margin,
+                y: margin,
+                priority: 1 // Preferred position
+            },
+            topLeft: {
+                available: wheelBounds.left > controlsWidth + margin &&
+                          wheelBounds.top > controlsHeight + margin,
+                x: margin,
+                y: margin,
+                priority: 2
+            },
+            bottomRight: {
+                available: wheelBounds.right < containerRect.width - controlsWidth - margin &&
+                          wheelBounds.bottom < containerRect.height - controlsHeight - margin,
+                x: wheelBounds.right + margin,
+                y: containerRect.height - controlsHeight - margin,
+                priority: 3
+            },
+            bottomLeft: {
+                available: wheelBounds.left > controlsWidth + margin &&
+                          wheelBounds.bottom < containerRect.height - controlsHeight - margin,
+                x: margin,
+                y: containerRect.height - controlsHeight - margin,
+                priority: 4
+            }
+        };
+        
+        // Find the best available position
+        const availableSpaces = Object.entries(spaces)
+            .filter(([_, space]) => space.available)
+            .sort((a, b) => a[1].priority - b[1].priority);
+        
+        if (availableSpaces.length > 0) {
+            const [position, space] = availableSpaces[0];
+            return {
+                type: 'corner',
+                position: position,
+                x: space.x,
+                y: space.y,
+                layout: 'horizontal'
+            };
+        }
+        
+        // If no corner fits, try vertical stacking in corners
+        const stackedHeight = this.getVerticalStackHeight();
+        const verticalSpaces = {
+            topRight: {
+                available: wheelBounds.right < containerRect.width - 120 && // Min width for stacked
+                          wheelBounds.top > stackedHeight + margin,
+                x: containerRect.width - 120 - margin,
+                y: margin,
+                priority: 1
+            },
+            topLeft: {
+                available: wheelBounds.left > 120 + margin &&
+                          wheelBounds.top > stackedHeight + margin,
+                x: margin,
+                y: margin,
+                priority: 2
+            }
+        };
+        
+        const availableVerticalSpaces = Object.entries(verticalSpaces)
+            .filter(([_, space]) => space.available)
+            .sort((a, b) => a[1].priority - b[1].priority);
+        
+        if (availableVerticalSpaces.length > 0) {
+            const [position, space] = availableVerticalSpaces[0];
+            return {
+                type: 'corner',
+                position: position,
+                x: space.x,
+                y: space.y,
+                layout: 'vertical'
+            };
+        }
+        
+        // Last resort: float over wheel but minimize overlap
+        return {
+            type: 'overlay',
+            x: containerRect.width - controlsWidth - margin,
+            y: margin,
+            layout: 'compact'
+        };
+    }
+    
+    getVerticalStackHeight() {
+        // Estimate height needed for vertical stack (toggle + button + gaps)
+        return 80; // Approximate height for vertically stacked controls
+    }
+    
+    applyPositioningStrategy(strategy) {
+        const controls = this.controlsContainer;
+        
+        // Remove any existing positioning classes
+        controls.classList.remove('layout-horizontal', 'layout-vertical', 'layout-compact', 'position-overlay');
+        
+        // Apply positioning
+        controls.style.position = 'absolute';
+        controls.style.left = `${strategy.x}px`;
+        controls.style.top = `${strategy.y}px`;
+        
+        // Apply layout class
+        controls.classList.add(`layout-${strategy.layout}`);
+        
+        if (strategy.type === 'overlay') {
+            controls.classList.add('position-overlay');
+        }
+    }
+    
+    setupControlsResizeObserver() {
+        if (!window.ResizeObserver) return;
+        
+        this.controlsResizeObserver = new ResizeObserver(() => {
+            this.debounceControlsPositioning();
+        });
+        
+        this.controlsResizeObserver.observe(this.container);
+        if (this.controlsContainer) {
+            this.controlsResizeObserver.observe(this.controlsContainer);
+        }
+    }
+    
+    debounceControlsPositioning() {
+        if (this.positioningTimeout) {
+            clearTimeout(this.positioningTimeout);
+        }
+        
+        this.positioningTimeout = setTimeout(() => {
+            this.positionControlsIntelligently();
+        }, 100); // 100ms debounce
     }
 } 

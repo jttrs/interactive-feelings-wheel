@@ -925,239 +925,103 @@ class FeelingsWheelGenerator {
         // Setup resize observer for dynamic adaptation
         this.setupControlsResizeObserver();
         
-        // Setup window resize handler
+        // Setup window resize handler with proper debouncing
         window.addEventListener('resize', () => {
-            this.debounceControlsPositioning();
+            clearTimeout(this.windowResizeTimeout);
+            this.windowResizeTimeout = setTimeout(() => {
+                this.positionControlsIntelligently();
+            }, 200); // Slightly longer debounce for window resize
         });
     }
     
     positionControlsIntelligently() {
-        if (!this.controlsContainer) return;
+        if (!this.controlsContainer || !this.svg) return;
         
-        console.log('=== DEBUGGING CONTROLS POSITIONING ===');
+        // Clear any previous positioning
+        this.controlsContainer.style.left = '';
+        this.controlsContainer.style.top = '';
+        this.controlsContainer.style.right = '';
+        this.controlsContainer.style.bottom = '';
         
-        const containerRect = this.container.getBoundingClientRect();
-        const controlsRect = this.controlsContainer.getBoundingClientRect();
+        // Get actual dimensions
+        const container = this.container;
+        const containerWidth = container.offsetWidth;
+        const containerHeight = container.offsetHeight;
         
-        console.log('Container rect:', {
-            width: containerRect.width,
-            height: containerRect.height,
-            left: containerRect.left,
-            top: containerRect.top
-        });
+        // Get actual SVG dimensions (the real wheel bounds)
+        const svgWidth = this.svg.offsetWidth || this.outerRadius * 2;
+        const svgHeight = this.svg.offsetHeight || this.outerRadius * 2;
         
-        console.log('Controls rect (before positioning):', {
-            width: controlsRect.width,
-            height: controlsRect.height
-        });
+        // Calculate where the wheel actually is (centered in container)
+        const wheelCenterX = containerWidth / 2;
+        const wheelCenterY = containerHeight / 2;
+        const wheelRadius = Math.min(svgWidth, svgHeight) / 2;
         
-        // Calculate wheel boundaries
-        const wheelBounds = this.calculateWheelBounds(containerRect);
-        console.log('Calculated wheel bounds:', wheelBounds);
+        // Get controls dimensions (need to temporarily show to measure)
+        const controlsWidth = this.controlsContainer.offsetWidth;
+        const controlsHeight = this.controlsContainer.offsetHeight;
         
-        // Check actual SVG dimensions for comparison
-        if (this.svg) {
-            const svgRect = this.svg.getBoundingClientRect();
-            console.log('Actual SVG rect:', {
-                width: svgRect.width,
-                height: svgRect.height,
-                left: svgRect.left - containerRect.left,
-                top: svgRect.top - containerRect.top
-            });
-            
-            console.log('Wheel radius properties:', {
-                containerSize: this.containerSize,
-                outerRadius: this.outerRadius,
-                wheelDiameter: this.outerRadius * 2
-            });
+        const margin = 16;
+        
+        // Simple, reliable positioning strategy
+        let finalX, finalY, layout = 'horizontal';
+        
+        // Try top-right (preferred)
+        const topRightX = wheelCenterX + wheelRadius + margin;
+        const topRightY = margin;
+        
+        if (topRightX + controlsWidth <= containerWidth - margin) {
+            finalX = topRightX;
+            finalY = topRightY;
         }
-        
-        // Determine optimal positioning strategy
-        const strategy = this.determinePositioningStrategy(wheelBounds, controlsRect, containerRect);
-        console.log('Selected strategy:', strategy);
-        
-        // Apply the positioning strategy
-        this.applyPositioningStrategy(strategy);
-        
-        // Verify final position
-        setTimeout(() => {
-            const finalRect = this.controlsContainer.getBoundingClientRect();
-            console.log('Final controls position:', {
-                left: finalRect.left - containerRect.left,
-                top: finalRect.top - containerRect.top,
-                width: finalRect.width,
-                height: finalRect.height
-            });
-        }, 10);
-    }
-    
-    calculateWheelBounds(containerRect) {
-        // Calculate the actual wheel boundaries within the container
-        const containerWidth = containerRect.width;
-        const containerHeight = containerRect.height;
-        const containerAspect = containerWidth / containerHeight;
-        
-        // The wheel uses the full available space, constrained by the smaller dimension
-        const wheelSize = Math.min(containerWidth, containerHeight) * 0.99; // 99% for small margin
-        
-        // Calculate wheel position (centered)
-        const wheelLeft = (containerWidth - wheelSize) / 2;
-        const wheelTop = (containerHeight - wheelSize) / 2;
-        const wheelRight = wheelLeft + wheelSize;
-        const wheelBottom = wheelTop + wheelSize;
-        
-        return {
-            left: wheelLeft,
-            top: wheelTop,
-            right: wheelRight,
-            bottom: wheelBottom,
-            width: wheelSize,
-            height: wheelSize,
-            centerX: containerWidth / 2,
-            centerY: containerHeight / 2
-        };
-    }
-    
-    determinePositioningStrategy(wheelBounds, controlsRect, containerRect) {
-        const controlsWidth = controlsRect.width;
-        const controlsHeight = controlsRect.height;
-        const margin = 16; // Minimum margin from edges and wheel
-        
-        // Calculate available spaces around the wheel
-        const spaces = {
-            topRight: {
-                available: wheelBounds.right < containerRect.width - controlsWidth - margin &&
-                          wheelBounds.top > controlsHeight + margin,
-                x: wheelBounds.right + margin,
-                y: margin,
-                priority: 1 // Preferred position
-            },
-            topLeft: {
-                available: wheelBounds.left > controlsWidth + margin &&
-                          wheelBounds.top > controlsHeight + margin,
-                x: margin,
-                y: margin,
-                priority: 2
-            },
-            bottomRight: {
-                available: wheelBounds.right < containerRect.width - controlsWidth - margin &&
-                          wheelBounds.bottom < containerRect.height - controlsHeight - margin,
-                x: wheelBounds.right + margin,
-                y: containerRect.height - controlsHeight - margin,
-                priority: 3
-            },
-            bottomLeft: {
-                available: wheelBounds.left > controlsWidth + margin &&
-                          wheelBounds.bottom < containerRect.height - controlsHeight - margin,
-                x: margin,
-                y: containerRect.height - controlsHeight - margin,
-                priority: 4
-            }
-        };
-        
-        // Find the best available position
-        const availableSpaces = Object.entries(spaces)
-            .filter(([_, space]) => space.available)
-            .sort((a, b) => a[1].priority - b[1].priority);
-        
-        if (availableSpaces.length > 0) {
-            const [position, space] = availableSpaces[0];
-            return {
-                type: 'corner',
-                position: position,
-                x: space.x,
-                y: space.y,
-                layout: 'horizontal'
-            };
+        // Try top-left
+        else if (wheelCenterX - wheelRadius - controlsWidth - margin >= margin) {
+            finalX = wheelCenterX - wheelRadius - controlsWidth - margin;
+            finalY = topRightY;
         }
-        
-        // If no corner fits, try vertical stacking in corners
-        const stackedHeight = this.getVerticalStackHeight();
-        const verticalSpaces = {
-            topRight: {
-                available: wheelBounds.right < containerRect.width - 120 && // Min width for stacked
-                          wheelBounds.top > stackedHeight + margin,
-                x: containerRect.width - 120 - margin,
-                y: margin,
-                priority: 1
-            },
-            topLeft: {
-                available: wheelBounds.left > 120 + margin &&
-                          wheelBounds.top > stackedHeight + margin,
-                x: margin,
-                y: margin,
-                priority: 2
-            }
-        };
-        
-        const availableVerticalSpaces = Object.entries(verticalSpaces)
-            .filter(([_, space]) => space.available)
-            .sort((a, b) => a[1].priority - b[1].priority);
-        
-        if (availableVerticalSpaces.length > 0) {
-            const [position, space] = availableVerticalSpaces[0];
-            return {
-                type: 'corner',
-                position: position,
-                x: space.x,
-                y: space.y,
-                layout: 'vertical'
-            };
+        // Try bottom-right
+        else if (topRightX + controlsWidth <= containerWidth - margin && 
+                 containerHeight - controlsHeight - margin > wheelCenterY + wheelRadius + margin) {
+            finalX = topRightX;
+            finalY = containerHeight - controlsHeight - margin;
         }
-        
-        // Last resort: float over wheel but minimize overlap
-        return {
-            type: 'overlay',
-            x: containerRect.width - controlsWidth - margin,
-            y: margin,
-            layout: 'compact'
-        };
-    }
-    
-    getVerticalStackHeight() {
-        // Estimate height needed for vertical stack (toggle + button + gaps)
-        return 80; // Approximate height for vertically stacked controls
-    }
-    
-    applyPositioningStrategy(strategy) {
-        const controls = this.controlsContainer;
-        
-        // Remove any existing positioning classes
-        controls.classList.remove('layout-horizontal', 'layout-vertical', 'layout-compact', 'position-overlay');
+        // Try vertical layout in top-right
+        else if (containerWidth - margin > 100) { // Min width for vertical
+            finalX = containerWidth - 100 - margin;
+            finalY = margin;
+            layout = 'vertical';
+        }
+        // Fallback: overlay mode
+        else {
+            finalX = containerWidth - controlsWidth - margin;
+            finalY = margin;
+            layout = 'compact';
+        }
         
         // Apply positioning
-        controls.style.position = 'absolute';
-        controls.style.left = `${strategy.x}px`;
-        controls.style.top = `${strategy.y}px`;
+        this.controlsContainer.style.left = `${finalX}px`;
+        this.controlsContainer.style.top = `${finalY}px`;
+        this.controlsContainer.style.right = 'auto';
+        this.controlsContainer.style.bottom = 'auto';
         
-        // Apply layout class
-        controls.classList.add(`layout-${strategy.layout}`);
-        
-        if (strategy.type === 'overlay') {
-            controls.classList.add('position-overlay');
-        }
+        // Apply layout
+        this.controlsContainer.className = `wheel-controls layout-${layout}`;
     }
+    
+
     
     setupControlsResizeObserver() {
-        if (!window.ResizeObserver) return;
-        
-        this.controlsResizeObserver = new ResizeObserver(() => {
-            this.debounceControlsPositioning();
-        });
-        
-        this.controlsResizeObserver.observe(this.container);
-        if (this.controlsContainer) {
-            this.controlsResizeObserver.observe(this.controlsContainer);
+        // Simple, reliable resize handling
+        if (window.ResizeObserver) {
+            this.controlsResizeObserver = new ResizeObserver(() => {
+                // Debounce resize events
+                clearTimeout(this.resizeTimeout);
+                this.resizeTimeout = setTimeout(() => {
+                    this.positionControlsIntelligently();
+                }, 150); // Longer debounce for stability
+            });
+            
+            this.controlsResizeObserver.observe(this.container);
         }
-    }
-    
-    debounceControlsPositioning() {
-        if (this.positioningTimeout) {
-            clearTimeout(this.positioningTimeout);
-        }
-        
-        this.positioningTimeout = setTimeout(() => {
-            this.positionControlsIntelligently();
-        }, 100); // 100ms debounce
     }
 } 

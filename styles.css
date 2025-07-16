@@ -40,11 +40,10 @@ header h1 {
     margin: 0;
 }
 
-/* Wheel Controls Container */
+/* Wheel Controls Container - Dynamic Positioning */
 .wheel-controls {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    /* Dynamic positioning - top/left set by JavaScript */
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -55,6 +54,10 @@ header h1 {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(10px);
     transition: all 0.3s ease;
+    
+    /* Fallback positioning for when JS hasn't run yet */
+    top: 1rem;
+    right: 1rem;
 }
 
 /* Layout Variations */

@@ -114,42 +114,39 @@ class FeelingsWheelGenerator {
         
         console.log(`    calculateOptimalTextSize: radial=${radialWidth.toFixed(1)}, angular=${angularWidth.toFixed(1)}°, textLen=${textLength}`);
         
-        // Convert angular width from degrees to approximate linear width at middle of radial span
-        const middleRadius = radialWidth / 2; // Middle point of the ring
-        const linearAngularWidth = (angularWidth * Math.PI / 180) * middleRadius;
-        console.log(`    middleRadius=${middleRadius.toFixed(1)}, linearAngularWidth=${linearAngularWidth.toFixed(1)}`);
+        // For radial text, the constraints are:
+        // 1. Font height must fit within ring thickness (radial width)
+        // 2. Text length must fit along the radial span (from inner to outer radius)
         
-        // For radial text, the primary constraints are:
-        // 1. Radial height (how much of the ring width the text can use)
-        // 2. Angular clearance (spacing between adjacent text)
+        // Primary constraint: font height fits in ring thickness
+        const maxHeightFromRing = radialWidth * 0.6; // Use 60% of ring thickness for text height
+        console.log(`    maxHeightFromRing=${maxHeightFromRing.toFixed(1)}`);
         
-        const maxRadialHeight = radialWidth * 0.6; // Use 60% of ring width for text height
-        const maxAngularClearance = linearAngularWidth * 0.8; // Use 80% of angular space
-        console.log(`    maxRadialHeight=${maxRadialHeight.toFixed(1)}, maxAngularClearance=${maxAngularClearance.toFixed(1)}`);
+        // Secondary constraint: text length fits along radial span
+        // For radial text, we have the full radial width to work with
+        const availableRadialLength = radialWidth * 0.9; // Use 90% of radial span for text length
         
-        // For radial text, font size approximately equals text height
-        let optimalSize = maxRadialHeight;
-        console.log(`    initial optimalSize from radial=${optimalSize.toFixed(1)}`);
+        // Estimate how much horizontal space the text would need at a given font size
+        // Average character width is approximately 0.6 * font-size for typical fonts
+        const averageCharWidth = 0.6;
         
-        // Check if text width would fit in angular space at this size
-        const estimatedTextWidth = textLength * optimalSize * 0.55; // Character width ratio
-        console.log(`    estimatedTextWidth=${estimatedTextWidth.toFixed(1)} vs maxAngularClearance=${maxAngularClearance.toFixed(1)}`);
+        // Calculate maximum font size that allows text to fit within radial span
+        const maxSizeFromLength = availableRadialLength / (textLength * averageCharWidth);
+        console.log(`    availableRadialLength=${availableRadialLength.toFixed(1)}, maxSizeFromLength=${maxSizeFromLength.toFixed(1)}`);
         
-        if (estimatedTextWidth > maxAngularClearance) {
-            // Scale down to fit angular constraints
-            optimalSize = maxAngularClearance / (textLength * 0.55);
-            console.log(`    scaled down optimalSize=${optimalSize.toFixed(1)}`);
-        }
+        // Take the smaller of the two constraints
+        let optimalSize = Math.min(maxHeightFromRing, maxSizeFromLength);
+        console.log(`    initial optimalSize = min(${maxHeightFromRing.toFixed(1)}, ${maxSizeFromLength.toFixed(1)}) = ${optimalSize.toFixed(1)}`);
         
-        // Apply reasonable bounds - much more permissive to allow ring differentiation
-        const absoluteMin = Math.max(6, this.containerSize * 0.005); // 0.5% of container, min 6px  
-        const absoluteMax = this.containerSize * 0.08; // 8% of container (much more generous)
-        console.log(`    bounds: min=${absoluteMin.toFixed(1)}, max=${absoluteMax.toFixed(1)}`);
+        // Apply reasonable bounds
+        const minSize = Math.max(6, this.containerSize * 0.008); // Minimum readable size
+        const maxSize = this.containerSize * 0.08; // Maximum reasonable size
         
-        const finalSize = Math.max(absoluteMin, Math.min(optimalSize, absoluteMax));
-        console.log(`    FINAL SIZE: ${finalSize.toFixed(1)}px`);
+        optimalSize = Math.max(minSize, Math.min(maxSize, optimalSize));
+        console.log(`    bounds: min=${minSize.toFixed(1)}, max=${maxSize.toFixed(1)}`);
+        console.log(`    FINAL SIZE: ${optimalSize.toFixed(1)}px`);
         
-        return finalSize;
+        return optimalSize;
     }
 
     calculateFontSize(level) {

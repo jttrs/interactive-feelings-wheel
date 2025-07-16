@@ -55,6 +55,10 @@ header h1 {
     backdrop-filter: blur(10px);
     transition: all 0.3s ease;
     
+    /* Prevent overflow and ensure proper sizing */
+    max-width: calc(100vw - 2rem);
+    box-sizing: border-box;
+    
     /* Fallback positioning for when JS hasn't run yet */
     top: 1rem;
     right: 1rem;
@@ -65,13 +69,17 @@ header h1 {
     flex-direction: row;
     align-items: center;
     gap: 1rem;
+    /* Natural sizing - no forced width */
 }
 
 .wheel-controls.layout-vertical {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
-    width: 120px;
+    /* Fixed width to prevent panel size changes with bold text */
+    width: 140px;
+    min-width: 130px;
+    max-width: 160px;
 }
 
 .wheel-controls.layout-compact {
@@ -164,6 +172,7 @@ header h1 {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    /* Natural sizing based on content */
 }
 
 .toggle-input {
@@ -188,6 +197,8 @@ header h1 {
     background: #e0e0e0;
     border-radius: 0.65rem;
     transition: all 0.3s ease;
+    /* Fixed size - don't grow/shrink with flex */
+    flex: 0 0 auto;
 }
 
 .toggle-slider::after {
@@ -201,6 +212,13 @@ header h1 {
     border-radius: 50%;
     transition: all 0.3s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-label {
+    /* Fixed width to accommodate bold text without affecting slider position */
+    flex: 0 0 auto;
+    min-width: 65px;
+    transition: all 0.3s ease;
 }
 
 /* Active/Checked State */

@@ -28,6 +28,8 @@ class FeelingsWheelGenerator {
             hasBeenInitialized: false
         };
         
+        // Remove sticky positioning - not wanted
+        
         // Set dynamic radii based on mode
         this.updateRadii();
     }
@@ -206,21 +208,10 @@ class FeelingsWheelGenerator {
         this.updateRotation();
         this.applySelectedWedges();
         
-        // Reposition controls after wheel regeneration
-        // Use multiple attempts with increasing delays to handle fullscreen mode changes
-        setTimeout(() => {
-            this.positionControlsIntelligently();
-        }, 50);
-        
-        // Additional positioning attempt for fullscreen mode stability
-        setTimeout(() => {
-            this.positionControlsIntelligently();
-        }, 150);
-        
-        // Final positioning attempt to ensure stability in all modes
-        setTimeout(() => {
-            this.positionControlsIntelligently();
-        }, 300);
+        // Reposition controls after wheel regeneration since wheel size may have changed
+        requestAnimationFrame(() => {
+            this.repositionControlsUnified();
+        });
     }
     
     applySelectedWedges() {
@@ -920,6 +911,11 @@ class FeelingsWheelGenerator {
         currentState.rotation = 0;
         currentState.selectedWedges = new Set();
         currentState.hasBeenInitialized = true;
+        
+        // Reposition controls after reset in case layout changed
+        requestAnimationFrame(() => {
+            this.repositionControlsUnified();
+        });
     }
 
     setupSmartControlsPositioning() {
@@ -931,7 +927,7 @@ class FeelingsWheelGenerator {
         this.controlsContainer = controls;
         
         // Calculate optimal positioning
-        this.positionControlsIntelligently();
+        this.repositionControlsUnified();
         
         // Setup resize observer for dynamic adaptation
         this.setupControlsResizeObserver();
@@ -940,79 +936,156 @@ class FeelingsWheelGenerator {
         window.addEventListener('resize', () => {
             clearTimeout(this.windowResizeTimeout);
             this.windowResizeTimeout = setTimeout(() => {
-                this.positionControlsIntelligently();
+                this.repositionControlsUnified();
             }, 200); // Slightly longer debounce for window resize
         });
+    }
+    
+    /**
+     * Unified repositioning system - immediate positioning after layout updates
+     */
+    repositionControlsUnified() {
+        if (!this.controlsContainer) return;
+        
+        // Simple immediate positioning - no artificial delays
+        try {
+            this.positionControlsIntelligently();
+        } catch (error) {
+            console.warn('Positioning failed:', error);
+        }
     }
     
     positionControlsIntelligently() {
         if (!this.controlsContainer || !this.svg) return;
         
-        // Clear any previous positioning
+        // Get positioning context
+        const context = this.getPositioningContext();
+        
+        // Simple adaptive positioning: try strategies in order of preference
+        const strategies = ['top-right', 'top-left', 'bottom-right', 'vertical', 'compact'];
+        
+        for (const strategy of strategies) {
+            const result = this.tryPositionStrategy(strategy, context);
+            if (result.success) {
+                this.applyPositioning(result, context);
+                return;
+            }
+        }
+        
+        // Fallback
+        this.applyPositioning({
+            x: 16,
+            y: 16,
+            layout: 'compact',
+            success: true
+        }, context);
+    }
+    
+    getPositioningContext() {
+        // Clear any previous positioning for clean measurement
         this.controlsContainer.style.left = '';
         this.controlsContainer.style.top = '';
         this.controlsContainer.style.right = '';
         this.controlsContainer.style.bottom = '';
         
-        // Get actual dimensions - force refresh for fullscreen compatibility
-        const container = this.container;
-        const containerWidth = container.offsetWidth || window.innerWidth;
-        const containerHeight = container.offsetHeight || window.innerHeight;
+        // Use the correct container for positioning reference
+        // Controls are positioned relative to .wheel-container (parent), not #wheel-container (wheel)
+        const parentContainer = this.container.parentElement; // .wheel-container
+        const wheelContainer = this.container; // #wheel-container
         
-        // Get actual SVG dimensions (the real wheel bounds)
-        const svgWidth = this.svg.offsetWidth || this.outerRadius * 2;
-        const svgHeight = this.svg.offsetHeight || this.outerRadius * 2;
+        // Get parent container dimensions for positioning calculations
+        let containerWidth = parentContainer.offsetWidth;
+        let containerHeight = parentContainer.offsetHeight;
         
-        // Calculate where the wheel actually is (centered in container)
+        // Fallbacks if dimensions not available
+        if (!containerWidth || containerWidth < 100) {
+            containerWidth = window.innerWidth;
+        }
+        if (!containerHeight || containerHeight < 100) {
+            containerHeight = window.innerHeight;
+        }
+        
+        // Get actual wheel dimensions from the wheel container (not parent)
+        const wheelWidth = wheelContainer.offsetWidth || containerWidth;
+        const wheelHeight = wheelContainer.offsetHeight || containerHeight;
+        
+        // Calculate where the wheel actually is (centered in parent container)
         const wheelCenterX = containerWidth / 2;
         const wheelCenterY = containerHeight / 2;
-        const wheelRadius = Math.min(svgWidth, svgHeight) / 2;
+        const wheelRadius = Math.min(wheelWidth, wheelHeight) / 2;
         
         // Get controls dimensions with fallback
         const controlsWidth = this.controlsContainer.offsetWidth || 160;
         const controlsHeight = this.controlsContainer.offsetHeight || 50;
         
         const margin = 16;
-        const safeMargin = margin * 2; // Extra margin for fullscreen stability
+        const safeMargin = margin * 2;
         
-        // Enhanced positioning strategy with better fullscreen handling
-        let finalX, finalY, layout = 'horizontal';
+        return {
+            containerWidth,
+            containerHeight,
+            wheelCenterX,
+            wheelCenterY,
+            wheelRadius,
+            controlsWidth,
+            controlsHeight,
+            margin,
+            safeMargin
+        };
+    }
+    
+    tryPositionStrategy(strategy, context) {
+        const { containerWidth, containerHeight, wheelCenterX, wheelCenterY, wheelRadius, 
+                controlsWidth, controlsHeight, margin, safeMargin } = context;
         
-        // Try top-right (preferred) with enhanced collision detection
-        const topRightX = wheelCenterX + wheelRadius + margin;
-        const topRightY = margin;
-        
-        if (topRightX + controlsWidth <= containerWidth - safeMargin) {
-            finalX = topRightX;
-            finalY = topRightY;
+        switch (strategy) {
+            case 'top-right': {
+                const x = wheelCenterX + wheelRadius + margin;
+                const y = margin;
+                const fits = x + controlsWidth <= containerWidth - safeMargin;
+                return { success: fits, x, y, layout: 'horizontal' };
+            }
+            
+            case 'top-left': {
+                const x = wheelCenterX - wheelRadius - controlsWidth - margin;
+                const y = margin;
+                const fits = x >= safeMargin;
+                return { success: fits, x, y, layout: 'horizontal' };
+            }
+            
+            case 'bottom-right': {
+                const x = wheelCenterX + wheelRadius + margin;
+                const y = containerHeight - controlsHeight - margin;
+                const fits = x + controlsWidth <= containerWidth - safeMargin && 
+                           y > wheelCenterY + wheelRadius + margin;
+                return { success: fits, x, y, layout: 'horizontal' };
+            }
+            
+            case 'vertical': {
+                const x = containerWidth - 150 - margin;
+                const y = margin;
+                const fits = containerWidth - safeMargin > 120;
+                return { success: fits, x, y, layout: 'vertical' };
+            }
+            
+            case 'compact': {
+                const x = Math.max(margin, containerWidth - controlsWidth - safeMargin);
+                const y = margin;
+                return { success: true, x, y, layout: 'compact' }; // Always succeeds
+            }
+            
+            default:
+                return { success: false };
         }
-        // Try top-left with better clearance
-        else if (wheelCenterX - wheelRadius - controlsWidth - margin >= safeMargin) {
-            finalX = wheelCenterX - wheelRadius - controlsWidth - margin;
-            finalY = topRightY;
-        }
-        // Try bottom-right with enhanced bounds checking
-        else if (topRightX + controlsWidth <= containerWidth - safeMargin && 
-                 containerHeight - controlsHeight - margin > wheelCenterY + wheelRadius + margin) {
-            finalX = topRightX;
-            finalY = containerHeight - controlsHeight - margin;
-        }
-        // Try vertical layout with better width calculation
-        else if (containerWidth - safeMargin > 120) { // Min width for vertical layout
-            finalX = containerWidth - 150 - margin; // Fixed width for vertical
-            finalY = margin;
-            layout = 'vertical';
-        }
-        // Enhanced fallback: overlay mode with safe positioning
-        else {
-            finalX = Math.max(margin, containerWidth - controlsWidth - safeMargin);
-            finalY = margin;
-            layout = 'compact';
-        }
+    }
+    
+    applyPositioning(result, context) {
+        const { x, y, layout } = result;
+        const { containerWidth, containerHeight, controlsWidth, controlsHeight } = context;
         
         // Ensure positioning is within bounds
-        finalX = Math.max(margin, Math.min(finalX, containerWidth - controlsWidth - margin));
-        finalY = Math.max(margin, Math.min(finalY, containerHeight - controlsHeight - margin));
+        const finalX = Math.max(16, Math.min(x, containerWidth - controlsWidth - 16));
+        const finalY = Math.max(16, Math.min(y, containerHeight - controlsHeight - 16));
         
         // Apply positioning
         this.controlsContainer.style.left = `${finalX}px`;
@@ -1033,7 +1106,7 @@ class FeelingsWheelGenerator {
                 // Debounce resize events
                 clearTimeout(this.resizeTimeout);
                 this.resizeTimeout = setTimeout(() => {
-                    this.positionControlsIntelligently();
+                    this.repositionControlsUnified();
                 }, 150); // Longer debounce for stability
             });
             

@@ -69,8 +69,7 @@ class FeelingsWheelApp {
         
         fullscreenEvents.forEach(eventName => {
             document.addEventListener(eventName, () => {
-                this.updateFullscreenButton();
-                // Force controls repositioning on fullscreen state changes
+                // Handle fullscreen changes (includes button update and repositioning)
                 this.handleFullscreenChange();
             });
         });
@@ -167,22 +166,14 @@ class FeelingsWheelApp {
     }
     
     handleFullscreenChange() {
-        // Force controls repositioning with multiple attempts to handle dimension changes
-        if (this.wheelGenerator && this.wheelGenerator.positionControlsIntelligently) {
-            // Immediate repositioning
-            setTimeout(() => {
-                this.wheelGenerator.positionControlsIntelligently();
-            }, 50);
-            
-            // Secondary attempt after DOM settles
-            setTimeout(() => {
-                this.wheelGenerator.positionControlsIntelligently();
-            }, 200);
-            
-            // Final attempt to ensure stability
-            setTimeout(() => {
-                this.wheelGenerator.positionControlsIntelligently();
-            }, 500);
+        // Update button state immediately
+        this.updateFullscreenButton();
+        
+        // Use requestAnimationFrame to ensure positioning happens after browser layout update
+        if (this.wheelGenerator && this.wheelGenerator.repositionControlsUnified) {
+            requestAnimationFrame(() => {
+                this.wheelGenerator.repositionControlsUnified();
+            });
         }
     }
 }

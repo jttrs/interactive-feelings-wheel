@@ -24,6 +24,7 @@ class FeelingsWheelApp {
         const resetButton = document.getElementById('reset-btn');
         resetButton.addEventListener('click', () => {
             this.wheelGenerator.reset();
+            this.updateSelectionCount(); // Update panel when reset
         });
 
         // Setup fullscreen functionality
@@ -35,10 +36,12 @@ class FeelingsWheelApp {
             this.wheelGenerator.setSimplifiedMode(event.target.checked);
         });
 
+        // Setup information panel
+        this.setupInformationPanel();
+
         // Listen for emotion selection events
         document.addEventListener('emotionSelected', (event) => {
-            // Currently no side panel, so we don't need to do anything
-            // Just let the visual selection happen
+            this.handleEmotionSelection(event.detail);
         });
     }
 
@@ -174,6 +177,166 @@ class FeelingsWheelApp {
             requestAnimationFrame(() => {
                 this.wheelGenerator.repositionControlsUnified();
             });
+        }
+    }
+
+    // ===== INFORMATION PANEL FUNCTIONALITY =====
+
+    setupInformationPanel() {
+        // Setup panel toggle button
+        const panelToggle = document.getElementById('panel-toggle');
+        panelToggle.addEventListener('click', () => {
+            this.togglePanel();
+        });
+
+        // Initialize selection count
+        this.updateSelectionCount();
+
+        // Show welcome state initially
+        this.showWelcomeState();
+    }
+
+    handleEmotionSelection(detail) {
+        const { emotion, level, selected } = detail;
+        
+        // Update selection count
+        this.updateSelectionCount();
+
+        // Get current selections from wheel generator
+        const selections = this.wheelGenerator.selectedWedges;
+        
+        if (selections.size === 0) {
+            // No selections - show welcome state
+            this.showWelcomeState();
+        } else if (selections.size === 1) {
+            // Single selection - show details for that emotion
+            const [wedgeId] = selections;
+            const [emotionLevel, emotionName] = wedgeId.split('-', 2);
+            this.showEmotionDetails(emotionName, emotionLevel);
+        } else {
+            // Multiple selections - show summary
+            this.showMultipleSelectionsState(selections);
+        }
+    }
+
+    updateSelectionCount() {
+        const countElement = document.getElementById('selection-count');
+        const count = this.wheelGenerator ? this.wheelGenerator.selectedWedges.size : 0;
+        countElement.textContent = count;
+    }
+
+    showWelcomeState() {
+        const welcomeSection = document.getElementById('panel-welcome');
+        const emotionSection = document.getElementById('panel-emotion-info');
+        
+        welcomeSection.style.display = 'block';
+        emotionSection.style.display = 'none';
+    }
+
+    showEmotionDetails(emotion, level) {
+        const welcomeSection = document.getElementById('panel-welcome');
+        const emotionSection = document.getElementById('panel-emotion-info');
+        
+        // Update emotion details
+        document.getElementById('emotion-title').textContent = emotion;
+        document.getElementById('emotion-level').textContent = level.charAt(0).toUpperCase() + level.slice(1);
+        
+        // Get emotion family (parent core emotion)
+        const family = this.getEmotionFamily(emotion, level);
+        document.getElementById('emotion-family').textContent = family;
+        
+        // Get emotion description
+        const description = this.getEmotionDescription(emotion, level);
+        document.getElementById('emotion-description').textContent = description;
+        
+        // Show emotion section
+        welcomeSection.style.display = 'none';
+        emotionSection.style.display = 'block';
+    }
+
+    showMultipleSelectionsState(selections) {
+        const welcomeSection = document.getElementById('panel-welcome');
+        const emotionSection = document.getElementById('panel-emotion-info');
+        
+        // Update for multiple selections
+        document.getElementById('emotion-title').textContent = 'Multiple Emotions Selected';
+        document.getElementById('emotion-level').textContent = 'Mixed';
+        document.getElementById('emotion-family').textContent = 'Various';
+        
+        const emotionList = Array.from(selections).map(wedgeId => {
+            const [level, emotion] = wedgeId.split('-', 2);
+            return emotion;
+        }).join(', ');
+        
+        document.getElementById('emotion-description').textContent = 
+            `You have selected ${selections.size} emotions: ${emotionList}. This combination might reflect a complex emotional state.`;
+        
+        // Show emotion section
+        welcomeSection.style.display = 'none';
+        emotionSection.style.display = 'block';
+    }
+
+    getEmotionFamily(emotion, level) {
+        // Find which core emotion family this belongs to
+        if (level === 'core') {
+            return emotion; // Core emotions are their own family
+        }
+        
+        // For secondary emotions, find the core parent
+        for (const coreEmotion of FEELINGS_DATA.core) {
+            if (FEELINGS_DATA.secondary[coreEmotion.name]?.includes(emotion)) {
+                return coreEmotion.name;
+            }
+        }
+        
+        // For tertiary emotions, find through secondary
+        for (const coreEmotion of FEELINGS_DATA.core) {
+            const secondaryEmotions = FEELINGS_DATA.secondary[coreEmotion.name] || [];
+            for (const secondaryEmotion of secondaryEmotions) {
+                if (FEELINGS_DATA.tertiary[secondaryEmotion]?.includes(emotion)) {
+                    return coreEmotion.name;
+                }
+            }
+        }
+        
+        return 'Unknown';
+    }
+
+    getEmotionDescription(emotion, level) {
+        // Basic descriptions for now - will be enhanced with real dictionary definitions later
+        const descriptions = {
+            // Core emotions
+            'Happy': 'A positive emotional state characterized by feelings of joy, satisfaction, contentment, and fulfillment.',
+            'Sad': 'An emotional state characterized by feelings of disappointment, grief, hopelessness, disinterest, and dampened mood.',
+            'Angry': 'A strong feeling of annoyance, displeasure, or hostility arising from perceived provocation, hurt, or threat.',
+            'Fearful': 'An emotion induced by a perceived threat, causing a desire to escape, hide, or freeze.',
+            'Surprised': 'A sudden feeling of wonder or astonishment caused by something unexpected.',
+            'Disgusted': 'A feeling of revulsion or strong disapproval aroused by something unpleasant or offensive.',
+            'Bad': 'A general negative emotional state encompassing discomfort, dissatisfaction, or distress.',
+            
+            // Common secondary emotions
+            'Frustrated': 'Feeling upset or annoyed as a result of being unable to change or achieve something.',
+            'Excited': 'Feeling very enthusiastic and eager about something.',
+            'Nervous': 'Feeling easily agitated, anxious, or apprehensive.',
+            'Content': 'Feeling satisfied and at peace with one\'s situation.',
+            'Lonely': 'Feeling sad because one has no friends or company.',
+            'Proud': 'Feeling deep satisfaction derived from one\'s own achievements.',
+        };
+        
+        return descriptions[emotion] || `${emotion} is a ${level}-level emotion that represents a specific aspect of human emotional experience. Understanding this emotion can help with emotional awareness and regulation.`;
+    }
+
+    togglePanel() {
+        const panel = document.querySelector('.info-panel');
+        const toggleIcon = document.querySelector('.panel-toggle-icon');
+        
+        panel.classList.toggle('collapsed');
+        
+        // Update toggle icon direction
+        if (panel.classList.contains('collapsed')) {
+            toggleIcon.textContent = '▶'; // Right arrow when collapsed
+        } else {
+            toggleIcon.textContent = '◀'; // Left arrow when expanded
         }
     }
 }

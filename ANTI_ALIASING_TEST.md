@@ -55,7 +55,15 @@
   - ✅ No visual artifacts during rotation
   - ✅ Maintained quality at all rotation speeds
 
-#### **4. Selection/Hover Quality Test**
+#### **4. Shadow System Test**
+- **Focus**: Shadow behavior and positioning
+- **Actions**: Select emotions and rotate wheel
+- **What to Look For**:
+  - ✅ Shadows rotate naturally with wheel content
+  - ✅ Shadow offset stays constant toward bottom-right
+  - ✅ Shadows maintain proper positioning during rotation
+
+#### **5. Selection/Hover Quality Test**
 - **Focus**: Visual effects on emphasized wedges
 - **Actions**: Click wedges, hover over elements
 - **What to Look For**:
@@ -63,7 +71,7 @@
   - ✅ Smooth transitions in visual states
   - ✅ No degraded quality on selected elements
 
-#### **5. Performance Test**
+#### **6. Performance Test**
 - **Focus**: Ensure no performance regression
 - **Actions**: Rapid rotation, multiple selections
 - **What to Look For**:
@@ -77,6 +85,7 @@
 - **Significantly crisper** wedge edges and boundaries
 - **Smoother text rendering** especially during rotation
 - **More polished overall appearance** with professional-quality anti-aliasing
+- **Fixed shadow system** - shadows rotate correctly with wheel and maintain offset
 
 ### **Performance**  
 - **Hardware-accelerated transforms** for smoother rotation

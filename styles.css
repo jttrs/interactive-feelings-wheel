@@ -434,8 +434,7 @@ text {
 }
 
 .wedge:hover {
-    /* Subtle scale and enhancement on hover */
-    transform: scale(1.02);
+    /* Subtle enhancement on hover - NO transform to avoid SVG conflicts */
     filter: saturate(1.2) brightness(1.1);
     stroke-width: 1.5px !important;
 }
@@ -457,9 +456,9 @@ text {
 }
 
 @keyframes selectionPop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+    0% { filter: saturate(1.4) brightness(1.15); }
+    50% { filter: saturate(1.6) brightness(1.25); }
+    100% { filter: saturate(1.4) brightness(1.15); }
 }
 
 /* Smooth deselection animation */
@@ -491,7 +490,10 @@ text {
 
 .reset-btn:hover,
 .fullscreen-btn:hover {
-    transform: translateY(-1px) scale(1.05);
+    /* Remove transforms to avoid conflicts - use shadow/background instead */
+    background: #e0e8f4;
+    border-color: #4a90e2;
+    color: #4a90e2;
     box-shadow: 0 4px 12px rgba(74, 144, 226, 0.25);
 }
 

@@ -852,7 +852,8 @@ class FeelingsWheelGenerator {
         
         // Click events for emotions
         this.svg.addEventListener('click', (e) => {
-            if (this.isDragging || this.isAnimating) return;
+            if (this.isDragging) return;
+            // Remove animation blocking for clicks - only block drag/wheel during animations
             
             const emotion = e.target.getAttribute('data-emotion');
             if (emotion && e.target.classList.contains('wedge')) {
@@ -866,45 +867,32 @@ class FeelingsWheelGenerator {
         const emotion = wedge.getAttribute('data-emotion');
         const level = wedge.getAttribute('data-level');
         
-        // Toggle selection
+        // Toggle selection - simplified without complex animations
         const wedgeId = `${level}-${emotion}`;
         if (this.selectedWedges.has(wedgeId)) {
-            // Deselection with animation
+            // Deselection
             this.selectedWedges.delete(wedgeId);
+            wedge.classList.remove('selected');
             
-            // Add deselection animation class
-            wedge.classList.add('deselecting');
+            // Clear any lingering visual effects
+            wedge.style.filter = '';
+            wedge.style.opacity = '';
+            wedge.style.transform = '';
+            this.removeShadowCopy(wedgeId);
             
-            // Remove after animation completes
-            setTimeout(() => {
-                wedge.classList.remove('selected', 'deselecting');
-                // Clear any lingering visual effects
-                wedge.style.filter = '';
-                wedge.style.opacity = '';
-                wedge.style.transform = '';
-                this.removeShadowCopy(wedgeId);
-                // Move wedge and its text back to base layer
-                this.baseGroup.appendChild(wedge);
-                this.moveTextForWedge(emotion, this.baseGroup);
-            }, 150); // Match deselection animation duration
+            // Move wedge and its text back to base layer
+            this.baseGroup.appendChild(wedge);
+            this.moveTextForWedge(emotion, this.baseGroup);
             
         } else {
-            // Selection with animation
+            // Selection
             this.selectedWedges.add(wedgeId);
-            
-            // Add selection animation class
-            wedge.classList.add('selecting');
             wedge.classList.add('selected');
             
             this.createShadowCopy(wedge, wedgeId);
             // Move wedge and its text to top layer
             this.topGroup.appendChild(wedge);
             this.moveTextForWedge(emotion, this.topGroup);
-            
-            // Remove animation class after animation completes
-            setTimeout(() => {
-                wedge.classList.remove('selecting');
-            }, 200); // Match selection animation duration
         }
         
         // Dispatch custom event for app to handle
@@ -1135,21 +1123,15 @@ class FeelingsWheelGenerator {
         // Clear all shadow copies
         this.shadowGroup.innerHTML = '';
         
-        // Smooth animated reset rotation to 0
-        if (Math.abs(this.currentRotation) > 1) {
-            // Only animate if there's significant rotation
-            this.animateRotation(0, 800, FeelingsWheelGenerator.Easing.easeOut).then(() => {
-                // Reposition controls after animation completes
-                this.repositionControlsUnified();
-            });
-        } else {
-            // No animation needed, just snap to 0
-            this.currentRotation = 0;
-            this.updateRotation();
-            requestAnimationFrame(() => {
-                this.repositionControlsUnified();
-            });
-        }
+        // For debugging - temporarily disable smooth animation and use instant reset
+        console.log('Reset called, current rotation:', this.currentRotation, 'isAnimating:', this.isAnimating);
+        
+        // Instant reset for now to debug other issues
+        this.currentRotation = 0;
+        this.updateRotation();
+        requestAnimationFrame(() => {
+            this.repositionControlsUnified();
+        });
         
         // Update the stored state for current mode only
         const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;

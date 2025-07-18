@@ -8,27 +8,87 @@
 </head>
 <body>
     <div class="container">
-        <main class="main-content">
-            <div class="wheel-container">
-                <div class="wheel-controls">
-                    <div class="mode-toggle">
-                        <input type="checkbox" id="simplified-mode" class="toggle-input" />
-                        <label for="simplified-mode" class="toggle-switch">
-                            <span class="toggle-slider"></span>
-                            <span class="toggle-label">Simplified</span>
-                        </label>
+        <main class="main-layout">
+            <!-- Left Column: Wheel Area (70%) -->
+            <section class="wheel-section">
+                <div class="wheel-container">
+                    <div class="wheel-controls">
+                        <div class="mode-toggle">
+                            <input type="checkbox" id="simplified-mode" class="toggle-input" />
+                            <label for="simplified-mode" class="toggle-switch">
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label">Simplified</span>
+                            </label>
+                        </div>
+                        <button id="fullscreen-btn" class="fullscreen-btn" title="Toggle fullscreen">
+                            <span class="fullscreen-icon">⛶</span>
+                            <span class="fullscreen-text">Fullscreen</span>
+                        </button>
+                        <button id="reset-btn" class="reset-btn" title="Reset all selections">
+                            <span class="reset-icon">⟲</span>
+                            <span class="reset-text">Reset</span>
+                        </button>
                     </div>
-                    <button id="fullscreen-btn" class="fullscreen-btn" title="Toggle fullscreen">
-                        <span class="fullscreen-icon">⛶</span>
-                        <span class="fullscreen-text">Fullscreen</span>
-                    </button>
-                    <button id="reset-btn" class="reset-btn" title="Reset all selections">
-                        <span class="reset-icon">⟲</span>
-                        <span class="reset-text">Reset</span>
-                    </button>
+                    <div id="wheel-container"></div>
                 </div>
-                <div id="wheel-container"></div>
-            </div>
+            </section>
+
+            <!-- Right Column: Information Panel (30%) -->
+            <aside class="info-panel">
+                <header class="panel-header">
+                    <h2 class="panel-title">Emotion Explorer</h2>
+                    <button class="panel-toggle" id="panel-toggle" aria-label="Toggle information panel">
+                        <span class="panel-toggle-icon">◀</span>
+                    </button>
+                </header>
+                
+                <div class="panel-content">
+                    <div class="panel-section" id="panel-welcome">
+                        <div class="panel-placeholder">
+                            <div class="placeholder-icon">🎯</div>
+                            <h3 class="placeholder-title">Explore Your Emotions</h3>
+                            <p class="placeholder-text">Click on any emotion in the wheel to learn more about it. The wheel contains over 70 emotions organized by core feeling families.</p>
+                            <div class="placeholder-features">
+                                <div class="feature-item">
+                                    <span class="feature-icon">🔄</span>
+                                    <span class="feature-text">Rotate to explore</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-icon">🎯</span>
+                                    <span class="feature-text">Click to select</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-icon">📚</span>
+                                    <span class="feature-text">Learn and understand</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-section" id="panel-emotion-info" style="display: none;">
+                        <div class="emotion-details">
+                            <h3 class="emotion-title" id="emotion-title">Selected Emotion</h3>
+                            <div class="emotion-meta">
+                                <span class="emotion-level" id="emotion-level">Core</span>
+                                <span class="emotion-family" id="emotion-family">Family</span>
+                            </div>
+                            <div class="emotion-content">
+                                <p class="emotion-description" id="emotion-description">
+                                    Detailed information about the selected emotion will appear here.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <footer class="panel-footer">
+                    <div class="selection-count">
+                        <span class="count-label">Selected:</span>
+                        <span class="count-value" id="selection-count">0</span>
+                        <span class="count-unit">emotions</span>
+                    </div>
+                </footer>
+            </aside>
         </main>
         
         <footer>

@@ -730,23 +730,17 @@ class FeelingsWheelGenerator {
     }
     
     updateShadowTransform(shadowGroup) {
-        // Calculate shadow offset based on fixed light source (top-left)
+        // Fixed light source from top-left - shadow always casts toward bottom-right
         const shadowOffsetX = 4;
         const shadowOffsetY = 4;
         
-        // For a fixed light source, shadow should move opposite to wheel rotation
-        // This creates the illusion that the light source stays fixed while the wheel rotates
-        const rotationRad = (-this.currentRotation * Math.PI) / 180; // Negative rotation
-        const cosRot = Math.cos(rotationRad);
-        const sinRot = Math.sin(rotationRad);
+        // For a fixed light source, the shadow offset direction stays constant in world space
+        // The shadow content rotates with the wheel, but the offset stays fixed
+        // No rotation of the offset - it always points toward bottom-right
         
-        // Calculate shadow offset that maintains fixed light source appearance
-        const offsetX = shadowOffsetX * cosRot - shadowOffsetY * sinRot;
-        const offsetY = shadowOffsetX * sinRot + shadowOffsetY * cosRot;
-        
-        // Apply only the offset - the shadow content rotates with the wheel
+        // Shadow content rotates with wheel, offset stays constant relative to screen
         shadowGroup.setAttribute('transform', 
-            `translate(${offsetX}, ${offsetY}) rotate(${this.currentRotation} ${this.centerX} ${this.centerY})`);
+            `translate(${shadowOffsetX}, ${shadowOffsetY}) rotate(${this.currentRotation} ${this.centerX} ${this.centerY})`);
     }
     
     updateAllShadowTransforms() {

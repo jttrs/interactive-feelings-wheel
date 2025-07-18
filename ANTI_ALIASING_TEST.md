@@ -14,9 +14,10 @@
 ### 🔧 **Technical Implementation**
 - `shape-rendering: geometricPrecision` - Precise vector rendering
 - `text-rendering: optimizeLegibility` - Crisp, readable text
-- `will-change: transform` + `translateZ(0)` - Hardware acceleration
+- Surgical hardware acceleration - only for CSS transform groups
 - `vector-effect: non-scaling-stroke` - Consistent stroke width
 - `@media (prefers-reduced-motion)` - Accessibility support
+- **Zero interference** with shadow positioning system
 
 ## Test Instructions
 
@@ -88,9 +89,10 @@
 - **Fixed shadow system** - shadows rotate correctly with wheel and maintain offset
 
 ### **Performance**  
-- **Hardware-accelerated transforms** for smoother rotation
+- **Hardware-accelerated transforms** for smoother rotation (surgical implementation)
 - **Optimized rendering pipeline** with proper paint order
 - **Accessibility-aware** optimizations
+- **Fixed shadow positioning** - no CSS/SVG transform conflicts
 
 ### **Browser Consistency**
 - **Cross-browser compatibility** with vendor-specific optimizations

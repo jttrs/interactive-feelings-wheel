@@ -16,6 +16,12 @@ class FeelingsWheelGenerator {
         this.wheelGroup = null;
         this.textElements = [];
         
+        // Animation system
+        this.animations = new Map();
+        this.animationId = null;
+        this.isAnimating = false;
+        this.animationCounter = 0;
+        
         // State management for mode switching
         this.fullModeState = {
             rotation: 0,
@@ -33,6 +39,208 @@ class FeelingsWheelGenerator {
         // Set dynamic radii based on mode
         this.updateRadii();
     }
+
+    // ===== 60FPS ANIMATION ENGINE =====
+    
+    /**
+     * Easing functions for natural motion
+     */
+    static Easing = {
+        linear: (t) => t,
+        easeOut: (t) => 1 - Math.pow(1 - t, 3),
+        easeInOut: (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+        bounce: (t) => {
+            const n1 = 7.5625;
+            const d1 = 2.75;
+            if (t < 1 / d1) {
+                return n1 * t * t;
+            } else if (t < 2 / d1) {
+                return n1 * (t -= 1.5 / d1) * t + 0.75;
+            } else if (t < 2.5 / d1) {
+                return n1 * (t -= 2.25 / d1) * t + 0.9375;
+            } else {
+                return n1 * (t -= 2.625 / d1) * t + 0.984375;
+            }
+        }
+    };
+
+    /**
+     * Add a new animation to the system
+     * @param {Object} options - Animation configuration
+     * @returns {string} - Animation ID for tracking
+     */
+    addAnimation(options) {
+        const id = `anim_${++this.animationCounter}`;
+        const animation = {
+            id,
+            startTime: performance.now(),
+            duration: options.duration || 800,
+            from: options.from,
+            to: options.to,
+            easing: options.easing || FeelingsWheelGenerator.Easing.easeOut,
+            onUpdate: options.onUpdate || (() => {}),
+            onComplete: options.onComplete || (() => {}),
+            active: true
+        };
+        
+        this.animations.set(id, animation);
+        
+        // Start animation loop if not already running
+        if (!this.isAnimating) {
+            this.startAnimationLoop();
+        }
+        
+        return id;
+    }
+
+    /**
+     * Remove an animation from the system
+     * @param {string} id - Animation ID to remove
+     */
+    removeAnimation(id) {
+        this.animations.delete(id);
+        
+        // Stop animation loop if no active animations
+        if (this.animations.size === 0) {
+            this.stopAnimationLoop();
+        }
+    }
+
+    /**
+     * Start the 60fps animation loop
+     */
+    startAnimationLoop() {
+        if (this.isAnimating) return;
+        
+        this.isAnimating = true;
+        
+        // Add visual feedback for animation state
+        if (this.svg) {
+            this.svg.classList.add('animating');
+        }
+        
+        const animate = (currentTime) => {
+            if (!this.isAnimating) return;
+            
+            let hasActiveAnimations = false;
+            
+            // Update all active animations
+            for (const [id, animation] of this.animations) {
+                if (!animation.active) continue;
+                
+                const elapsed = currentTime - animation.startTime;
+                const progress = Math.min(elapsed / animation.duration, 1);
+                const easedProgress = animation.easing(progress);
+                
+                // Calculate current value based on eased progress
+                let currentValue;
+                if (typeof animation.from === 'number' && typeof animation.to === 'number') {
+                    currentValue = animation.from + (animation.to - animation.from) * easedProgress;
+                } else if (Array.isArray(animation.from) && Array.isArray(animation.to)) {
+                    currentValue = animation.from.map((fromVal, index) => 
+                        fromVal + (animation.to[index] - fromVal) * easedProgress
+                    );
+                } else {
+                    currentValue = easedProgress;
+                }
+                
+                // Call update callback
+                animation.onUpdate(currentValue, easedProgress);
+                
+                // Check if animation is complete
+                if (progress >= 1) {
+                    animation.active = false;
+                    animation.onComplete();
+                    this.removeAnimation(id);
+                } else {
+                    hasActiveAnimations = true;
+                }
+            }
+            
+            // Continue loop if there are active animations
+            if (hasActiveAnimations) {
+                this.animationId = requestAnimationFrame(animate);
+            } else {
+                this.stopAnimationLoop();
+            }
+        };
+        
+        this.animationId = requestAnimationFrame(animate);
+    }
+
+    /**
+     * Stop the animation loop
+     */
+    stopAnimationLoop() {
+        this.isAnimating = false;
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        
+        // Remove visual feedback for animation state
+        if (this.svg) {
+            this.svg.classList.remove('animating');
+        }
+    }
+
+    /**
+     * Clear all animations
+     */
+    clearAllAnimations() {
+        this.animations.clear();
+        this.stopAnimationLoop();
+    }
+
+    /**
+     * Calculate the shortest rotation path between two angles
+     * @param {number} from - Starting angle in degrees
+     * @param {number} to - Target angle in degrees
+     * @returns {number} - Shortest delta angle (-180 to +180)
+     */
+    getShortestRotationPath(from, to) {
+        let delta = to - from;
+        
+        // Normalize to -180 to +180 range
+        while (delta > 180) delta -= 360;
+        while (delta < -180) delta += 360;
+        
+        return delta;
+    }
+
+    /**
+     * Animate wheel rotation to a target angle
+     * @param {number} targetRotation - Target rotation in degrees
+     * @param {number} duration - Animation duration in milliseconds
+     * @param {Function} easing - Easing function
+     * @returns {Promise} - Resolves when animation completes
+     */
+    animateRotation(targetRotation, duration = 800, easing = FeelingsWheelGenerator.Easing.easeOut) {
+        return new Promise((resolve) => {
+            // Calculate shortest path
+            const startRotation = this.currentRotation;
+            const delta = this.getShortestRotationPath(startRotation, targetRotation);
+            const endRotation = startRotation + delta;
+            
+            this.addAnimation({
+                duration,
+                from: startRotation,
+                to: endRotation,
+                easing,
+                onUpdate: (rotation) => {
+                    this.currentRotation = rotation;
+                    this.updateRotation();
+                },
+                onComplete: () => {
+                    this.currentRotation = targetRotation;
+                    this.updateRotation();
+                    resolve();
+                }
+            });
+        });
+    }
+
+    // ===== END ANIMATION ENGINE =====
     
     updateRadii() {
         // Radii are now calculated dynamically in the generate() method
@@ -597,6 +805,9 @@ class FeelingsWheelGenerator {
     setupEventListeners() {
         // Mouse events for rotation
         this.svg.addEventListener('mousedown', (e) => {
+            // Prevent interaction during animations
+            if (this.isAnimating) return;
+            
             this.isDragging = true;
             this.svg.style.cursor = 'grabbing';
             
@@ -609,7 +820,7 @@ class FeelingsWheelGenerator {
         });
         
         document.addEventListener('mousemove', (e) => {
-            if (!this.isDragging) return;
+            if (!this.isDragging || this.isAnimating) return;
             
             const rect = this.svg.getBoundingClientRect();
             const mouseX = e.clientX - rect.left - rect.width / 2;
@@ -631,6 +842,9 @@ class FeelingsWheelGenerator {
         
         // Mouse wheel for rotation
         this.svg.addEventListener('wheel', (e) => {
+            // Prevent interaction during animations
+            if (this.isAnimating) return;
+            
             e.preventDefault();
             this.currentRotation += e.deltaY > 0 ? 5 : -5;
             this.updateRotation();
@@ -638,7 +852,7 @@ class FeelingsWheelGenerator {
         
         // Click events for emotions
         this.svg.addEventListener('click', (e) => {
-            if (this.isDragging) return;
+            if (this.isDragging || this.isAnimating) return;
             
             const emotion = e.target.getAttribute('data-emotion');
             if (emotion && e.target.classList.contains('wedge')) {
@@ -655,23 +869,42 @@ class FeelingsWheelGenerator {
         // Toggle selection
         const wedgeId = `${level}-${emotion}`;
         if (this.selectedWedges.has(wedgeId)) {
+            // Deselection with animation
             this.selectedWedges.delete(wedgeId);
-            wedge.classList.remove('selected');
-            // Clear any lingering visual effects
-            wedge.style.filter = '';
-            wedge.style.opacity = '';
-            wedge.style.transform = '';
-            this.removeShadowCopy(wedgeId);
-            // Move wedge and its text back to base layer
-            this.baseGroup.appendChild(wedge);
-            this.moveTextForWedge(emotion, this.baseGroup);
+            
+            // Add deselection animation class
+            wedge.classList.add('deselecting');
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                wedge.classList.remove('selected', 'deselecting');
+                // Clear any lingering visual effects
+                wedge.style.filter = '';
+                wedge.style.opacity = '';
+                wedge.style.transform = '';
+                this.removeShadowCopy(wedgeId);
+                // Move wedge and its text back to base layer
+                this.baseGroup.appendChild(wedge);
+                this.moveTextForWedge(emotion, this.baseGroup);
+            }, 150); // Match deselection animation duration
+            
         } else {
+            // Selection with animation
             this.selectedWedges.add(wedgeId);
+            
+            // Add selection animation class
+            wedge.classList.add('selecting');
             wedge.classList.add('selected');
+            
             this.createShadowCopy(wedge, wedgeId);
             // Move wedge and its text to top layer
             this.topGroup.appendChild(wedge);
             this.moveTextForWedge(emotion, this.topGroup);
+            
+            // Remove animation class after animation completes
+            setTimeout(() => {
+                wedge.classList.remove('selecting');
+            }, 200); // Match selection animation duration
         }
         
         // Dispatch custom event for app to handle
@@ -871,6 +1104,9 @@ class FeelingsWheelGenerator {
     }
 
     reset() {
+        // Clear all active animations first
+        this.clearAllAnimations();
+        
         // Clear all selections
         this.selectedWedges.clear();
         
@@ -899,20 +1135,27 @@ class FeelingsWheelGenerator {
         // Clear all shadow copies
         this.shadowGroup.innerHTML = '';
         
-        // Reset rotation
-        this.currentRotation = 0;
-        this.updateRotation();
+        // Smooth animated reset rotation to 0
+        if (Math.abs(this.currentRotation) > 1) {
+            // Only animate if there's significant rotation
+            this.animateRotation(0, 800, FeelingsWheelGenerator.Easing.easeOut).then(() => {
+                // Reposition controls after animation completes
+                this.repositionControlsUnified();
+            });
+        } else {
+            // No animation needed, just snap to 0
+            this.currentRotation = 0;
+            this.updateRotation();
+            requestAnimationFrame(() => {
+                this.repositionControlsUnified();
+            });
+        }
         
         // Update the stored state for current mode only
         const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
         currentState.rotation = 0;
         currentState.selectedWedges = new Set();
         currentState.hasBeenInitialized = true;
-        
-        // Reposition controls after reset in case layout changed
-        requestAnimationFrame(() => {
-            this.repositionControlsUnified();
-        });
     }
 
     setupSmartControlsPositioning() {

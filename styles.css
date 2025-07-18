@@ -261,13 +261,7 @@ body {
     height: 100%;
 }
 
-/* Selection styling - no shadow (handled by shadow layer) */
-.selected {
-    stroke: #333 !important;
-    stroke-width: 2 !important;
-    filter: saturate(1.4) brightness(1.15);
-    transition: filter 0.2s ease;
-}
+/* Selection styling - moved to micro-interactions section for enhanced animations */
 
 /* Modern Control Buttons */
 .reset-btn,
@@ -430,3 +424,110 @@ text {
 }
 
 /* ===== END SVG OPTIMIZATION ===== */ 
+
+/* ===== MICRO-INTERACTIONS & SMOOTH ANIMATIONS ===== */
+
+/* Wedge hover effects - subtle and smooth */
+.wedge {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.wedge:hover {
+    /* Subtle scale and enhancement on hover */
+    transform: scale(1.02);
+    filter: saturate(1.2) brightness(1.1);
+    stroke-width: 1.5px !important;
+}
+
+/* Enhanced selection styling with smooth transitions */
+.selected {
+    stroke: #333 !important;
+    stroke-width: 2 !important;
+    filter: saturate(1.4) brightness(1.15);
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    /* Subtle glow effect for selected state */
+    drop-shadow: 0 0 8px rgba(74, 144, 226, 0.3);
+}
+
+/* Selection animation enhancement */
+.wedge.selecting {
+    /* Temporary class during selection animation */
+    animation: selectionPop 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes selectionPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Smooth deselection animation */
+.wedge.deselecting {
+    animation: deselectionFade 0.15s ease-out;
+}
+
+@keyframes deselectionFade {
+    0% { 
+        filter: saturate(1.4) brightness(1.15);
+        stroke-width: 2px;
+    }
+    100% { 
+        filter: saturate(1) brightness(1);
+        stroke-width: 1px;
+    }
+}
+
+/* Text smooth transitions */
+text {
+    transition: opacity 0.1s ease;
+}
+
+/* Button hover enhancements with smooth animations */
+.reset-btn,
+.fullscreen-btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reset-btn:hover,
+.fullscreen-btn:hover {
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.25);
+}
+
+/* SVG cursor changes during interactions */
+svg.animating {
+    cursor: wait !important;
+}
+
+svg.grabbing {
+    cursor: grabbing !important;
+}
+
+/* Smooth animation for mode transitions */
+.wheel-container.transitioning {
+    pointer-events: none;
+}
+
+.wheel-container.transitioning svg {
+    transition: opacity 0.3s ease;
+}
+
+/* Accessibility - respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .wedge,
+    .selected,
+    .reset-btn,
+    .fullscreen-btn,
+    text,
+    svg {
+        transition: none !important;
+        animation: none !important;
+    }
+    
+    .wedge:hover {
+        transform: none !important;
+    }
+}
+
+/* ===== END MICRO-INTERACTIONS ===== */ 

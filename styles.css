@@ -413,28 +413,16 @@ text {
     vector-effect: non-scaling-stroke;
 }
 
-/* SVG Group elements - enable hardware acceleration (excluding shadows) */
-g:not([data-shadow-id]) {
-    /* Prepare for transform animations */
+/* Main wheel groups - enable hardware acceleration ONLY for groups that use CSS transforms */
+#wheel-container .wheel-main-group {
+    /* Hardware acceleration for main wheel rotation groups */
     will-change: transform;
     transform: translateZ(0);
 }
 
-/* Shadow elements - ensure proper transform behavior */
-[data-shadow-id] {
-    /* Let shadow system control transforms entirely */
-    will-change: auto !important;
-    transform: none !important;
-}
-
-.shadow-wedge {
-    /* Preserve shadow-specific styling */
-    vector-effect: none !important;
-}
-
 /* Performance optimization for reduced motion users */
 @media (prefers-reduced-motion: reduce) {
-    svg, path:not(.shadow-wedge), text, g:not([data-shadow-id]) {
+    svg, path:not(.shadow-wedge), text, .wheel-main-group {
         /* Disable hardware acceleration if user prefers reduced motion */
         will-change: auto;
         transform: none;

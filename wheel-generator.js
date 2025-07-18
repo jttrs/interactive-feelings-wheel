@@ -398,14 +398,16 @@ class FeelingsWheelGenerator {
         // 1. Base layer for unemphasized wedges
         this.baseGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
         this.baseGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
+        this.baseGroup.setAttribute('class', 'wheel-main-group');
         this.svg.appendChild(this.baseGroup);
         
         // 2. Division lines layer (always on top, not affected by wedge movement)
         this.divisionLinesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
         this.divisionLinesGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
+        this.divisionLinesGroup.setAttribute('class', 'wheel-main-group');
         this.svg.appendChild(this.divisionLinesGroup);
         
-        // 3. Shadow layer (renders above unemphasized, below emphasized)
+        // 3. Shadow layer (renders above unemphasized, below emphasized) - NO CSS transforms
         this.shadowGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
         this.shadowGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
         this.svg.appendChild(this.shadowGroup);
@@ -413,6 +415,7 @@ class FeelingsWheelGenerator {
         // 4. Top layer for emphasized wedges
         this.topGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
         this.topGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
+        this.topGroup.setAttribute('class', 'wheel-main-group');
         this.svg.appendChild(this.topGroup);
         
         // Keep wheelGroup as alias for baseGroup for compatibility

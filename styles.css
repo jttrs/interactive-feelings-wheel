@@ -369,3 +369,64 @@ footer a:hover {
         font-size: 0.65rem;
     }
 } 
+
+/* ===== SVG ANTI-ALIASING & RENDERING OPTIMIZATION ===== */
+
+/* Root SVG container - enable high-quality rendering */
+svg {
+    /* Optimize rendering quality over speed */
+    shape-rendering: geometricPrecision;
+    /* Enable subpixel precision for smooth edges */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    /* Ensure crisp rendering at all zoom levels */
+    vector-effect: non-scaling-stroke;
+    /* Enable hardware acceleration for smooth transforms */
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* SVG Path elements - optimize shape rendering */
+path {
+    /* High precision geometric rendering */
+    shape-rendering: geometricPrecision;
+    /* Maintain stroke width during transforms */
+    vector-effect: non-scaling-stroke;
+    /* Smooth path joins and caps */
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    /* Optimize paint order for better performance */
+    paint-order: fill stroke markers;
+}
+
+/* SVG Text elements - optimize text rendering */
+text {
+    /* Optimize text rendering for readability */
+    text-rendering: optimizeLegibility;
+    /* Enable font smoothing for crisp text */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Ensure proper baseline alignment */
+    dominant-baseline: central;
+    /* Maintain font metrics during transforms */
+    vector-effect: non-scaling-stroke;
+}
+
+/* SVG Group elements - enable hardware acceleration */
+g {
+    /* Prepare for transform animations */
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Performance optimization for reduced motion users */
+@media (prefers-reduced-motion: reduce) {
+    svg, path, text, g {
+        /* Disable hardware acceleration if user prefers reduced motion */
+        will-change: auto;
+        transform: none;
+    }
+}
+
+/* ===== END SVG OPTIMIZATION ===== */ 

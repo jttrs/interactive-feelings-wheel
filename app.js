@@ -698,8 +698,8 @@ class FeelingsWheelApp {
             }
         }
         
-        // Fallback colors based on level
-        const [level] = wedgeId.split('-');
+        // Fallback colors based on level - use proper parsing for unique wedge IDs
+        const level = wedgeId.split('-')[0]; // First part is always the level
         const colorMap = {
             'core': '#4a90e2',
             'secondary': '#7bb3f2',

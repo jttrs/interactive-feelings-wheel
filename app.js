@@ -689,8 +689,8 @@ class FeelingsWheelApp {
     }
 
     getEmotionColor(wedgeId) {
-        // Try to get color from the wheel SVG element
-        const wedgeElement = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
+        // Try to get color from the wheel SVG wedge element (not text)
+        const wedgeElement = document.querySelector(`.wedge[data-wedge-id="${wedgeId}"]`);
         if (wedgeElement) {
             const fill = wedgeElement.getAttribute('fill');
             if (fill && fill !== 'none') {

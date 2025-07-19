@@ -886,8 +886,16 @@ class FeelingsWheelGenerator {
         const level = wedge.getAttribute('data-level');
         const parent = wedge.getAttribute('data-parent');
         
-        // Create truly unique wedge ID that includes hierarchical context
-        const wedgeId = this.createUniqueWedgeId(level, emotion, parent);
+        // CRITICAL FIX: Use the actual wedge ID from the element, don't recreate it!
+        // This ensures consistency between generation and click handling
+        const wedgeId = wedge.getAttribute('data-wedge-id');
+        
+        console.log(`🎯 CLICK: Using existing wedge ID: "${wedgeId}" for ${emotion} (${level})`);
+        
+        if (!wedgeId) {
+            console.error(`❌ No data-wedge-id found on wedge element for ${emotion} (${level})`);
+            return;
+        }
         
         // Toggle selection using centralized methods
         if (this.selectedWedges.has(wedgeId)) {

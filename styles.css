@@ -391,7 +391,11 @@ body {
     font-size: 0.9rem;
     z-index: 101;
     
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Only animate non-positioning properties to prevent glitch */
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 
         -4px 0 15px rgba(0, 0, 0, 0.1),
         -2px 0 6px rgba(0, 0, 0, 0.05);
@@ -440,11 +444,13 @@ body {
     border: 2px solid rgba(255, 255, 255, 0.6);
     border-right: none;
     border-radius: 12px 0 0 12px;
+    /* Remove all transitions for minimized state to prevent positioning glitch */
+    transition: none;
 }
 
 /* Desktop: Arrow points LEFT when expanded (◀ = will hide panel), RIGHT when collapsed (▶ = will show panel) */
 .minimize-arrow {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Removed transition to eliminate arrow animation */
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
     font-weight: bold;
     font-size: 1rem;
@@ -492,7 +498,7 @@ body {
     font-size: 0.8rem;
     color: #4a5568;
     font-weight: bold;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Removed transition to eliminate arrow animation */
 }
 
 .mobile-collapse-handle:hover .collapse-indicator {

@@ -26,6 +26,9 @@ class FeelingsWheelApp {
         // Setup fullscreen functionality
         this.setupFullscreenFeature();
 
+        // Setup comprehensive keyboard shortcuts
+        this.setupKeyboardShortcuts();
+
         // Listen for emotion selection events
         document.addEventListener('emotionSelected', (event) => {
             this.handleEmotionSelection(event.detail);
@@ -57,7 +60,7 @@ class FeelingsWheelApp {
             });
         });
         
-        // Setup keyboard shortcut (F11 alternative)
+        // Setup keyboard shortcuts
         document.addEventListener('keydown', (event) => {
             if (event.key === 'F11') {
                 event.preventDefault();
@@ -147,6 +150,74 @@ class FeelingsWheelApp {
     handleFullscreenChange() {
         // Update button state immediately
         this.updateFullscreenButton();
+    }
+
+    // ===== KEYBOARD SHORTCUTS FUNCTIONALITY =====
+
+    setupKeyboardShortcuts() {
+        // Global keyboard event listener for all shortcuts
+        document.addEventListener('keydown', (event) => {
+            // Skip if user is typing in an input field
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            const key = event.key.toLowerCase();
+            
+            switch (key) {
+                case 's':
+                    event.preventDefault();
+                    this.toggleSimplifiedMode();
+                    break;
+                    
+                case 'r':
+                    event.preventDefault();
+                    this.resetAllSelections();
+                    break;
+                    
+                case 'arrowleft':
+                    event.preventDefault();
+                    this.rotateWheel(-15); // Rotate left 15 degrees
+                    break;
+                    
+                case 'arrowright':
+                    event.preventDefault();
+                    this.rotateWheel(15); // Rotate right 15 degrees
+                    break;
+                    
+                case 'f11':
+                    // F11 is already handled in setupFullscreenFeature
+                    break;
+                    
+                default:
+                    // No action for other keys
+                    break;
+            }
+        });
+    }
+
+    toggleSimplifiedMode() {
+        // Find and trigger the simplified mode toggle button
+        const toggleButton = document.getElementById('simplified-mode-toggle');
+        if (toggleButton) {
+            toggleButton.click();
+        }
+    }
+
+    resetAllSelections() {
+        // Find and trigger the reset button
+        const resetButton = document.getElementById('reset-btn-panel');
+        if (resetButton) {
+            resetButton.click();
+        }
+    }
+
+    rotateWheel(degrees) {
+        // Use wheel generator's rotation functionality
+        if (this.wheelGenerator) {
+            const targetRotation = this.wheelGenerator.currentRotation + degrees;
+            this.wheelGenerator.animateRotation(targetRotation, 200); // Quick 200ms animation
+        }
     }
 
     // ===== INFORMATION PANEL FUNCTIONALITY =====

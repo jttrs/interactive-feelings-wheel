@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTRA DEBUG - Root Cause Hunt</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        .debug-panel { background: white; border: 2px solid #333; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .critical { background: #ffeeee; border-color: #ff0000; }
+        .success { background: #eeffee; border-color: #00ff00; }
+        .warning { background: #ffffee; border-color: #ffaa00; }
+        #wheel-container { width: 300px; height: 300px; border: 1px solid #ccc; margin: 20px 0; }
+        .log { background: #000; color: #0f0; padding: 10px; height: 400px; overflow-y: auto; font-family: monospace; font-size: 10px; white-space: pre-wrap; }
+        button { margin: 5px; padding: 8px 16px; }
+        .error { color: #ff6666 !important; }
+        .warn { color: #ffff66 !important; }
+        .info { color: #66ccff !important; }
+        .success-log { color: #66ff66 !important; }
+        .step { margin: 10px 0; padding: 10px; background: #f8f8f8; border-left: 4px solid #007acc; }
+    </style>
+</head>
+<body>
+    <h1>🔍 ULTRA DEBUG - Senior Developer Analysis</h1>
+    
+    <div class="debug-panel critical">
+        <h3>🚨 SYSTEMATIC ROOT CAUSE ANALYSIS</h3>
+        <p>This will trace EVERY step to find exactly where the failures occur.</p>
+        <div class="step">
+            <strong>Step 1:</strong> Verify wedge ID attributes are set correctly
+            <button onclick="step1_VerifyAttributes()">Step 1: Check Attributes</button>
+        </div>
+        <div class="step">
+            <strong>Step 2:</strong> Test wedge selection and ID creation
+            <button onclick="step2_TestSelection()">Step 2: Test Selection</button>
+        </div>
+        <div class="step">
+            <strong>Step 3:</strong> Test X button deselection flow
+            <button onclick="step3_TestXButton()">Step 3: Test X Button</button>
+        </div>
+        <div class="step">
+            <strong>Step 4:</strong> Test color resolution
+            <button onclick="step4_TestColors()">Step 4: Test Colors</button>
+        </div>
+        <div class="step">
+            <strong>Step 5:</strong> Test reset functionality
+            <button onclick="step5_TestReset()">Step 5: Test Reset</button>
+        </div>
+    </div>
+    
+    <div id="wheel-container"></div>
+    
+    <div class="debug-panel">
+        <h3>📊 Execution Log</h3>
+        <button onclick="clearLog()">Clear Log</button>
+        <div class="log" id="debug-log"></div>
+    </div>
+
+    <script src="feelings-data.js"></script>
+    <script src="feelings-wheel-engine.js"></script>
+    <script src="app.js"></script>
+    
+    <script>
+        let wheel, app;
+        
+        function log(message, type = 'info', indent = 0) {
+            const output = document.getElementById('debug-log');
+            const indentStr = '  '.repeat(indent);
+            const timestamp = new Date().toLocaleTimeString();
+            const logLine = `${timestamp}: ${indentStr}${message}\n`;
+            output.innerHTML += `<span class="${type}">${logLine}</span>`;
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('debug-log').innerHTML = '';
+        }
+        
+        // Initialize with enhanced debugging
+        try {
+            log('🏗️ INITIALIZING WHEEL...', 'info');
+            const wheelContainer = document.getElementById('wheel-container');
+            wheel = new FeelingsWheelGenerator(wheelContainer, FEELINGS_DATA);
+            
+            // Intercept the generate method to add debugging
+            const originalGenerate = wheel.generate.bind(wheel);
+            wheel.generate = function() {
+                log('📦 GENERATING WHEEL ELEMENTS...', 'info');
+                const result = originalGenerate();
+                
+                // Check if wedge IDs were created
+                setTimeout(() => {
+                    const wedges = this.container.querySelectorAll('.wedge');
+                    log(`Generated ${wedges.length} wedge elements`, 'info');
+                    
+                    let wedgesWithIds = 0;
+                    let textsWithIds = 0;
+                    
+                    wedges.forEach(wedge => {
+                        if (wedge.getAttribute('data-wedge-id')) {
+                            wedgesWithIds++;
+                        }
+                    });
+                    
+                    const texts = this.container.querySelectorAll('text');
+                    texts.forEach(text => {
+                        if (text.getAttribute('data-wedge-id')) {
+                            textsWithIds++;
+                        }
+                    });
+                    
+                    log(`Wedges with data-wedge-id: ${wedgesWithIds}/${wedges.length}`, wedgesWithIds === wedges.length ? 'success-log' : 'error');
+                    log(`Texts with data-wedge-id: ${textsWithIds}/${texts.length}`, textsWithIds === texts.length ? 'success-log' : 'error');
+                }, 100);
+                
+                return result;
+            };
+            
+            wheel.generate();
+            
+            log('🎯 INITIALIZING APP...', 'info');
+            app = new FeelingsWheelApp();
+            
+            log('✅ INITIALIZATION COMPLETE', 'success-log');
+            
+        } catch (error) {
+            log(`❌ INITIALIZATION ERROR: ${error.message}`, 'error');
+            log(`Stack: ${error.stack}`, 'error');
+        }
+        
+        function step1_VerifyAttributes() {
+            log('🔍 STEP 1: VERIFYING ATTRIBUTES...', 'info');
+            
+            const wedges = wheel.container.querySelectorAll('.wedge');
+            const texts = wheel.container.querySelectorAll('text');
+            
+            log(`Found ${wedges.length} wedges and ${texts.length} texts`, 'info');
+            
+            // Check a few specific wedges
+            const testEmotions = [
+                { level: 'core', emotion: 'Happy', expected: 'core-Happy' },
+                { level: 'secondary', emotion: 'Frustrated', expected: 'secondary-Angry-Frustrated' },
+                { level: 'tertiary', emotion: 'Embarrassed', expected: 'tertiary-Hurt-Embarrassed' },
+                { level: 'tertiary', emotion: 'Embarrassed', expected: 'tertiary-Disapproving-Embarrassed' }
+            ];
+            
+            testEmotions.forEach((test, index) => {
+                log(`\nTesting ${test.emotion} (${test.level}):`, 'info', 1);
+                
+                // Find wedge by old method
+                let selector;
+                if (test.level === 'tertiary' && test.emotion === 'Embarrassed') {
+                    // Handle duplicates
+                    const wedgeElements = wheel.container.querySelectorAll(`.wedge[data-emotion="${test.emotion}"][data-level="${test.level}"]`);
+                    log(`Found ${wedgeElements.length} wedges with emotion "${test.emotion}"`, 'info', 2);
+                    
+                    wedgeElements.forEach((wedge, i) => {
+                        const wedgeId = wedge.getAttribute('data-wedge-id');
+                        const parent = wedge.getAttribute('data-parent');
+                        log(`  Wedge ${i}: data-wedge-id="${wedgeId}", data-parent="${parent}"`, 'info', 2);
+                        
+                        if (wedgeId) {
+                            const textElement = wheel.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
+                            log(`    Associated text found: ${textElement ? 'YES' : 'NO'}`, textElement ? 'success-log' : 'error', 2);
+                        }
+                    });
+                } else {
+                    const wedge = wheel.container.querySelector(`.wedge[data-emotion="${test.emotion}"][data-level="${test.level}"]`);
+                    if (wedge) {
+                        const wedgeId = wedge.getAttribute('data-wedge-id');
+                        log(`  Wedge data-wedge-id: "${wedgeId}"`, 'info', 2);
+                        log(`  Expected: "${test.expected}"`, 'info', 2);
+                        log(`  Match: ${wedgeId === test.expected ? 'YES' : 'NO'}`, wedgeId === test.expected ? 'success-log' : 'error', 2);
+                        
+                        if (wedgeId) {
+                            const textElement = wheel.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
+                            log(`  Associated text found: ${textElement ? 'YES' : 'NO'}`, textElement ? 'success-log' : 'error', 2);
+                        }
+                    } else {
+                        log(`  ❌ Wedge not found!`, 'error', 2);
+                    }
+                }
+            });
+        }
+        
+        function step2_TestSelection() {
+            log('\n🎯 STEP 2: TESTING SELECTION...', 'info');
+            
+            // Select a simple wedge first
+            const happyWedge = wheel.container.querySelector('.wedge[data-emotion="Happy"][data-level="core"]');
+            if (!happyWedge) {
+                log('❌ Cannot find Happy wedge for testing', 'error');
+                return;
+            }
+            
+            log('Testing selection of Happy wedge...', 'info', 1);
+            const happyWedgeId = happyWedge.getAttribute('data-wedge-id');
+            log(`Happy wedge ID: "${happyWedgeId}"`, 'info', 2);
+            
+            // Test createUniqueWedgeId method
+            const generatedId = wheel.createUniqueWedgeId('core', 'Happy', null);
+            log(`Generated ID: "${generatedId}"`, 'info', 2);
+            log(`IDs match: ${happyWedgeId === generatedId ? 'YES' : 'NO'}`, happyWedgeId === generatedId ? 'success-log' : 'error', 2);
+            
+            // Simulate click
+            log('Simulating wedge click...', 'info', 1);
+            
+            const beforeSelected = wheel.selectedWedges.size;
+            const beforeClass = happyWedge.classList.contains('selected');
+            
+            log(`Before click - Selected count: ${beforeSelected}, Has class: ${beforeClass}`, 'info', 2);
+            
+            // Trigger click event
+            const clickEvent = { target: happyWedge };
+            wheel.handleWedgeClick(clickEvent);
+            
+            const afterSelected = wheel.selectedWedges.size;
+            const afterClass = happyWedge.classList.contains('selected');
+            
+            log(`After click - Selected count: ${afterSelected}, Has class: ${afterClass}`, 'info', 2);
+            log(`Selection working: ${afterSelected > beforeSelected && afterClass ? 'YES' : 'NO'}`, afterSelected > beforeSelected && afterClass ? 'success-log' : 'error', 2);
+        }
+        
+        function step3_TestXButton() {
+            log('\n❌ STEP 3: TESTING X BUTTON...', 'info');
+            
+            const selectedIds = [...wheel.selectedWedges];
+            if (selectedIds.length === 0) {
+                log('❌ No wedges selected. Run Step 2 first.', 'error');
+                return;
+            }
+            
+            const testWedgeId = selectedIds[0];
+            log(`Testing X button on wedge: "${testWedgeId}"`, 'info', 1);
+            
+            // Find the wedge and text elements
+            const wedgeElement = wheel.container.querySelector(`.wedge[data-wedge-id="${testWedgeId}"]`);
+            const textElement = wheel.container.querySelector(`text[data-wedge-id="${testWedgeId}"]`);
+            
+            if (!wedgeElement) {
+                log(`❌ Cannot find wedge element for ID: "${testWedgeId}"`, 'error', 2);
+                return;
+            }
+            
+            if (!textElement) {
+                log(`❌ Cannot find text element for ID: "${testWedgeId}"`, 'error', 2);
+                return;
+            }
+            
+            log('Elements found successfully', 'success-log', 2);
+            
+            // Check initial state
+            log('BEFORE X button click:', 'info', 2);
+            log(`  Wedge has selected class: ${wedgeElement.classList.contains('selected')}`, 'info', 3);
+            log(`  Wedge parent: ${wedgeElement.parentNode?.getAttribute('class') || 'unknown'}`, 'info', 3);
+            log(`  Text parent: ${textElement.parentNode?.getAttribute('class') || 'unknown'}`, 'info', 3);
+            log(`  Selected wedges count: ${wheel.selectedWedges.size}`, 'info', 3);
+            
+            // Call toggleWedgeSelection (simulating X button)
+            log('Calling toggleWedgeSelection...', 'info', 2);
+            wheel.toggleWedgeSelection(testWedgeId);
+            
+            // Check final state
+            log('AFTER X button click:', 'info', 2);
+            log(`  Wedge has selected class: ${wedgeElement.classList.contains('selected')}`, 'info', 3);
+            log(`  Wedge parent: ${wedgeElement.parentNode?.getAttribute('class') || 'unknown'}`, 'info', 3);
+            log(`  Text parent: ${textElement.parentNode?.getAttribute('class') || 'unknown'}`, 'info', 3);
+            log(`  Selected wedges count: ${wheel.selectedWedges.size}`, 'info', 3);
+            
+            // Evaluate success
+            const deselected = !wedgeElement.classList.contains('selected');
+            const movedToBase = wedgeElement.parentNode?.getAttribute('class')?.includes('wheel-main-group');
+            const textMovedToBase = textElement.parentNode?.getAttribute('class')?.includes('wheel-main-group');
+            const removedFromSet = !wheel.selectedWedges.has(testWedgeId);
+            
+            log(`\nX button deselection analysis:`, 'info', 2);
+            log(`  Class removed: ${deselected ? 'YES' : 'NO'}`, deselected ? 'success-log' : 'error', 3);
+            log(`  Wedge moved to base: ${movedToBase ? 'YES' : 'NO'}`, movedToBase ? 'success-log' : 'error', 3);
+            log(`  Text moved to base: ${textMovedToBase ? 'YES' : 'NO'}`, textMovedToBase ? 'success-log' : 'error', 3);
+            log(`  Removed from Set: ${removedFromSet ? 'YES' : 'NO'}`, removedFromSet ? 'success-log' : 'error', 3);
+            
+            const allGood = deselected && movedToBase && textMovedToBase && removedFromSet;
+            log(`Overall X button success: ${allGood ? 'YES' : 'NO'}`, allGood ? 'success-log' : 'error', 2);
+        }
+        
+        function step4_TestColors() {
+            log('\n🎨 STEP 4: TESTING COLORS...', 'info');
+            
+            const testIds = [
+                'core-Happy',
+                'secondary-Angry-Frustrated',
+                'tertiary-Hurt-Embarrassed',
+                'tertiary-Disapproving-Embarrassed'
+            ];
+            
+            testIds.forEach(wedgeId => {
+                log(`\nTesting color for: "${wedgeId}"`, 'info', 1);
+                
+                // Check if wedge element exists with this ID
+                const wedgeElement = wheel.container.querySelector(`.wedge[data-wedge-id="${wedgeId}"]`);
+                log(`  Wedge element found: ${wedgeElement ? 'YES' : 'NO'}`, wedgeElement ? 'success-log' : 'error', 2);
+                
+                if (wedgeElement) {
+                    const actualColor = wedgeElement.getAttribute('fill');
+                    log(`  Actual wedge color: "${actualColor}"`, 'info', 2);
+                    
+                    // Test app color resolution
+                    const appColor = app.getEmotionColor(wedgeId);
+                    log(`  App resolved color: "${appColor}"`, 'info', 2);
+                    
+                    const colorsMatch = actualColor === appColor;
+                    log(`  Colors match: ${colorsMatch ? 'YES' : 'NO'}`, colorsMatch ? 'success-log' : 'error', 2);
+                    
+                    // Check if it's a fallback color
+                    const isFallback = appColor === '#4a90e2' || appColor === '#7bb3f2' || appColor === '#a8d0f7';
+                    if (isFallback && !colorsMatch) {
+                        log(`  ⚠️  Using fallback color - wedge element not found by app`, 'warn', 2);
+                    }
+                } else {
+                    log(`  ❌ Cannot test color - wedge not found`, 'error', 2);
+                }
+            });
+        }
+        
+        function step5_TestReset() {
+            log('\n🔄 STEP 5: TESTING RESET...', 'info');
+            
+            // First select some wedges
+            log('Selecting wedges for reset test...', 'info', 1);
+            const testWedges = wheel.container.querySelectorAll('.wedge');
+            
+            let selectedCount = 0;
+            for (let i = 0; i < Math.min(3, testWedges.length); i++) {
+                const wedge = testWedges[i];
+                const clickEvent = { target: wedge };
+                wheel.handleWedgeClick(clickEvent);
+                if (wedge.classList.contains('selected')) {
+                    selectedCount++;
+                }
+            }
+            
+            log(`Selected ${selectedCount} wedges for testing`, 'info', 2);
+            
+            // Check state before reset
+            const beforeSelectedCount = wheel.selectedWedges.size;
+            const beforeDOMCount = wheel.container.querySelectorAll('.wedge.selected').length;
+            const beforeTopTexts = wheel.topGroup.querySelectorAll('text').length;
+            
+            log(`Before reset:`, 'info', 2);
+            log(`  Selected wedges Set: ${beforeSelectedCount}`, 'info', 3);
+            log(`  Selected wedges DOM: ${beforeDOMCount}`, 'info', 3);
+            log(`  Texts in top group: ${beforeTopTexts}`, 'info', 3);
+            
+            // Perform reset
+            log('Calling reset()...', 'info', 2);
+            wheel.reset();
+            
+            // Check state after reset
+            const afterSelectedCount = wheel.selectedWedges.size;
+            const afterDOMCount = wheel.container.querySelectorAll('.wedge.selected').length;
+            const afterTopTexts = wheel.topGroup.querySelectorAll('text').length;
+            const afterBaseTexts = wheel.baseGroup.querySelectorAll('text').length;
+            
+            log(`After reset:`, 'info', 2);
+            log(`  Selected wedges Set: ${afterSelectedCount}`, 'info', 3);
+            log(`  Selected wedges DOM: ${afterDOMCount}`, 'info', 3);
+            log(`  Texts in top group: ${afterTopTexts}`, 'info', 3);
+            log(`  Texts in base group: ${afterBaseTexts}`, 'info', 3);
+            
+            // Evaluate success
+            const setCleared = afterSelectedCount === 0;
+            const domCleared = afterDOMCount === 0;
+            const textsMovedToBase = afterTopTexts === 0;
+            
+            log(`\nReset analysis:`, 'info', 2);
+            log(`  Set cleared: ${setCleared ? 'YES' : 'NO'}`, setCleared ? 'success-log' : 'error', 3);
+            log(`  DOM classes cleared: ${domCleared ? 'YES' : 'NO'}`, domCleared ? 'success-log' : 'error', 3);
+            log(`  Texts moved to base: ${textsMovedToBase ? 'YES' : 'NO'}`, textsMovedToBase ? 'success-log' : 'error', 3);
+            
+            const resetSuccess = setCleared && domCleared && textsMovedToBase;
+            log(`Overall reset success: ${resetSuccess ? 'YES' : 'NO'}`, resetSuccess ? 'success-log' : 'error', 2);
+        }
+        
+        log('🚀 ULTRA DEBUG READY - Run the steps to identify the exact failure points!', 'success-log');
+    </script>
+</body>
+</html> 

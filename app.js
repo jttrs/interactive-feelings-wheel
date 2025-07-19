@@ -689,11 +689,17 @@ class FeelingsWheelApp {
     }
 
     getEmotionColor(wedgeId) {
+        console.log(`🎨 getEmotionColor("${wedgeId}") called`);
+        
         // Try to get color from the wheel SVG wedge element (not text)
         const wedgeElement = document.querySelector(`.wedge[data-wedge-id="${wedgeId}"]`);
+        console.log(`🔍 Found wedge element: ${wedgeElement ? 'YES' : 'NO'}`);
+        
         if (wedgeElement) {
             const fill = wedgeElement.getAttribute('fill');
+            console.log(`🎨 Wedge fill attribute: "${fill}"`);
             if (fill && fill !== 'none') {
+                console.log(`✅ Returning actual wedge color: "${fill}"`);
                 return fill;
             }
         }
@@ -706,7 +712,9 @@ class FeelingsWheelApp {
             'tertiary': '#a8d0f7'
         };
         
-        return colorMap[level] || '#4a90e2';
+        const fallbackColor = colorMap[level] || '#4a90e2';
+        console.log(`⚠️ Using fallback color for level "${level}": "${fallbackColor}"`);
+        return fallbackColor;
     }
 
     togglePanelMinimization() {

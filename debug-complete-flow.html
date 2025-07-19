@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEBUG Complete Flow</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        .section { background: white; border: 2px solid #333; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .critical { background: #ffeeee; border-color: #ff0000; }
+        #wheel-container { width: 300px; height: 300px; border: 1px solid #ccc; margin: 20px 0; }
+        .log { background: #000; color: #0f0; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 10px; white-space: pre-wrap; }
+        button { margin: 5px; padding: 8px 16px; }
+        .error { color: #ff6666 !important; }
+        .success { color: #66ff66 !important; }
+        .info { color: #66ccff !important; }
+        .tile-preview { border: 1px solid #ccc; padding: 10px; margin: 5px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 COMPLETE FLOW DEBUG</h1>
+    
+    <div class="section critical">
+        <h3>🚨 TRACE: Click → Event → Tile → Color</h3>
+        <button onclick="initializeDebug()">1. Initialize & Show Wedge IDs</button>
+        <button onclick="testCompleteFlow()">2. Test Complete Flow</button>
+        <button onclick="clearLog()">Clear</button>
+    </div>
+    
+    <div id="wheel-container"></div>
+    
+    <div class="section">
+        <h3>📊 Live Tile Preview</h3>
+        <div id="tile-preview"></div>
+    </div>
+    
+    <div class="section">
+        <h3>📊 Debug Log</h3>
+        <div class="log" id="debug-log"></div>
+    </div>
+
+    <script src="feelings-data.js"></script>
+    <script src="feelings-wheel-engine.js"></script>
+    <script src="app.js"></script>
+    
+    <script>
+        let wheel, app;
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logLine = `${timestamp}: ${message}\n`;
+            output.innerHTML += `<span class="${type}">${logLine}</span>`;
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('debug-log').innerHTML = '';
+        }
+        
+        function initializeDebug() {
+            clearLog();
+            
+            const wheelContainer = document.getElementById('wheel-container');
+            wheelContainer.innerHTML = '';
+            
+            wheel = new FeelingsWheelGenerator(wheelContainer, FEELINGS_DATA);
+            wheel.generate();
+            app = new FeelingsWheelApp();
+            
+            log('🏗️ Wheel and app initialized', 'success');
+            
+            // Check wedge IDs for duplicates
+            log('\n🔍 CHECKING DUPLICATE EMOTION IDs:', 'info');
+            const duplicates = ['Embarrassed', 'Overwhelmed', 'Disappointed', 'Inferior'];
+            
+            duplicates.forEach(emotion => {
+                const wedges = wheelContainer.querySelectorAll(`.wedge[data-emotion="${emotion}"]`);
+                log(`\n"${emotion}": found ${wedges.length} wedges`, 'info');
+                
+                wedges.forEach((wedge, i) => {
+                    const wedgeId = wedge.getAttribute('data-wedge-id');
+                    const parent = wedge.getAttribute('data-parent');
+                    const fill = wedge.getAttribute('fill');
+                    
+                    log(`  ${i+1}. ID: "${wedgeId}"`, 'info');
+                    log(`     Parent: "${parent}"`, 'info');
+                    log(`     Fill: "${fill}"`, 'info');
+                    
+                    // Test color resolution
+                    const resolvedColor = FEELINGS_DATA.getEmotionColor(wedgeId);
+                    log(`     Resolved Color: "${resolvedColor}"`, 'info');
+                });
+            });
+        }
+        
+        function testCompleteFlow() {
+            log('\n🎯 TESTING COMPLETE FLOW FOR EMBARRASSED EMOTIONS...', 'success');
+            
+            const embarrassedWedges = document.querySelectorAll('.wedge[data-emotion="Embarrassed"]');
+            
+            embarrassedWedges.forEach((wedge, i) => {
+                setTimeout(() => {
+                    const wedgeId = wedge.getAttribute('data-wedge-id');
+                    const parent = wedge.getAttribute('data-parent');
+                    
+                    log(`\n--- TESTING Embarrassed #${i+1} (${parent}) ---`, 'success');
+                    log(`Step 1: Wedge ID from element: "${wedgeId}"`, 'info');
+                    
+                    // Override app methods for this test
+                    const originalCreateTile = app.createEmotionTile;
+                    app.createEmotionTile = function(receivedWedgeId, emotion, level) {
+                        log(`Step 2: createEmotionTile received ID: "${receivedWedgeId}"`, 'info');
+                        log(`Step 3: Calling getEmotionColor("${receivedWedgeId}")...`, 'info');
+                        
+                        const color = this.getEmotionColor(receivedWedgeId);
+                        log(`Step 4: getEmotionColor returned: "${color}"`, 'info');
+                        
+                        // Call original method
+                        const tile = originalCreateTile.call(this, receivedWedgeId, emotion, level);
+                        
+                        const actualCSS = tile.style.getPropertyValue('--emotion-color');
+                        log(`Step 5: Final CSS --emotion-color: "${actualCSS}"`, 'info');
+                        
+                        // Create visual preview
+                        const preview = document.createElement('div');
+                        preview.className = 'tile-preview';
+                        preview.style.borderLeft = `5px solid ${actualCSS}`;
+                        preview.innerHTML = `
+                            <strong>${emotion} (${parent})</strong><br/>
+                            Wedge ID: ${receivedWedgeId}<br/>
+                            Color: ${actualCSS}
+                        `;
+                        document.getElementById('tile-preview').appendChild(preview);
+                        
+                        // Check if color matches expected family
+                        const expectedFamily = parent === 'Hurt' ? 'Sad' : 'Disgusted';
+                        const coreColor = FEELINGS_DATA.core.find(c => c.name === expectedFamily)?.color;
+                        log(`Step 6: Expected ${expectedFamily} family base: "${coreColor}"`, 'info');
+                        
+                        if (actualCSS && coreColor) {
+                            // Simple color family check
+                            const matchesFamily = actualCSS.toLowerCase().includes(coreColor.slice(1, 4).toLowerCase()) ||
+                                                actualCSS !== '#a8d0f7'; // Not the generic fallback
+                            
+                            log(`Step 7: Family color match: ${matchesFamily ? 'YES' : 'NO'}`, matchesFamily ? 'success' : 'error');
+                        }
+                        
+                        return tile;
+                    };
+                    
+                    // Simulate click
+                    log(`Step 1: Simulating click on wedge...`, 'info');
+                    const clickEvent = { target: wedge };
+                    wheel.handleWedgeClick(clickEvent);
+                    
+                    // Restore original method after a delay
+                    setTimeout(() => {
+                        app.createEmotionTile = originalCreateTile;
+                        
+                        // Remove tile for next test
+                        const removeBtn = document.querySelector('.tile-remove');
+                        if (removeBtn) {
+                            setTimeout(() => removeBtn.click(), 500);
+                        }
+                    }, 100);
+                    
+                }, i * 3000); // 3 second delay between tests
+            });
+        }
+    </script>
+</body>
+</html> 

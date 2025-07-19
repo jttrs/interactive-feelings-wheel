@@ -917,15 +917,14 @@ class FeelingsWheelGenerator {
     toggleWedgeSelection(wedgeId) {
         console.log(`🎯 toggleWedgeSelection("${wedgeId}") called`);
         
-        // Parse the unique wedge ID to get components
-        const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
-        console.log(`📋 Parsed: level="${level}", emotion="${emotion}", parent="${parent}"`);
-        
-        // Find the wedge element using unique identification
-        const wedge = this.findWedgeByUniqueId(level, emotion, parent);
+        // CRITICAL FIX: Use the stored wedge ID directly, don't parse and recreate
+        const wedge = this.findWedgeByStoredId(wedgeId);
         console.log(`🔍 Found wedge element: ${wedge ? 'YES' : 'NO'}`);
         
         if (wedge) {
+            const emotion = wedge.getAttribute('data-emotion');
+            const level = wedge.getAttribute('data-level');
+            
             const isCurrentlySelected = this.selectedWedges.has(wedgeId);
             console.log(`📊 Currently selected: ${isCurrentlySelected}`);
             
@@ -945,7 +944,7 @@ class FeelingsWheelGenerator {
             document.dispatchEvent(customEvent);
             console.log(`✅ Event dispatched, final selected state: ${this.selectedWedges.has(wedgeId)}`);
         } else {
-            console.error(`❌ Could not find wedge for unique ID: ${wedgeId}`);
+            console.error(`❌ Could not find wedge for stored ID: ${wedgeId}`);
         }
     }
 
@@ -986,16 +985,24 @@ class FeelingsWheelGenerator {
         }
     }
 
-    moveTextForWedge(emotion, level, parent, targetGroup) {
-        // Use the unique wedge ID to find the associated text element
-        // This is the most reliable method since both wedge and text have the same unique ID
-        const wedgeId = this.createUniqueWedgeId(level, emotion, parent);
+    moveTextForWedge(emotion, level, parent, targetGroup, existingWedgeId = null) {
+        // CRITICAL FIX: Use existing wedge ID if provided, otherwise create expected ID
+        let wedgeId;
+        if (existingWedgeId) {
+            wedgeId = existingWedgeId;
+            console.log(`📝 moveTextForWedge: Using provided wedge ID: "${wedgeId}"`);
+        } else {
+            wedgeId = this.createUniqueWedgeId(level, emotion, parent);
+            console.log(`📝 moveTextForWedge: Created wedge ID: "${wedgeId}"`);
+        }
+        
         const textElement = this.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
         
         if (textElement) {
             targetGroup.appendChild(textElement);
+            console.log(`✅ Moved text for "${emotion}" to ${targetGroup.getAttribute('class') || 'target group'}`);
         } else {
-            console.error(`Could not find text element for wedge ID: ${wedgeId}`);
+            console.error(`❌ Could not find text element for wedge ID: "${wedgeId}"`);
         }
     }
 
@@ -1071,13 +1078,34 @@ class FeelingsWheelGenerator {
         }
         
         findWedgeByUniqueId(level, emotion, parent) {
-            // Find wedge element using the unique wedge ID - exclude shadow copies
-            const wedgeId = this.createUniqueWedgeId(level, emotion, parent);
+            // CRITICAL FIX: Create the expected ID format but don't recreate logic
+            // This should match the ID that was set during generation
+            const expectedWedgeId = this.createUniqueWedgeId(level, emotion, parent);
+            
             // Use more specific selector to exclude shadow copies (they don't have 'wedge' class anymore)
-            const element = this.container.querySelector(`.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`);
-            console.log(`🔍 findWedgeByUniqueId: selector=".wedge[data-wedge-id=\"${wedgeId}\"]:not(.shadow-wedge)", found=${element ? 'YES' : 'NO'}`);
+            const element = this.container.querySelector(`.wedge[data-wedge-id="${expectedWedgeId}"]:not(.shadow-wedge)`);
+            console.log(`🔍 findWedgeByUniqueId: looking for "${expectedWedgeId}", found=${element ? 'YES' : 'NO'}`);
             if (element) {
-                console.log(`   ✅ Found actual wedge with fill: "${element.getAttribute('fill')}"`);
+                const actualId = element.getAttribute('data-wedge-id');
+                console.log(`   ✅ Found wedge with actual ID: "${actualId}"`);
+                console.log(`   🎨 Wedge fill: "${element.getAttribute('fill')}"`);
+            } else {
+                // Debug: show what IDs actually exist
+                const allWedges = this.container.querySelectorAll('.wedge[data-wedge-id]');
+                const actualIds = Array.from(allWedges).map(w => w.getAttribute('data-wedge-id')).filter(id => id.includes(emotion));
+                console.log(`   ❌ Not found. Actual IDs for "${emotion}": ${actualIds.join(', ')}`);
+            }
+            return element;
+        }
+        
+        // NEW METHOD: Find wedge by its actual stored ID (most reliable)
+        findWedgeByStoredId(wedgeId) {
+            console.log(`🎯 findWedgeByStoredId: looking for "${wedgeId}"`);
+            const element = this.container.querySelector(`.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`);
+            if (element) {
+                console.log(`   ✅ Found wedge by stored ID`);
+            } else {
+                console.log(`   ❌ No wedge found with stored ID: "${wedgeId}"`);
             }
             return element;
         }
@@ -1089,12 +1117,14 @@ class FeelingsWheelGenerator {
         const level = wedge.getAttribute('data-level');
         const parent = wedge.getAttribute('data-parent');
         
+        console.log(`✅ selectWedge: Adding "${wedgeId}" to selection`);
+        
         this.selectedWedges.add(wedgeId);
         wedge.classList.add('selected');
         
-        // Move wedge and its text to top layer
+        // Move wedge and its text to top layer - pass the existing wedge ID
         this.topGroup.appendChild(wedge);
-        this.moveTextForWedge(emotion, level, parent, this.topGroup);
+        this.moveTextForWedge(emotion, level, parent, this.topGroup, wedgeId);
         
         // Create shadow copy
         this.createShadowCopy(wedge, wedgeId);
@@ -1131,7 +1161,7 @@ class FeelingsWheelGenerator {
         console.log(`   After: wedge parent = ${wedge.parentNode?.tagName || 'none'}`);
         
         console.log(`📝 Moving text to base group...`);
-        this.moveTextForWedge(emotion, level, parent, this.baseGroup);
+        this.moveTextForWedge(emotion, level, parent, this.baseGroup, wedgeId);
         
         console.log(`✅ deselectWedge complete`);
     }

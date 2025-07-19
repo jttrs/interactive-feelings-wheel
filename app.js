@@ -266,7 +266,19 @@ class FeelingsWheelApp {
         // Setup simplified mode toggle
         const simplifiedModeToggle = document.getElementById('simplified-mode-panel');
         simplifiedModeToggle.addEventListener('change', (event) => {
-            this.handleSimplifiedModeToggle(event.target.checked);
+            // SIMPLIFIED: Let wheel engine handle mode switching, app just clears incompatible tiles
+            const isSimplified = event.target.checked;
+            
+            if (isSimplified) {
+                // Remove tertiary tiles when switching to simplified mode
+                this.removeTertiaryTiles();
+            }
+            
+            // Let wheel engine handle the mode switch and state management
+            this.wheelGenerator.setSimplifiedMode(isSimplified);
+            
+            // Update remaining tile definitions for new mode
+            this.refreshAllTileDefinitions();
         });
 
         // Setup reset button
@@ -591,24 +603,7 @@ class FeelingsWheelApp {
     getEmotionColor(wedgeId) {
         console.log(`🎯 App getEmotionColor("${wedgeId}") - delegating to centralized system`);
         
-        // CRITICAL DEBUG: Check if wedge exists in current wheel mode
-        const wedge = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
-        if (!wedge) {
-            console.warn(`⚠️ No wedge found with ID "${wedgeId}" in current wheel - wedge may not exist in this mode`);
-        } else {
-            console.log(`✅ Wedge found with ID "${wedgeId}" - fill: "${wedge.getAttribute('fill')}"`);
-        }
-        
-        const color = FEELINGS_DATA.getEmotionColor(wedgeId);
-        
-        // Additional debug for color resolution
-        if (!color || color === '#ffffff' || color === 'white') {
-            console.error(`❌ getEmotionColor returned white/invalid color "${color}" for "${wedgeId}"`);
-        } else {
-            console.log(`✅ Color resolved successfully: "${color}"`);
-        }
-        
-        return color;
+        return FEELINGS_DATA.getEmotionColor(wedgeId);
     }
 
     togglePanelMinimization() {
@@ -631,160 +626,27 @@ class FeelingsWheelApp {
     // These were part of the old duplicate color system that caused conflicts
     // All color resolution now uses centralized family-aware system in feelings-data.js
 
-    // ===== COMPREHENSIVE SIMPLIFIED MODE MANAGEMENT =====
+    // ===== SIMPLIFIED MODE MANAGEMENT (SIMPLIFIED APPROACH) =====
     
-    handleSimplifiedModeToggle(isSimplified) {
-        console.log(`🔄 Simplified mode toggle: ${isSimplified ? 'ON' : 'OFF'}`);
-        
-        if (isSimplified) {
-            // Switching TO simplified mode
-            this.saveFullModeState();
-            this.switchToSimplifiedMode();
-        } else {
-            // Switching FROM simplified mode
-            this.saveSimplifiedModeState();
-            this.restoreFullModeState();
-        }
-        
-        // Update wheel mode
-        this.wheelGenerator.setSimplifiedMode(isSimplified);
-        
-        // Refresh colors for remaining tiles (they might have new wedge IDs)
-        this.refreshTileColors();
-    }
-    
-    saveFullModeState() {
-        // Save current full mode tile state
-        this.fullModeState = {
-            tiles: new Map(this.emotionTiles),
-            order: [...this.tileOrder]
-        };
-        console.log(`💾 Saved full mode state: ${this.fullModeState.order.length} tiles`);
-    }
-    
-    saveSimplifiedModeState() {
-        // Save current simplified mode tile state  
-        this.simplifiedModeState = {
-            tiles: new Map(this.emotionTiles),
-            order: [...this.tileOrder]
-        };
-        console.log(`💾 Saved simplified mode state: ${this.simplifiedModeState.order.length} tiles`);
-    }
-    
-    switchToSimplifiedMode() {
-        console.log(`🔽 Switching to simplified mode...`);
-        
-        // Hide tertiary emotion tiles (don't delete them)
-        const tilesToHide = [];
+    removeTertiaryTiles() {
+        // Simple approach: just remove tertiary tiles when switching to simplified mode
+        const tilesToRemove = [];
         this.emotionTiles.forEach((tile, wedgeId) => {
             if (wedgeId.startsWith('tertiary-')) {
-                tilesToHide.push({ wedgeId, tile });
+                tilesToRemove.push(wedgeId);
             }
         });
         
-        // Remove tertiary tiles from display and tracking
-        tilesToHide.forEach(({ wedgeId, tile }) => {
-            tile.style.display = 'none'; // Hide but don't destroy
-            tile.remove(); // Remove from DOM
-            this.emotionTiles.delete(wedgeId);
-            this.tileOrder = this.tileOrder.filter(id => id !== wedgeId);
+        tilesToRemove.forEach(wedgeId => {
+            this.removeEmotionTile(wedgeId);
         });
         
-        console.log(`🔽 Hidden ${tilesToHide.length} tertiary tiles`);
-        
-        // Update instructions visibility
-        this.updateInstructionsVisibility();
-        
-        // Refresh definitions for remaining tiles
-        this.refreshAllTileDefinitions();
-    }
-    
-    restoreFullModeState() {
-        console.log(`🔼 Restoring full mode state...`);
-        
-        if (!this.fullModeState) {
-            console.log(`⚠️ No full mode state to restore`);
-            return;
-        }
-        
-        // Clear current tiles
-        this.clearAllTiles();
-        
-        // Restore tiles in original order
-        const tilesContainer = document.getElementById('emotion-tiles');
-        
-        // Restore in reverse order since we insert at beginning
-        const reversedOrder = [...this.fullModeState.order].reverse();
-        
-        reversedOrder.forEach((wedgeId, index) => {
-            const originalTile = this.fullModeState.tiles.get(wedgeId);
-            if (originalTile) {
-                // Clone the tile to restore it
-                const restoredTile = this.recreateTileFromState(wedgeId, originalTile);
-                
-                // Add to tracking
-                this.emotionTiles.set(wedgeId, restoredTile);
-                
-                // Add to DOM at beginning
-                tilesContainer.insertBefore(restoredTile, tilesContainer.firstChild);
-                
-                // Load definition
-                const emotion = restoredTile.querySelector('.tile-emotion-name').textContent;
-                const level = this.extractLevelFromWedgeId(wedgeId);
-                this.fetchEmotionDefinition(wedgeId, emotion, level);
-            }
-        });
-        
-        // Restore original order
-        this.tileOrder = [...this.fullModeState.order];
-        
-        console.log(`🔼 Restored ${this.tileOrder.length} tiles in original order`);
-        
-        // Collapse all but most recent
-        this.collapseAllTiles();
-        if (this.tileOrder.length > 0) {
-            const mostRecentId = this.tileOrder[0];
-            this.expandTile(mostRecentId);
-        }
-        
-        // Update instructions visibility
-        this.updateInstructionsVisibility();
-    }
-    
-    recreateTileFromState(wedgeId, originalTile) {
-        // Extract emotion info from original tile
-        const emotion = originalTile.querySelector('.tile-emotion-name').textContent;
-        const level = this.extractLevelFromWedgeId(wedgeId);
-        
-        // Create new tile with current color system (handles potential ID changes)
-        const newTile = this.createEmotionTile(wedgeId, emotion, level);
-        
-        // Restore collapsed state if needed
-        const wasCollapsed = originalTile.classList.contains('collapsed');
-        if (wasCollapsed) {
-            newTile.classList.remove('expanded');
-            newTile.classList.add('collapsed');
-        }
-        
-        return newTile;
+        console.log(`🔽 Removed ${tilesToRemove.length} tertiary tiles for simplified mode`);
     }
     
     extractLevelFromWedgeId(wedgeId) {
         // Extract level from wedge ID format: "level-family-emotion"
         return wedgeId.split('-')[0];
-    }
-    
-    refreshTileColors() {
-        // Refresh colors for all current tiles (handles wedge ID changes after mode switch)
-        this.emotionTiles.forEach((tile, wedgeId) => {
-            console.log(`🎨 Refreshing color for tile: "${wedgeId}"`);
-            
-            // Get updated color using current centralized system
-            const emotionColor = this.getEmotionColor(wedgeId);
-            tile.style.setProperty('--emotion-color', emotionColor);
-            
-            console.log(`✅ Updated tile color to: "${emotionColor}"`);
-        });
     }
 }
 

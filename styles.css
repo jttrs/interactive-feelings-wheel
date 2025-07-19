@@ -365,11 +365,12 @@ body {
 /* ===== INFORMATION PANEL COMPONENTS ===== */
 
 /* Modern Floating Panel Minimization Tab - Desktop Only */
+/* UNIFIED BUTTON POSITIONING - Both buttons use same method for perfect alignment */
 .panel-minimize-tab {
-    position: absolute;
-    left: -32px; /* Moved further out to be fully visible */
-    top: 50%;
-    transform: translateY(-50%);
+    /* CENTRALIZED POSITIONING - Calculate exact panel center relative to viewport */
+    position: fixed;
+    left: calc(100vw - 380px - 1rem - 32px); /* Panel right edge minus button width */
+    top: calc(1rem + (100vh - 2rem) / 2 - 32px); /* Panel center minus half button height */
     width: 32px;
     height: 64px;
     
@@ -400,7 +401,6 @@ body {
 .panel-minimize-tab:hover {
     background: rgba(255, 255, 255, 1);
     color: #2d3748;
-    /* REMOVED TRANSFORM TO PREVENT POSITIONING CONFLICTS */
     border-color: rgba(255, 255, 255, 0.8);
     box-shadow: 
         -8px 0 25px rgba(0, 0, 0, 0.2),
@@ -428,14 +428,12 @@ body {
     display: none;
 }
 
-/* Expand button positioning when panel is hidden - flush with screen edge */
+/* Expand button positioning when panel is hidden - USES SAME POSITIONING METHOD */
 .info-panel.minimized .panel-minimize-tab {
-    position: fixed; /* Position relative to viewport when panel is hidden */
+    /* UNIFIED POSITIONING - Same calculation method as collapse button */
     right: 0; /* Flush with right edge of screen */
-    left: auto; /* Override the left positioning */
-    /* CORRECTED: Match panel's actual center position (panel height = 100vh - 2rem, center = 50vh) */
-    top: 50%;
-    transform: translateY(-50%); /* Use same centering method as collapse button */
+    left: auto; /* Override left positioning from base class */
+    top: calc(1rem + (100vh - 2rem) / 2 - 32px); /* EXACT SAME calculation as collapse button */
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid rgba(255, 255, 255, 0.6);
     border-right: none;
@@ -516,6 +514,11 @@ body {
     
     .panel-minimize-tab {
         display: none; /* Hide desktop tab on mobile */
+    }
+    
+    /* Override desktop positioning for mobile - not needed */
+    .info-panel.minimized .panel-minimize-tab {
+        display: none;
     }
     
     /* Mobile collapsed: Arrow points UP (will expand up) */

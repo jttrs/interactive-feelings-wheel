@@ -1,4 +1,4 @@
-// Feelings Wheel Generator - Complete with rotation and click handling
+// Feelings Wheel Engine - Core wheel UI system: rendering, interaction, animation, and state management
 class FeelingsWheelGenerator {
     constructor(container, data) {
         this.container = container;
@@ -836,23 +836,33 @@ class FeelingsWheelGenerator {
             this.svg.style.cursor = 'grab';
         });
         
-        // Mouse wheel for rotation - with momentum control
+        // Mouse wheel for rotation - aggressive momentum control
         let lastWheelTime = 0;
+        let wheelTimeout = null;
         this.svg.addEventListener('wheel', (e) => {
             // Prevent interaction during animations
             if (this.isAnimating) return;
             
             e.preventDefault();
             
-            // Throttle wheel events to reduce momentum effect from trackpads
+            // AGGRESSIVE momentum control - debounce instead of throttle
             const now = performance.now();
-            if (now - lastWheelTime < 16) return; // ~60fps throttling
+            if (now - lastWheelTime < 50) return; // Increased from 16ms to 50ms
             lastWheelTime = now;
             
-            // Use smaller rotation increments for more precise control
-            const rotationDelta = e.deltaY > 0 ? 3 : -3; // Reduced from 5 to 3 degrees
+            // Clear any pending momentum
+            clearTimeout(wheelTimeout);
+            
+            // Very small rotation increments for precise control
+            const rotationDelta = e.deltaY > 0 ? 1.5 : -1.5; // Further reduced from 3 to 1.5 degrees
             this.currentRotation += rotationDelta;
             this.updateRotation();
+            
+            // Set timeout to "brake" any remaining momentum after 100ms
+            wheelTimeout = setTimeout(() => {
+                // Momentum has stopped
+                lastWheelTime = 0;
+            }, 100);
         });
         
         // Click events for emotions

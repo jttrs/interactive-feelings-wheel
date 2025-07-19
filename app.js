@@ -259,17 +259,15 @@ class FeelingsWheelApp {
         const emotionColor = this.getEmotionColor(wedgeId);
         tile.style.setProperty('--emotion-color', emotionColor);
         
-        // Get emotion family
+        // Get emotion family and family color
         const family = this.getEmotionFamily(emotion, level);
+        const familyColor = this.getFamilyColor(family);
+        tile.style.setProperty('--family-color', familyColor);
         
-                 tile.innerHTML = `
+        tile.innerHTML = `
              <div class="tile-header">
                  <div>
                      <h4 class="tile-emotion-name">${emotion}</h4>
-                     <div class="tile-meta">
-                         <span class="tile-level">${level}</span>
-                         <span class="tile-family">${family}</span>
-                     </div>
                  </div>
                  <button class="tile-remove" title="Remove ${emotion}">×</button>
              </div>
@@ -545,6 +543,22 @@ class FeelingsWheelApp {
         }
         
         return 'Unknown';
+    }
+
+    getFamilyColor(family) {
+        // Color mapping for emotion families (therapeutic color palette)
+        const familyColors = {
+            'Happy': '#ffd700',      // Golden yellow
+            'Sad': '#6b9bd2',        // Calm blue  
+            'Angry': '#e74c3c',      // Warm red
+            'Fearful': '#9b59b6',    // Purple
+            'Surprised': '#f39c12',  // Orange
+            'Disgusted': '#27ae60',  // Green
+            'Bad': '#7f8c8d',        // Neutral gray
+            'Unknown': '#95a5a6'     // Light gray
+        };
+        
+        return familyColors[family] || familyColors['Unknown'];
     }
 }
 

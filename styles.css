@@ -1,5 +1,87 @@
 /* Minimal Feelings Wheel Styles */
 
+/* ===== DPI & RESOLUTION COMPATIBILITY SYSTEM ===== */
+:root {
+    /* Base responsive measurements that scale properly across all devices */
+    --base-font-size: clamp(14px, 1.2vmin, 18px);
+    --panel-width: clamp(280px, 25vw, 380px);
+    --panel-width-mobile: min(90vw, 340px);
+    --touch-target-min: max(44px, 3vmin); /* WCAG accessibility compliance */
+    --spacing-unit: max(8px, 0.5vmin);
+    --border-radius-base: max(8px, 0.5vmin);
+    
+    /* DPI-aware scaling factors */
+    --dpi-scale: 1;
+    --font-scale: 1;
+    --interaction-scale: 1;
+}
+
+/* High DPI displays (Retina, most modern phones) */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    :root {
+        --dpi-scale: 1.15;
+        --font-scale: 1.05;
+        --touch-target-min: max(46px, 3.2vmin);
+        --interaction-scale: 1.1;
+    }
+}
+
+/* Very high DPI displays (iPhone Plus, many Android flagships) */  
+@media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 288dpi) {
+    :root {
+        --dpi-scale: 1.25;
+        --font-scale: 1.1;
+        --touch-target-min: max(48px, 3.5vmin);
+        --interaction-scale: 1.15;
+    }
+}
+
+/* Ultra-high DPI displays (4K monitors, Apple Pro Display XDR) */
+@media (-webkit-min-device-pixel-ratio: 4), (min-resolution: 384dpi) {
+    :root {
+        --dpi-scale: 1.4;
+        --font-scale: 1.2;
+        --base-font-size: clamp(16px, 1.4vmin, 20px);
+        --touch-target-min: max(52px, 4vmin);
+        --interaction-scale: 1.2;
+    }
+}
+
+/* Touch device detection (proper mobile detection) */
+@media (hover: none) and (pointer: coarse) {
+    :root {
+        --touch-target-min: max(44px, 4vmin);
+        --panel-width: var(--panel-width-mobile);
+        --base-font-size: clamp(15px, 1.3vmin, 19px);
+        --interaction-scale: 1.2; /* Larger touch targets */
+    }
+}
+
+/* Wide screens - allow larger panel */
+@media (min-width: 1400px) {
+    :root {
+        --panel-width: clamp(380px, 22vw, 450px);
+    }
+}
+
+/* Very wide screens - even larger panel */
+@media (min-width: 1920px) {
+    :root {
+        --panel-width: clamp(400px, 20vw, 500px);
+    }
+}
+
+/* Very narrow screens - prioritize wheel space */
+@media (max-width: 320px) {
+    :root {
+        --panel-width: calc(100vw - 1rem);
+        --base-font-size: 14px;
+        --spacing-unit: 6px;
+    }
+}
+
+/* ===== END DPI COMPATIBILITY SYSTEM ===== */
+
 * {
     margin: 0;
     padding: 0;
@@ -8,6 +90,7 @@
 
 body {
     font-family: Arial, sans-serif;
+    font-size: calc(var(--base-font-size) * var(--font-scale));
     background-color: #f5f5f5;
     color: #333;
     line-height: 1.6;
@@ -257,8 +340,8 @@ body {
     justify-content: center;
     position: relative;
     overflow: hidden;
-    /* Offset wheel left to center in available space (accounting for 380px panel + 2rem margin) */
-    padding-right: calc(380px + 2rem);
+    /* Offset wheel left to center in available space (responsive panel width) */
+    padding-right: calc(var(--panel-width) + 2rem);
     transition: padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -286,7 +369,7 @@ body {
     top: 1rem;
     right: 1rem;
     bottom: 1rem;
-    width: 380px;
+    width: var(--panel-width);
     max-width: calc(100vw - 2rem);
     
     /* SIMPLIFIED BACKGROUND - removed expensive backdrop-filter */
@@ -369,7 +452,7 @@ body {
 .panel-minimize-tab {
     /* CENTRALIZED POSITIONING - Calculate exact panel center relative to viewport */
     position: fixed;
-    left: calc(100vw - 380px - 1rem - 32px); /* Panel right edge minus button width */
+    left: calc(100vw - var(--panel-width) - 1rem - 32px); /* Panel right edge minus button width */
     top: calc(1rem + (100vh - 2rem) / 2 - 32px); /* Panel center minus half button height */
     width: 32px;
     height: 64px;
@@ -740,10 +823,15 @@ body {
     border: none;
     color: #a0aec0;
     cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0.25rem;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    font-size: calc(1.2rem * var(--font-scale));
+    padding: var(--spacing-unit);
+    border-radius: var(--border-radius-base);
+    transition: all calc(0.2s * var(--interaction-scale)) ease;
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tile-remove:hover {
@@ -800,15 +888,17 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: max(32px, var(--touch-target-min));
+    height: max(32px, var(--touch-target-min));
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
     background: #f8f9fa;
     border: 1px solid #e0e0e0;
-    border-radius: 6px;
+    border-radius: var(--border-radius-base);
     color: #666;
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
+    transition: all calc(0.2s * var(--interaction-scale)) ease;
+    font-size: calc(0.9rem * var(--font-scale));
 }
 
 .control-btn:hover {
@@ -1036,15 +1126,55 @@ footer a:hover {
     text-decoration: underline;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* Device-capability based responsive design (not pixel-based) */
+@media (hover: none) and (pointer: coarse) {
+    /* Touch devices - ensure proper touch targets */
     .mode-toggle {
-        font-size: 0.8rem;
+        font-size: calc(0.8rem * var(--font-scale));
+        min-height: var(--touch-target-min);
+    }
+    
+    .control-btn {
+        min-width: var(--touch-target-min);
+        min-height: var(--touch-target-min);
+        padding: calc(var(--spacing-unit) * 1.5);
+    }
+    
+    .tile-remove {
+        min-width: var(--touch-target-min);
+        min-height: var(--touch-target-min);
+        font-size: calc(1.2rem * var(--font-scale));
     }
     
     footer {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.65rem;
+        padding: calc(var(--spacing-unit) * 0.5) var(--spacing-unit);
+        font-size: calc(0.65rem * var(--font-scale));
+    }
+}
+
+/* Very small screens regardless of device type */
+@media (max-width: 480px) {
+    .main-layout {
+        flex-direction: column;
+    }
+    
+    .wheel-container {
+        padding-right: 0;
+        padding-bottom: var(--panel-width);
+    }
+    
+    .info-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100% !important;
+        height: var(--panel-width);
+        border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+    }
+    
+    .minimize-tab {
+        display: none; /* Hide desktop minimization on mobile */
     }
 } 
 
@@ -1089,6 +1219,8 @@ text {
     dominant-baseline: central;
     /* Maintain font metrics during transforms */
     vector-effect: non-scaling-stroke;
+    /* Ensure minimum readable size on all DPI */
+    font-size: max(8px, 0.8rem);
 }
 
 /* Main wheel groups - enable hardware acceleration ONLY for groups that use CSS transforms */

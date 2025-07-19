@@ -22,6 +22,11 @@ class FeelingsWheelGenerator {
         this.isAnimating = false;
         this.animationCounter = 0;
         
+        // DPI awareness system
+        this.dpr = window.devicePixelRatio || 1;
+        this.effectiveSize = 0;
+        this.resizeTimeout = null;
+        
         // State management for mode switching
         this.fullModeState = {
             rotation: 0,
@@ -33,8 +38,6 @@ class FeelingsWheelGenerator {
             selectedWedges: new Set(),
             hasBeenInitialized: false
         };
-        
-        // Remove sticky positioning - not wanted
         
         // Set dynamic radii based on mode
         this.updateRadii();
@@ -311,7 +314,7 @@ class FeelingsWheelGenerator {
     }
     
     calculateOptimalTextSize(radialWidth, angularWidth, textLength) {
-        // Calculate optimal font size based on wedge dimensions and text requirements
+        // DPI-aware font size calculation - critical for high DPI displays
         
         // For radial text, the constraints are:
         // 1. Font height must fit within ring thickness (radial width)
@@ -334,13 +337,15 @@ class FeelingsWheelGenerator {
         // Take the smaller of the two constraints
         let optimalSize = Math.min(maxHeightFromRing, maxSizeFromLength);
         
-        // Apply reasonable bounds
-        const minSize = Math.max(6, this.containerSize * 0.008); // Minimum readable size
-        const maxSize = this.containerSize * 0.08; // Maximum reasonable size
+        // DPI-aware bounds calculation
+        const baseFontScale = Math.min(this.dpr, 2.5); // Cap scaling to prevent huge fonts
+        const minSize = Math.max(6 * baseFontScale, this.effectiveSize * 0.008); 
+        const maxSize = this.effectiveSize * 0.08;
         
         optimalSize = Math.max(minSize, Math.min(maxSize, optimalSize));
         
-        return optimalSize;
+        // Convert back to CSS pixels for SVG rendering
+        return optimalSize / this.dpr;
     }
 
     calculateFontSize(level) {
@@ -544,9 +549,15 @@ class FeelingsWheelGenerator {
         this.container.innerHTML = '';
         this.textElements = [];
         
-        // Get container dimensions to size the wheel properly
+        // Get container dimensions with DPI awareness
         const containerRect = this.container.getBoundingClientRect();
-        const size = Math.min(containerRect.width, containerRect.height);
+        const cssSize = Math.min(containerRect.width, containerRect.height);
+        
+        // Update DPI information
+        this.dpr = window.devicePixelRatio || 1;
+        this.effectiveSize = cssSize * Math.min(this.dpr, 2); // Cap at 2x for reasonable scaling
+        
+        const size = cssSize; // Use CSS size for layout, effective size for font calculations
         
 
         
@@ -867,6 +878,68 @@ class FeelingsWheelGenerator {
                 this.handleWedgeClick(e);
             }
         });
+        
+        // DPI-aware resize handling
+        window.addEventListener('resize', () => this.handleResize());
+        window.addEventListener('orientationchange', () => {
+            // Mobile orientation change - allow time for layout to settle
+            setTimeout(() => this.handleResize(), 200);
+        });
+    }
+    
+    // DPI-aware resize handler
+    handleResize() {
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(() => {
+            const oldSize = this.containerSize;
+            const containerRect = this.container.getBoundingClientRect();
+            const newCssSize = Math.min(containerRect.width, containerRect.height);
+            
+            // Only regenerate if significant change (avoid constant regeneration)
+            if (Math.abs(newCssSize - oldSize) > 10) {
+                this.regenerateWheel();
+            }
+        }, 150);
+    }
+    
+    // Touch target validation for accessibility compliance
+    validateTouchTargets() {
+        const minTouchSize = 44; // WCAG guidelines
+        const wedges = this.container.querySelectorAll('.wedge');
+        let issues = 0;
+        
+        wedges.forEach(wedge => {
+            const rect = wedge.getBoundingClientRect();
+            const area = rect.width * rect.height;
+            const minArea = minTouchSize * minTouchSize;
+            
+            if (area < minArea) {
+                issues++;
+            }
+        });
+        
+        if (issues > 0) {
+            console.warn(`${issues} touch targets below WCAG minimum size (${minTouchSize}px)`);
+        }
+        
+        return issues === 0;
+    }
+    
+    // DPI debugging utility
+    debugDpiInfo() {
+        const containerRect = this.container.getBoundingClientRect();
+        const info = {
+            'Device Pixel Ratio': this.dpr,
+            'CSS Container Size': `${Math.min(containerRect.width, containerRect.height)}px`,
+            'Effective Size (for fonts)': `${this.effectiveSize}px`,
+            'Screen Width': `${screen.width}px`,
+            'Window Inner Width': `${window.innerWidth}px`,
+            'Touch Device': (window.navigator.maxTouchPoints > 0) ? 'Yes' : 'No',
+            'High DPI': this.dpr > 1 ? 'Yes' : 'No'
+        };
+        
+        console.table(info);
+        return info;
     }
 
     handleWedgeClick(event) {

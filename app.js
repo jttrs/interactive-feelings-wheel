@@ -708,42 +708,9 @@ class FeelingsWheelApp {
         }
     }
 
-    getEmotionFamily(emotion, level) {
-        // Find which core emotion family this belongs to
-        if (level === 'core') {
-            return emotion; // Core emotions are their own family
-        }
-        
-        // For secondary emotions, find the core parent
-        for (const coreEmotion of FEELINGS_DATA.core) {
-            if (FEELINGS_DATA.secondary[coreEmotion.name]?.includes(emotion)) {
-                return coreEmotion.name;
-            }
-        }
-        
-        // For tertiary emotions, find through secondary
-        for (const coreEmotion of FEELINGS_DATA.core) {
-            const secondaryEmotions = FEELINGS_DATA.secondary[coreEmotion.name] || [];
-            for (const secondaryEmotion of secondaryEmotions) {
-                if (FEELINGS_DATA.tertiary[secondaryEmotion]?.includes(emotion)) {
-                    return coreEmotion.name;
-                }
-            }
-        }
-        
-        return 'Unknown';
-    }
-
-    getFamilyColor(family) {
-        // Get actual colors from wheel data to match exactly
-        const coreEmotion = FEELINGS_DATA.core.find(emotion => emotion.name === family);
-        if (coreEmotion) {
-            return coreEmotion.color;
-        }
-        
-        // Fallback colors for unknown
-        return '#95a5a6';
-    }
+    // REMOVED: getEmotionFamily() and getFamilyColor() methods
+    // These were part of the old duplicate color system that caused conflicts
+    // All color resolution now uses centralized family-aware system in feelings-data.js
 }
 
 // Initialize the app

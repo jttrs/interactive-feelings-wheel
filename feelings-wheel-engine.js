@@ -314,7 +314,7 @@ class FeelingsWheelGenerator {
     }
     
     calculateOptimalTextSize(radialWidth, angularWidth, textLength) {
-        // DPI-aware font size calculation - critical for high DPI displays
+        // FIXED: Proper dynamic font size calculation that fills available space
         
         // For radial text, the constraints are:
         // 1. Font height must fit within ring thickness (radial width)
@@ -337,15 +337,14 @@ class FeelingsWheelGenerator {
         // Take the smaller of the two constraints
         let optimalSize = Math.min(maxHeightFromRing, maxSizeFromLength);
         
-        // DPI-aware bounds calculation
-        const baseFontScale = Math.min(this.dpr, 2.5); // Cap scaling to prevent huge fonts
-        const minSize = Math.max(6 * baseFontScale, this.effectiveSize * 0.008); 
-        const maxSize = this.effectiveSize * 0.08;
+        // Apply reasonable bounds (use CSS pixel dimensions consistently)
+        const minSize = Math.max(6, this.containerSize * 0.008); // Minimum readable size
+        const maxSize = this.containerSize * 0.08; // Maximum reasonable size
         
         optimalSize = Math.max(minSize, Math.min(maxSize, optimalSize));
         
-        // Convert back to CSS pixels for SVG rendering
-        return optimalSize / this.dpr;
+        // Return CSS pixels directly (no DPI division needed for SVG font-size)
+        return optimalSize;
     }
 
     calculateFontSize(level) {

@@ -567,12 +567,12 @@ class FeelingsWheelApp {
         if (Math.abs(rotationDelta) < 1) {
             setTimeout(() => {
                 this.completeReset();
-            }, 1500); // Wait for full 1.5s tile animation
+            }, 1000); // Wait for full 1s tile animation
             return;
         }
 
-        // FIXED: 1.5 second rotation to match tile animation duration
-        const duration = 1500; // Same as tile animation
+        // FIXED: 1 second rotation to match tile animation duration
+        const duration = 1000; // Same as tile animation
         const startTime = performance.now();
 
         const animateFrame = (currentTime) => {

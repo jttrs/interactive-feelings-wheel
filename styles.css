@@ -690,12 +690,12 @@ body {
 }
 
 .emotion-tile.expanded {
-    border-left: 5px solid var(--family-color, #4a90e2);
+    border-left: 5px solid var(--emotion-color, #4a90e2);
     background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
 }
 
 .emotion-tile.collapsed {
-    border-left: 4px solid var(--family-color, #cbd5e0);
+    border-left: 4px solid var(--emotion-color, #cbd5e0);
     cursor: pointer;
     background: #fafbfc;
 }

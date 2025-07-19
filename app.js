@@ -347,14 +347,11 @@ class FeelingsWheelApp {
         tile.className = 'emotion-tile expanded';
         tile.setAttribute('data-wedge-id', wedgeId);
         
-        // Get emotion color from wheel
+        // Get emotion color from centralized family-aware system
         const emotionColor = this.getEmotionColor(wedgeId);
         tile.style.setProperty('--emotion-color', emotionColor);
         
-        // Get emotion family and family color
-        const family = this.getEmotionFamily(emotion, level);
-        const familyColor = this.getFamilyColor(family);
-        tile.style.setProperty('--family-color', familyColor);
+        // REMOVED: Old duplicate color system that caused conflicts
         
         tile.innerHTML = `
              <div class="tile-header">

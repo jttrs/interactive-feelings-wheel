@@ -269,13 +269,16 @@ class FeelingsWheelApp {
             const isSimplified = event.target.checked;
             
             // CRITICAL FIX: Clear app state completely and let wheel engine manage everything
-            this.clearAllTiles();
+            this.clearAllTilesWithoutInstructions(); // Don't auto-show instructions during mode switch
             
             // Let wheel engine handle mode switching and state restoration
             this.wheelGenerator.setSimplifiedMode(isSimplified);
             
             // Recreate tiles from wheel engine's restored state
             this.recreateTilesFromWheelState();
+            
+            // Update instruction visibility based on final tile state
+            this.updateInstructionsVisibility();
         });
 
         // Setup reset button
@@ -452,6 +455,14 @@ class FeelingsWheelApp {
         this.showInstructions();
     }
 
+    clearAllTilesWithoutInstructions() {
+        // Clear tiles without automatically showing instructions (for mode switching)
+        this.emotionTiles.forEach(tile => tile.remove());
+        this.emotionTiles.clear();
+        this.tileOrder = [];
+        // Don't call showInstructions() - let caller manage instruction visibility
+    }
+
     // ===== ANIMATED RESET FUNCTIONALITY =====
 
     resetWithAnimation() {
@@ -619,6 +630,22 @@ class FeelingsWheelApp {
         });
         
         console.log(`🔄 Recreated ${this.emotionTiles.size} tiles from wheel state`);
+    }
+    
+    updateInstructionsVisibility() {
+        // Show instructions only when no tiles exist
+        if (this.emotionTiles.size === 0) {
+            this.showInstructions();
+        } else {
+            this.hideInstructions();
+        }
+    }
+    
+    hideInstructions() {
+        const instructionsSection = document.getElementById('panel-instructions');
+        if (instructionsSection) {
+            instructionsSection.style.display = 'none';
+        }
     }
     
     extractLevelFromWedgeId(wedgeId) {

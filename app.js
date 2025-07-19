@@ -691,14 +691,14 @@ class FeelingsWheelApp {
     getEmotionColor(wedgeId) {
         console.log(`🎨 getEmotionColor("${wedgeId}") called`);
         
-        // Try to get color from the wheel SVG wedge element (not text)
-        const wedgeElement = document.querySelector(`.wedge[data-wedge-id="${wedgeId}"]`);
-        console.log(`🔍 Found wedge element: ${wedgeElement ? 'YES' : 'NO'}`);
+        // CRITICAL FIX: Exclude shadow copies from color resolution
+        const wedgeElement = document.querySelector(`.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`);
+        console.log(`🔍 Found actual wedge element: ${wedgeElement ? 'YES' : 'NO'}`);
         
         if (wedgeElement) {
             const fill = wedgeElement.getAttribute('fill');
-            console.log(`🎨 Wedge fill attribute: "${fill}"`);
-            if (fill && fill !== 'none') {
+            console.log(`🎨 Actual wedge fill attribute: "${fill}"`);
+            if (fill && fill !== 'none' && !fill.includes('rgba(0, 0, 0, 0.3)')) {
                 console.log(`✅ Returning actual wedge color: "${fill}"`);
                 return fill;
             }

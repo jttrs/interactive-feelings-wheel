@@ -948,7 +948,11 @@ class FeelingsWheelGenerator {
         
         // Create a copy of the wedge for shadow layer
         const shadowWedge = originalWedge.cloneNode(true);
-        shadowWedge.setAttribute('class', 'wedge shadow-wedge');
+        
+        // CRITICAL FIX: Remove data-wedge-id from shadow copy to prevent interference
+        shadowWedge.removeAttribute('data-wedge-id');
+        shadowWedge.setAttribute('class', 'shadow-wedge'); // Remove 'wedge' class to prevent selection
+        shadowWedge.setAttribute('data-shadow-for', wedgeId); // Mark what it's a shadow for
         
         // Make shadow copy visible with proper shadow styling
         shadowWedge.setAttribute('fill', 'rgba(0, 0, 0, 0.3)');
@@ -1041,10 +1045,14 @@ class FeelingsWheelGenerator {
         }
         
         findWedgeByUniqueId(level, emotion, parent) {
-            // Find wedge element using the unique wedge ID - most reliable method
+            // Find wedge element using the unique wedge ID - exclude shadow copies
             const wedgeId = this.createUniqueWedgeId(level, emotion, parent);
-            const element = this.container.querySelector(`.wedge[data-wedge-id="${wedgeId}"]`);
-            console.log(`🔍 findWedgeByUniqueId: selector=".wedge[data-wedge-id=\"${wedgeId}\"]", found=${element ? 'YES' : 'NO'}`);
+            // Use more specific selector to exclude shadow copies (they don't have 'wedge' class anymore)
+            const element = this.container.querySelector(`.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`);
+            console.log(`🔍 findWedgeByUniqueId: selector=".wedge[data-wedge-id=\"${wedgeId}\"]:not(.shadow-wedge)", found=${element ? 'YES' : 'NO'}`);
+            if (element) {
+                console.log(`   ✅ Found actual wedge with fill: "${element.getAttribute('fill')}"`);
+            }
             return element;
         }
         

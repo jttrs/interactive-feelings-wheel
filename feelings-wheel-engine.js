@@ -262,7 +262,6 @@ class FeelingsWheelGenerator {
             const radialWidth = this.coreRadius * 0.8; // Core is a circle, use 80% of radius for text space
             const angularWidth = core.size;
             const constraint = this.calculateOptimalTextSize(radialWidth, angularWidth, core.name.length);
-            console.log(`Core "${core.name}": radial=${radialWidth.toFixed(1)}, angular=${angularWidth.toFixed(1)}°, chars=${core.name.length}, constraint=${constraint.toFixed(1)}px`);
             return constraint;
         });
         fontSizes.core = Math.min(...coreConstraints);
@@ -977,7 +976,6 @@ class FeelingsWheelGenerator {
         
         if (textElement) {
             targetGroup.appendChild(textElement);
-            console.log(`✅ Moved text for "${emotion}" to ${targetGroup.getAttribute('class') || 'target group'}`);
         } else {
 
         }

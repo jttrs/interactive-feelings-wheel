@@ -689,77 +689,10 @@ class FeelingsWheelApp {
     }
 
     getEmotionColor(wedgeId) {
-        console.log(`🎨 getEmotionColor("${wedgeId}") called`);
+        console.log(`🎯 App getEmotionColor("${wedgeId}") - delegating to centralized system`);
         
-        // CRITICAL FIX: Exclude shadow copies from color resolution
-        const wedgeElement = document.querySelector(`.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`);
-        console.log(`🔍 Found actual wedge element: ${wedgeElement ? 'YES' : 'NO'}`);
-        
-        if (wedgeElement) {
-            const fill = wedgeElement.getAttribute('fill');
-            console.log(`🎨 Actual wedge fill attribute: "${fill}"`);
-            if (fill && fill !== 'none' && !fill.includes('rgba(0, 0, 0, 0.3)')) {
-                console.log(`✅ Returning actual wedge color: "${fill}"`);
-                return fill;
-            }
-        }
-        
-        // ENHANCED: Family-aware fallback colors using core emotion family
-        const parts = wedgeId.split('-');
-        const level = parts[0];
-        
-        // For family-aware IDs, use the core emotion family color
-        if (parts.length >= 2) {
-            let coreFamily;
-            if (level === 'core') {
-                coreFamily = parts[1];
-            } else if (level === 'secondary') {
-                coreFamily = parts[1];
-            } else if (level === 'tertiary') {
-                coreFamily = parts[1]; // Core family is always at position 1 for tertiary
-            }
-            
-            if (coreFamily) {
-                // Find the core emotion color from the data
-                const coreEmotion = FEELINGS_DATA.core.find(core => core.name === coreFamily);
-                if (coreEmotion) {
-                    // Apply the same lightening as the wheel generation
-                    let familyColor = coreEmotion.color;
-                    if (level === 'secondary') {
-                        familyColor = this.lightenColor(familyColor, 40);
-                    } else if (level === 'tertiary') {
-                        familyColor = this.lightenColor(familyColor, 70);
-                    }
-                    console.log(`✅ Using ${coreFamily} family color for ${level}: "${familyColor}"`);
-                    return familyColor;
-                }
-            }
-        }
-        
-        // Final fallback to level-based colors
-        const colorMap = {
-            'core': '#4a90e2',
-            'secondary': '#7bb3f2',
-            'tertiary': '#a8d0f7'
-        };
-        
-        const fallbackColor = colorMap[level] || '#4a90e2';
-        console.log(`⚠️ Using level fallback color: "${fallbackColor}"`);
-        return fallbackColor;
-    }
-    
-    // Helper method to lighten colors (same as wheel engine)
-    lightenColor(color, percent) {
-        const num = parseInt(color.replace("#", ""), 16);
-        const R = (num >> 16) & 0xFF;
-        const G = (num >> 8) & 0xFF;
-        const B = num & 0xFF;
-        
-        const newR = Math.min(255, Math.round(R + (255 - R) * (percent / 100)));
-        const newG = Math.min(255, Math.round(G + (255 - G) * (percent / 100)));
-        const newB = Math.min(255, Math.round(B + (255 - B) * (percent / 100)));
-        
-        return "#" + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
+        // Use the centralized color system from feelings data
+        return FEELINGS_DATA.getEmotionColor(wedgeId);
     }
 
     togglePanelMinimization() {

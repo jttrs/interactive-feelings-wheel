@@ -121,6 +121,71 @@ const FEELINGS_DATA = {
         "Threatened": ["Nervous", "Exposed"]
     },
 
+    // ===== CENTRALIZED COLOR SYSTEM =====
+    // This is the single source of truth for all emotion colors
+    getEmotionColor(wedgeId) {
+        console.log(`🎨 CENTRALIZED getEmotionColor("${wedgeId}") called`);
+        
+        // Parse the wedge ID to get components
+        const parts = wedgeId.split('-');
+        const level = parts[0];
+        
+        // Determine the core family based on the wedge ID format
+        let coreFamily;
+        if (level === 'core') {
+            coreFamily = parts[1];
+        } else if (level === 'secondary') {
+            coreFamily = parts[1]; // Core family is always at position 1
+        } else if (level === 'tertiary') {
+            coreFamily = parts[1]; // Core family is always at position 1 for family-aware IDs
+        }
+        
+        console.log(`📋 Extracted core family: "${coreFamily}" from "${wedgeId}"`);
+        
+        if (coreFamily) {
+            // Find the core emotion color
+            const coreEmotion = this.core.find(core => core.name === coreFamily);
+            if (coreEmotion) {
+                let familyColor = coreEmotion.color;
+                
+                // Apply lightening based on level (same as wheel generation)
+                if (level === 'secondary') {
+                    familyColor = this.lightenColor(familyColor, 40);
+                } else if (level === 'tertiary') {
+                    familyColor = this.lightenColor(familyColor, 70);
+                }
+                
+                console.log(`✅ Using ${coreFamily} family color for ${level}: "${familyColor}"`);
+                return familyColor;
+            }
+        }
+        
+        // Final fallback to level-based colors
+        const fallbackMap = {
+            'core': '#4a90e2',
+            'secondary': '#7bb3f2', 
+            'tertiary': '#a8d0f7'
+        };
+        
+        const fallbackColor = fallbackMap[level] || '#4a90e2';
+        console.log(`⚠️ Using fallback color for level "${level}": "${fallbackColor}"`);
+        return fallbackColor;
+    },
+    
+    // Helper method to lighten colors (same logic as wheel engine)
+    lightenColor(color, percent) {
+        const num = parseInt(color.replace("#", ""), 16);
+        const R = (num >> 16) & 0xFF;
+        const G = (num >> 8) & 0xFF;
+        const B = num & 0xFF;
+        
+        const newR = Math.min(255, Math.round(R + (255 - R) * (percent / 100)));
+        const newG = Math.min(255, Math.round(G + (255 - G) * (percent / 100)));
+        const newB = Math.min(255, Math.round(B + (255 - B) * (percent / 100)));
+        
+        return "#" + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
+    },
+
     // Emotion definitions
     definitions: {
         // Core emotions

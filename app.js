@@ -173,7 +173,7 @@ class FeelingsWheelApp {
                     
                 case 'r':
                     event.preventDefault();
-                    this.resetAllSelections();
+                    this.resetWithAnimation();
                     break;
                     
                 case 'p':
@@ -274,8 +274,7 @@ class FeelingsWheelApp {
         // Setup reset button
         const resetButton = document.getElementById('reset-btn-panel');
         resetButton.addEventListener('click', () => {
-            this.wheelGenerator.reset();
-            this.clearAllTiles();
+            this.resetWithAnimation();
         });
 
         // Setup fullscreen button
@@ -542,6 +541,120 @@ class FeelingsWheelApp {
         this.emotionTiles.clear();
         this.tileOrder = [];
         this.showInstructions();
+    }
+
+    // ===== ANIMATED RESET FUNCTIONALITY =====
+
+    resetWithAnimation() {
+        // If no selections, just do instant reset
+        if (this.emotionTiles.size === 0 && this.wheelGenerator.currentRotation === 0) {
+            this.wheelGenerator.reset();
+            this.clearAllTiles();
+            return;
+        }
+
+        // Prevent multiple resets while animating
+        if (this.isResetting) return;
+        this.isResetting = true;
+
+        // Mark wheel as animating to prevent user interaction
+        this.wheelGenerator.isAnimating = true;
+
+        // Start coordinated animations
+        this.animateUnwindTiles();
+        this.animateUnwindRotation();
+    }
+
+    animateUnwindTiles() {
+        // Get tiles in reverse chronological order (newest first, as they appear in panel)
+        const tilesToRemove = [...this.tileOrder]; // Copy the array
+        
+        if (tilesToRemove.length === 0) return;
+
+        // Stagger removal: 120ms between each tile for elegant cascade
+        tilesToRemove.forEach((wedgeId, index) => {
+            setTimeout(() => {
+                // Deselect the wedge first (creates de-emphasis effect)
+                this.wheelGenerator.toggleWedgeSelection(wedgeId);
+                
+                // Remove tile with a subtle fade out
+                const tile = this.emotionTiles.get(wedgeId);
+                if (tile) {
+                    tile.style.transition = 'opacity 0.2s ease-out, transform 0.2s ease-out';
+                    tile.style.opacity = '0';
+                    tile.style.transform = 'translateX(20px)';
+                    
+                    // Actually remove after fade
+                    setTimeout(() => {
+                        this.removeEmotionTile(wedgeId);
+                    }, 200);
+                }
+            }, index * 120); // 120ms stagger between each tile
+        });
+
+        // Clear tracking arrays after all tiles are processed
+        const totalTileTime = tilesToRemove.length * 120 + 200; // Last tile + fade time
+        setTimeout(() => {
+            this.emotionTiles.clear();
+            this.tileOrder = [];
+            this.showInstructions();
+        }, totalTileTime);
+    }
+
+    animateUnwindRotation() {
+        const startRotation = this.wheelGenerator.currentRotation;
+        const targetRotation = 0;
+        const rotationDelta = targetRotation - startRotation;
+        
+        // If no rotation needed, skip rotation animation
+        if (Math.abs(rotationDelta) < 1) {
+            setTimeout(() => {
+                this.completeReset();
+            }, 1400); // Wait for tile animations to complete
+            return;
+        }
+
+        // 1.4 second smooth rotation with ease-out
+        const duration = 1400;
+        const startTime = performance.now();
+
+        const animateFrame = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Ease-out cubic for natural deceleration
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            
+            const currentRotation = startRotation + (rotationDelta * easeOut);
+            this.wheelGenerator.currentRotation = currentRotation;
+            this.wheelGenerator.updateRotation();
+
+            if (progress < 1) {
+                requestAnimationFrame(animateFrame);
+            } else {
+                // Animation complete
+                this.completeReset();
+            }
+        };
+
+        requestAnimationFrame(animateFrame);
+    }
+
+    completeReset() {
+        // Ensure final state is clean
+        this.wheelGenerator.currentRotation = 0;
+        this.wheelGenerator.updateRotation();
+        
+        // Update stored state for current mode
+        const currentState = this.wheelGenerator.isSimplifiedMode ? 
+            this.wheelGenerator.simplifiedModeState : this.wheelGenerator.fullModeState;
+        currentState.rotation = 0;
+        currentState.selectedWedges = new Set();
+        currentState.hasBeenInitialized = true;
+
+        // Re-enable interactions
+        this.wheelGenerator.isAnimating = false;
+        this.isResetting = false;
     }
 
     refreshAllTileDefinitions() {

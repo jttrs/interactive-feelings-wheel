@@ -505,13 +505,11 @@ class FeelingsWheelApp {
 
     togglePanelMinimization() {
         const panel = document.querySelector('.info-panel');
-        const mainLayout = document.querySelector('.main-layout');
         const arrow = document.querySelector('.minimize-arrow');
         
         panel.classList.toggle('minimized');
-        mainLayout.classList.toggle('panel-minimized');
         
-        // Update arrow direction
+        // Update arrow direction - CSS handles rotation automatically
         if (panel.classList.contains('minimized')) {
             arrow.textContent = '▶'; // Right arrow when minimized
         } else {
@@ -546,19 +544,14 @@ class FeelingsWheelApp {
     }
 
     getFamilyColor(family) {
-        // Color mapping for emotion families (therapeutic color palette)
-        const familyColors = {
-            'Happy': '#ffd700',      // Golden yellow
-            'Sad': '#6b9bd2',        // Calm blue  
-            'Angry': '#e74c3c',      // Warm red
-            'Fearful': '#9b59b6',    // Purple
-            'Surprised': '#f39c12',  // Orange
-            'Disgusted': '#27ae60',  // Green
-            'Bad': '#7f8c8d',        // Neutral gray
-            'Unknown': '#95a5a6'     // Light gray
-        };
+        // Get actual colors from wheel data to match exactly
+        const coreEmotion = FEELINGS_DATA.core.find(emotion => emotion.name === family);
+        if (coreEmotion) {
+            return coreEmotion.color;
+        }
         
-        return familyColors[family] || familyColors['Unknown'];
+        // Fallback colors for unknown
+        return '#95a5a6';
     }
 }
 

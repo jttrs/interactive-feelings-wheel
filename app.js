@@ -489,9 +489,9 @@ class FeelingsWheelApp {
         // Get tiles in current order (newest first - this is correct)
         const tileArray = Array.from(this.emotionTiles.values());
         if (tileArray.length === 0) {
-            // No tiles to animate, just do wheel rotation
-            this.wheelGenerator.reset();
-            this.animateUnwindRotation();
+            // No tiles to animate, but still animate wheel rotation
+            this.clearWheelSelectionsOnly(); // Clear selections without snapping rotation
+            this.animateUnwindRotation(); // Animate wheel back to 0°
             return;
         }
 

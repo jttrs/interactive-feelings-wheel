@@ -505,7 +505,8 @@ class FeelingsWheelApp {
         const staggerDelay = Math.max(50, (totalDuration * 0.4) / tileArray.length); // 40% of time for stagger
 
         // FIXED: Start wheel animation concurrently (not sequentially)
-        this.wheelGenerator.reset(); // Clear selections immediately
+        // Clear selections but DON'T reset rotation yet (let animation handle it)
+        this.clearWheelSelectionsOnly();
         this.animateUnwindRotation(); // Start wheel animation NOW
 
         let currentTileIndex = 0;
@@ -592,6 +593,24 @@ class FeelingsWheelApp {
         };
 
         requestAnimationFrame(animateFrame);
+    }
+
+    clearWheelSelectionsOnly() {
+        // Clear visual selections without affecting rotation
+        const selectedWedgeIds = [...this.wheelGenerator.selectedWedges];
+        selectedWedgeIds.forEach(wedgeId => {
+            this.wheelGenerator.selectedWedges.delete(wedgeId);
+            const wedge = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
+            if (wedge) {
+                wedge.classList.remove('selected');
+                wedge.style.filter = '';
+                this.wheelGenerator.removeShadowCopy(wedgeId);
+                this.wheelGenerator.baseGroup.appendChild(wedge);
+            }
+        });
+        
+        // Clear shadow copies
+        this.wheelGenerator.shadowGroup.innerHTML = '';
     }
 
     completeReset() {

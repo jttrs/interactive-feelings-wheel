@@ -559,7 +559,9 @@ class FeelingsWheelApp {
     animateUnwindRotation() {
         const startRotation = this.wheelGenerator.currentRotation;
         const targetRotation = 0;
-        const rotationDelta = targetRotation - startRotation;
+        
+        // FIXED: Use shortest rotation path calculation from wheel engine
+        const rotationDelta = this.wheelGenerator.getShortestRotationPath(startRotation, targetRotation);
         
         // If no rotation needed, just complete reset after tile animation time
         if (Math.abs(rotationDelta) < 1) {
@@ -587,7 +589,9 @@ class FeelingsWheelApp {
             if (progress < 1) {
                 requestAnimationFrame(animateFrame);
             } else {
-                // Animation complete
+                // Animation complete - ensure exact final position
+                this.wheelGenerator.currentRotation = targetRotation;
+                this.wheelGenerator.updateRotation();
                 this.completeReset();
             }
         };

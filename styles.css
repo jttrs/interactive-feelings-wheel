@@ -353,11 +353,14 @@ body {
     .info-panel.minimized .mobile-collapse-handle {
         display: flex; /* Keep handle visible */
         position: fixed; /* Center it on the screen */
-        bottom: 1rem;
+        top: auto; /* Override any top positioning */
+        bottom: 1rem; /* Position at bottom of screen */
         left: 50%;
+        right: auto; /* Override any right positioning */
         transform: translateX(-50%);
         border-radius: 12px;
         border: 2px solid rgba(255, 255, 255, 0.6);
+        z-index: 1000; /* Ensure it's above everything */
     }
 }
 
@@ -426,12 +429,17 @@ body {
     display: none;
 }
 
-/* Expand button positioning when panel is hidden */
+/* Expand button positioning when panel is hidden - flush with screen edge */
 .info-panel.minimized .panel-minimize-tab {
-    left: -32px;
+    position: fixed; /* Position relative to viewport when panel is hidden */
+    right: 0; /* Flush with right edge of screen */
+    left: auto; /* Override the left positioning */
+    top: 50%;
+    transform: translateY(-50%);
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid rgba(255, 255, 255, 0.6);
     border-right: none;
+    border-radius: 12px 0 0 12px;
 }
 
 /* Desktop: Arrow points LEFT when expanded (◀ = will hide panel), RIGHT when collapsed (▶ = will show panel) */
@@ -500,6 +508,8 @@ body {
 @media (max-width: 767px) {
     .mobile-collapse-handle {
         display: flex;
+        position: absolute; /* Ensure proper positioning context */
+        top: 0; /* At top of panel when expanded */
     }
     
     .panel-minimize-tab {

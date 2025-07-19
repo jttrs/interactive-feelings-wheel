@@ -354,48 +354,36 @@ body {
 
 /* ===== INFORMATION PANEL COMPONENTS ===== */
 
-/* Panel Header */
-.panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 1.25rem;
-    background: white;
-    border-bottom: 1px solid #e1e5e9;
-    flex-shrink: 0;
-}
-
-.panel-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #2d3748;
-    margin: 0;
-    line-height: 1.4;
-}
-
-.panel-toggle {
+/* Panel Minimization Tab */
+.panel-minimize-tab {
+    position: absolute;
+    left: -15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 60px;
+    background: #fafbfc;
+    border: 1px solid #e1e5e9;
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    color: #4a5568;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: #f7fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    color: #4a5568;
-    cursor: pointer;
+    font-size: 0.85rem;
+    z-index: 10;
     transition: all 0.2s ease;
-    font-size: 0.9rem;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
-.panel-toggle:hover {
+.panel-minimize-tab:hover {
     background: #edf2f7;
-    border-color: #cbd5e0;
     color: #2d3748;
-    transform: translateX(-1px);
+    box-shadow: -3px 0 12px rgba(0, 0, 0, 0.15);
 }
 
-.panel-toggle-icon {
+.minimize-arrow {
     transition: transform 0.2s ease;
 }
 
@@ -417,172 +405,351 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Welcome/Placeholder State */
-.panel-placeholder {
-    text-align: center;
+/* Instructions Section */
+.instructions-intro {
+    font-size: 0.9rem;
+    line-height: 1.6;
     color: #4a5568;
+    margin: 0 0 1.5rem 0;
+    text-align: center;
 }
 
-.placeholder-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    opacity: 0.8;
+.wheel-instructions {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
 }
 
-.placeholder-title {
-    font-size: 1.2rem;
+.instructions-title {
+    font-size: 0.9rem;
     font-weight: 600;
     color: #2d3748;
     margin: 0 0 0.75rem 0;
-    line-height: 1.4;
-}
-
-.placeholder-text {
-    font-size: 0.9rem;
-    line-height: 1.6;
-    color: #718096;
-    margin: 0 0 1.5rem 0;
-}
-
-.placeholder-features {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
-}
-
-.feature-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 0.85rem;
-    color: #4a5568;
-}
-
-.feature-icon {
-    font-size: 1.1rem;
-    opacity: 0.8;
-    width: 20px;
     text-align: center;
 }
 
-.feature-text {
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.control-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: #4a5568;
+    padding: 0.25rem 0;
+}
+
+.control-icon {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.control-text {
     flex: 1;
     line-height: 1.4;
 }
 
-/* Emotion Details State */
-.emotion-details {
-    padding: 0;
-}
-
-.emotion-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #2d3748;
-    margin: 0 0 0.75rem 0;
-    line-height: 1.3;
-}
-
-.emotion-meta {
+/* Emotion Tiles */
+.emotion-tiles {
+    padding: 0 1.25rem 1.25rem 1.25rem;
     display: flex;
+    flex-direction: column;
     gap: 0.75rem;
-    margin-bottom: 1.25rem;
 }
 
-.emotion-level,
-.emotion-family {
-    display: inline-flex;
+.emotion-tile {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.emotion-tile.expanded {
+    border-left: 4px solid var(--emotion-color, #4a90e2);
+}
+
+.emotion-tile.collapsed {
+    border-left: 3px solid var(--emotion-color, #cbd5e0);
+    cursor: pointer;
+}
+
+.emotion-tile.collapsed:hover {
+    background: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.tile-header {
+    padding: 1rem;
+    display: flex;
     align-items: center;
-    padding: 0.25rem 0.75rem;
-    font-size: 0.75rem;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.tile-emotion-name {
+    font-size: 1rem;
     font-weight: 600;
-    text-transform: uppercase;
-    border-radius: 12px;
-    letter-spacing: 0.5px;
-}
-
-.emotion-level {
-    background: #e6fffa;
-    color: #00695c;
-    border: 1px solid #b2dfdb;
-}
-
-.emotion-family {
-    background: #f0f4ff;
-    color: #3949ab;
-    border: 1px solid #c5cae9;
-}
-
-.emotion-content {
-    margin-top: 1rem;
-}
-
-.emotion-description {
-    font-size: 0.9rem;
-    line-height: 1.7;
-    color: #4a5568;
+    color: #2d3748;
     margin: 0;
 }
 
-/* Panel Footer */
+.tile-meta {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.tile-level,
+.tile-family {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.tile-level {
+    background: #e6fffa;
+    color: #00695c;
+}
+
+.tile-family {
+    background: #f0f4ff;
+    color: #3949ab;
+}
+
+.tile-content {
+    padding: 0 1rem 1rem 1rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.tile-definition {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #4a5568;
+    margin: 0.75rem 0 0 0;
+}
+
+.tile-remove {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.tile-remove:hover {
+    background: #fed7d7;
+    color: #e53e3e;
+}
+
+/* Collapsed tile styles */
+.emotion-tile.collapsed .tile-content {
+    display: none;
+}
+
+.emotion-tile.collapsed .tile-header {
+    padding: 0.75rem 1rem;
+}
+
+.emotion-tile.collapsed .tile-emotion-name {
+    font-size: 0.9rem;
+}
+
+.emotion-tile.collapsed .tile-meta {
+    gap: 0.25rem;
+}
+
+.emotion-tile.collapsed .tile-level,
+.emotion-tile.collapsed .tile-family {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.4rem;
+}
+
+/* Loading state for definitions */
+.tile-definition.loading {
+    background: linear-gradient(90deg, #f0f2f5 25%, #e4e6ea 50%, #f0f2f5 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+    height: 3rem;
+    margin: 0.75rem 0;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Panel Footer with Controls */
 .panel-footer {
     flex-shrink: 0;
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     background: white;
     border-top: 1px solid #e1e5e9;
 }
 
-.selection-count {
+.panel-controls {
     display: flex;
-    align-items: baseline;
-    gap: 0.25rem;
-    font-size: 0.85rem;
-    color: #4a5568;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
 }
 
-.count-label {
-    font-weight: 500;
+.control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
 }
 
-.count-value {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: #2d3748;
+.control-btn:hover {
+    background: #e9ecef;
+    border-color: #4a90e2;
+    color: #4a90e2;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
 }
 
-.count-unit {
-    color: #718096;
+.control-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(74, 144, 226, 0.3);
+}
+
+.control-btn .control-icon {
+    transition: transform 0.2s ease;
+}
+
+.control-btn:hover .control-icon {
+    transform: scale(1.1);
+}
+
+/* Fullscreen active state */
+.control-btn.active {
+    background: #4a90e2;
+    border-color: #357abd;
+    color: white;
+}
+
+.control-btn.active:hover {
+    background: #357abd;
+    border-color: #2563eb;
+}
+
+/* Panel minimization states */
+.info-panel.minimized {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    border-left: none;
+}
+
+.info-panel.minimized .panel-minimize-tab {
+    left: 0;
+    border-radius: 0 8px 8px 0;
+    border-left: 1px solid #e1e5e9;
+    border-right: none;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-panel.minimized .minimize-arrow {
+    transform: rotate(180deg);
+}
+
+/* Update main layout for minimized panel */
+.main-layout.panel-minimized {
+    grid-template-columns: 1fr 0;
+}
+
+@media (min-width: 768px) {
+    .main-layout.panel-minimized {
+        grid-template-columns: 1fr 0;
+    }
+}
+
+@media (min-width: 1024px) {
+    .main-layout.panel-minimized {
+        grid-template-columns: 1fr 0;
+    }
 }
 
 /* Mobile-specific panel adjustments */
 @media (max-width: 767px) {
-    .panel-header {
-        padding: 0.75rem 1rem;
-    }
-    
-    .panel-title {
-        font-size: 1rem;
+    .panel-minimize-tab {
+        display: none; /* Hide minimization on mobile */
     }
     
     .panel-section {
         padding: 1rem;
     }
     
-    .placeholder-title {
-        font-size: 1.1rem;
+    .wheel-instructions {
+        padding: 0.75rem;
     }
     
-    .placeholder-text {
+    .instructions-title {
         font-size: 0.85rem;
     }
     
-    .feature-item {
+    .control-item {
+        font-size: 0.75rem;
+    }
+    
+    .emotion-tiles {
+        padding: 0 1rem 1rem 1rem;
+        gap: 0.5rem;
+    }
+    
+    .tile-header {
+        padding: 0.75rem;
+    }
+    
+    .tile-emotion-name {
+        font-size: 0.9rem;
+    }
+    
+    .tile-content {
+        padding: 0 0.75rem 0.75rem 0.75rem;
+    }
+    
+    .tile-definition {
         font-size: 0.8rem;
     }
     
     .panel-footer {
-        padding: 0.75rem 1rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .panel-controls {
+        gap: 0.5rem;
+    }
+    
+    .control-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
     }
 }
 
@@ -594,12 +761,16 @@ body {
     }
     
     .panel-section {
-        padding: 0.75rem 1rem;
+        padding: 0.75rem;
     }
     
-    .placeholder-features {
-        margin-top: 1rem;
-        gap: 0.5rem;
+    .wheel-instructions {
+        padding: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .control-group {
+        gap: 0.25rem;
     }
 }
 

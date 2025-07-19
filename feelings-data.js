@@ -124,8 +124,6 @@ const FEELINGS_DATA = {
     // ===== CENTRALIZED COLOR SYSTEM =====
     // This is the single source of truth for all emotion colors
     getEmotionColor(wedgeId) {
-        console.log(`🎨 CENTRALIZED getEmotionColor("${wedgeId}") called`);
-        
         // Parse the wedge ID to get components
         const parts = wedgeId.split('-');
         const level = parts[0];
@@ -140,8 +138,6 @@ const FEELINGS_DATA = {
             coreFamily = parts[1]; // Core family is always at position 1 for family-aware IDs
         }
         
-        console.log(`📋 Extracted core family: "${coreFamily}" from "${wedgeId}"`);
-        
         if (coreFamily) {
             // Find the core emotion color
             const coreEmotion = this.core.find(core => core.name === coreFamily);
@@ -155,7 +151,6 @@ const FEELINGS_DATA = {
                     familyColor = this.lightenColor(familyColor, 70);
                 }
                 
-                console.log(`✅ Using ${coreFamily} family color for ${level}: "${familyColor}"`);
                 return familyColor;
             }
         }
@@ -167,9 +162,7 @@ const FEELINGS_DATA = {
             'tertiary': '#a8d0f7'
         };
         
-        const fallbackColor = fallbackMap[level] || '#4a90e2';
-        console.log(`⚠️ Using fallback color for level "${level}": "${fallbackColor}"`);
-        return fallbackColor;
+        return fallbackMap[level] || '#4a90e2';
     },
 
     // Helper function to lighten colors (FIXED: proper lightening algorithm)
@@ -187,10 +180,7 @@ const FEELINGS_DATA = {
         const newB = Math.round(B + (255 - B) * factor);
         
         // Convert back to hex
-        const result = "#" + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
-        
-        console.log(`🎨 lightenColor(${color}, ${percent}%) → ${result}`);
-        return result;
+        return "#" + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
     },
 
     // ===== EMOTION-SPECIFIC DEFINITIONS =====

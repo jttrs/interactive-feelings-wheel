@@ -418,8 +418,7 @@ class FeelingsWheelApp {
             return isSimplified ? emotionData.simplified : emotionData.standard;
         }
         
-        // This should not happen since we have comprehensive definitions
-        console.warn(`No definition found for emotion: ${emotion}`);
+        // Fallback for missing definitions
         return isSimplified 
             ? `${emotion} is a feeling that people experience.`
             : `${emotion} is an emotion that represents a specific aspect of human emotional experience.`;
@@ -582,8 +581,6 @@ class FeelingsWheelApp {
     }
 
     getEmotionColor(wedgeId) {
-        console.log(`🎯 App getEmotionColor("${wedgeId}") - delegating to centralized system`);
-        
         return FEELINGS_DATA.getEmotionColor(wedgeId);
     }
 
@@ -611,8 +608,6 @@ class FeelingsWheelApp {
     
     recreateTilesFromWheelState() {
         // Recreate tiles based on wheel engine's current selectedWedges state
-        console.log(`🔄 Recreating tiles from wheel state...`);
-        
         this.wheelGenerator.selectedWedges.forEach(wedgeId => {
             // Find the actual wedge element to get emotion info
             const wedge = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
@@ -620,16 +615,10 @@ class FeelingsWheelApp {
                 const emotion = wedge.getAttribute('data-emotion');
                 const level = wedge.getAttribute('data-level');
                 
-                console.log(`✅ Recreating tile for: ${wedgeId} (${emotion})`);
-                
                 // Use the same tile creation flow as normal selection
                 this.addEmotionTile(wedgeId, emotion, level);
-            } else {
-                console.warn(`⚠️ Wedge not found for ID: ${wedgeId} (may not exist in current mode)`);
             }
         });
-        
-        console.log(`🔄 Recreated ${this.emotionTiles.size} tiles from wheel state`);
     }
     
     updateInstructionsVisibility() {

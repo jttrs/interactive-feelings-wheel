@@ -880,10 +880,7 @@ class FeelingsWheelGenerator {
         // This ensures consistency between generation and click handling
         const wedgeId = wedge.getAttribute('data-wedge-id');
         
-        console.log(`🎯 CLICK: Using existing wedge ID: "${wedgeId}" for ${emotion} (${level})`);
-        
         if (!wedgeId) {
-            console.error(`❌ No data-wedge-id found on wedge element for ${emotion} (${level})`);
             return;
         }
         
@@ -905,25 +902,18 @@ class FeelingsWheelGenerator {
 
     // Public method to toggle wedge selection (called from panel tile X buttons)
     toggleWedgeSelection(wedgeId) {
-        console.log(`🎯 toggleWedgeSelection("${wedgeId}") called`);
-        
-        // CRITICAL FIX: Use the stored wedge ID directly, don't parse and recreate
         const wedge = this.findWedgeByStoredId(wedgeId);
-        console.log(`🔍 Found wedge element: ${wedge ? 'YES' : 'NO'}`);
         
         if (wedge) {
             const emotion = wedge.getAttribute('data-emotion');
             const level = wedge.getAttribute('data-level');
             
             const isCurrentlySelected = this.selectedWedges.has(wedgeId);
-            console.log(`📊 Currently selected: ${isCurrentlySelected}`);
             
-            // Use centralized selection/deselection logic directly (no fake events needed)
+            // Use centralized selection/deselection logic directly
             if (isCurrentlySelected) {
-                console.log(`➡️ Calling deselectWedge...`);
                 this.deselectWedge(wedgeId, wedge, emotion);
             } else {
-                console.log(`➡️ Calling selectWedge...`);
                 this.selectWedge(wedgeId, wedge, emotion);
             }
             
@@ -932,9 +922,6 @@ class FeelingsWheelGenerator {
                 detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
             });
             document.dispatchEvent(customEvent);
-            console.log(`✅ Event dispatched, final selected state: ${this.selectedWedges.has(wedgeId)}`);
-        } else {
-            console.error(`❌ Could not find wedge for stored ID: ${wedgeId}`);
         }
     }
 
@@ -1016,8 +1003,7 @@ class FeelingsWheelGenerator {
                         return `${level}-${emotion}`;
                 }
             })();
-            console.log(`🆔 createUniqueWedgeId(${level}, ${emotion}, ${parent}) → "${result}"`);
-            return result;
+                    return result;
         }
         
         findCoreFamily(secondaryEmotion) {
@@ -1121,39 +1107,24 @@ class FeelingsWheelGenerator {
     }
     
     deselectWedge(wedgeId, wedge, emotion) {
-        console.log(`🔧 deselectWedge("${wedgeId}", wedge, "${emotion}") called`);
-        
-        // Centralized wedge deselection logic - handles ALL deselection properly
+        // Centralized wedge deselection logic
         const level = wedge.getAttribute('data-level');
         const parent = wedge.getAttribute('data-parent');
-        console.log(`📋 Wedge attributes: level="${level}", parent="${parent}"`);
         
-        console.log(`🗑️ Removing from selectedWedges Set...`);
         this.selectedWedges.delete(wedgeId);
-        
-        console.log(`🎨 Removing 'selected' CSS class...`);
         wedge.classList.remove('selected');
         
         // Clear any lingering visual effects
-        console.log(`✨ Clearing visual effects...`);
         wedge.style.filter = '';
         wedge.style.opacity = '';
         wedge.style.transform = '';
         
         // Remove shadow copy first
-        console.log(`🌫️ Removing shadow copy...`);
         this.removeShadowCopy(wedgeId);
         
         // Move wedge and text back to base layer
-        console.log(`📦 Moving wedge to base group...`);
-        console.log(`   Before: wedge parent = ${wedge.parentNode?.tagName || 'none'}`);
         this.baseGroup.appendChild(wedge);
-        console.log(`   After: wedge parent = ${wedge.parentNode?.tagName || 'none'}`);
-        
-        console.log(`📝 Moving text to base group...`);
         this.moveTextForWedge(emotion, level, parent, this.baseGroup, wedgeId);
-        
-        console.log(`✅ deselectWedge complete`);
     }
 
     updateRotation() {

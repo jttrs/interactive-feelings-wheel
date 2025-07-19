@@ -275,11 +275,11 @@ class FeelingsWheelGenerator {
             const anglePerSecondary = core.size / secondaryEmotions.length;
             const radialWidth = this.middleRadius - this.coreRadius; // Ring thickness
             
-            console.log(`\nSecondary ring for ${core.name}: ring thickness=${radialWidth.toFixed(1)}, angle per emotion=${anglePerSecondary.toFixed(1)}°`);
+
             
             secondaryEmotions.forEach(emotion => {
                 const constraint = this.calculateOptimalTextSize(radialWidth, anglePerSecondary, emotion.length);
-                console.log(`  "${emotion}": chars=${emotion.length}, constraint=${constraint.toFixed(1)}px`);
+
                 secondaryConstraints.push(constraint);
             });
         });
@@ -967,10 +967,10 @@ class FeelingsWheelGenerator {
         let wedgeId;
         if (existingWedgeId) {
             wedgeId = existingWedgeId;
-            console.log(`📝 moveTextForWedge: Using provided wedge ID: "${wedgeId}"`);
+
         } else {
             wedgeId = this.createUniqueWedgeId(level, emotion, parent);
-            console.log(`📝 moveTextForWedge: Created wedge ID: "${wedgeId}"`);
+
         }
         
         const textElement = this.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
@@ -979,7 +979,7 @@ class FeelingsWheelGenerator {
             targetGroup.appendChild(textElement);
             console.log(`✅ Moved text for "${emotion}" to ${targetGroup.getAttribute('class') || 'target group'}`);
         } else {
-            console.error(`❌ Could not find text element for wedge ID: "${wedgeId}"`);
+
         }
     }
 
@@ -1063,8 +1063,8 @@ class FeelingsWheelGenerator {
             console.log(`🔍 findWedgeByUniqueId: looking for "${expectedWedgeId}", found=${element ? 'YES' : 'NO'}`);
             if (element) {
                 const actualId = element.getAttribute('data-wedge-id');
-                console.log(`   ✅ Found wedge with actual ID: "${actualId}"`);
-                console.log(`   🎨 Wedge fill: "${element.getAttribute('fill')}"`);
+
+
             } else {
                 // Debug: show what IDs actually exist
                 const allWedges = this.container.querySelectorAll('.wedge[data-wedge-id]');
@@ -1076,12 +1076,12 @@ class FeelingsWheelGenerator {
         
         // NEW METHOD: Find wedge by its actual stored ID (most reliable)
         findWedgeByStoredId(wedgeId) {
-            console.log(`🎯 findWedgeByStoredId: looking for "${wedgeId}"`);
+
             const element = this.container.querySelector(`.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`);
             if (element) {
-                console.log(`   ✅ Found wedge by stored ID`);
+
             } else {
-                console.log(`   ❌ No wedge found with stored ID: "${wedgeId}"`);
+
             }
             return element;
         }
@@ -1093,7 +1093,7 @@ class FeelingsWheelGenerator {
         const level = wedge.getAttribute('data-level');
         const parent = wedge.getAttribute('data-parent');
         
-        console.log(`✅ selectWedge: Adding "${wedgeId}" to selection`);
+
         
         this.selectedWedges.add(wedgeId);
         wedge.classList.add('selected');

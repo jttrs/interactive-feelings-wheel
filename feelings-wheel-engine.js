@@ -809,13 +809,14 @@ class FeelingsWheelGenerator {
         
         this.container.appendChild(this.svg);
         
-        // OLD CONTROL POSITIONING REMOVED - panel handles all controls now
-        
         // Mark current mode as initialized
         const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
         currentState.hasBeenInitialized = true;
         
         this.setupEventListeners();
+        
+        // Validate touch targets after wheel generation (DPI compliance check)
+        setTimeout(() => this.validateTouchTargets(), 100);
     }
 
 

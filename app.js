@@ -319,7 +319,7 @@ class FeelingsWheelApp {
         const tilesContainer = document.getElementById('emotion-tiles');
         tilesContainer.insertBefore(tile, tilesContainer.firstChild);
         
-        // Fetch and display definition
+        // Load and display emotion-specific definition
         this.fetchEmotionDefinition(wedgeId, emotion, level);
     }
 
@@ -383,131 +383,36 @@ class FeelingsWheelApp {
         return tile;
     }
 
-    async fetchEmotionDefinition(wedgeId, emotion, level) {
+    fetchEmotionDefinition(wedgeId, emotion, level) {
         const tile = this.emotionTiles.get(wedgeId);
         if (!tile) return;
         
         const definitionElement = tile.querySelector('.tile-definition');
         
-        try {
-            // Check if simplified mode is active
-            const isSimplified = document.getElementById('simplified-mode-panel').checked;
-            
-            // Fetch definition from dictionary API
-            const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${emotion.toLowerCase()}`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                const definition = this.extractDefinition(data, isSimplified);
-                
-                // Update tile with definition
-                definitionElement.classList.remove('loading');
-                definitionElement.textContent = definition;
-            } else {
-                // Fallback to basic description
-                const fallbackDefinition = this.getFallbackDefinition(emotion, level, isSimplified);
-                definitionElement.classList.remove('loading');
-                definitionElement.textContent = fallbackDefinition;
-            }
-        } catch (error) {
-            console.error('Error fetching definition:', error);
-            
-            // Fallback to basic description
-            const isSimplified = document.getElementById('simplified-mode-panel').checked;
-            const fallbackDefinition = this.getFallbackDefinition(emotion, level, isSimplified);
-            definitionElement.classList.remove('loading');
-            definitionElement.textContent = fallbackDefinition;
-        }
+        // Check if simplified mode is active
+        const isSimplified = document.getElementById('simplified-mode-panel').checked;
+        
+        // Get emotion-specific definition from our comprehensive data
+        const definition = this.getEmotionDefinition(emotion, isSimplified);
+        
+        // Update tile with definition
+        definitionElement.classList.remove('loading');
+        definitionElement.textContent = definition;
     }
 
-    extractDefinition(apiData, isSimplified) {
-        if (!apiData || !apiData[0] || !apiData[0].meanings) {
-            return 'Definition not available.';
+    getEmotionDefinition(emotion, isSimplified) {
+        // Get emotion-specific definition from our comprehensive database
+        const emotionData = FEELINGS_DATA.definitions[emotion];
+        
+        if (emotionData) {
+            return isSimplified ? emotionData.simplified : emotionData.standard;
         }
         
-        // Get the first definition from the first meaning
-        const firstMeaning = apiData[0].meanings[0];
-        const firstDefinition = firstMeaning.definitions[0];
-        
-        let definition = firstDefinition.definition;
-        
-        // For simplified mode, try to simplify the language
-        if (isSimplified) {
-            definition = this.simplifyDefinition(definition);
-        }
-        
-        return definition;
-    }
-
-    simplifyDefinition(definition) {
-        // Basic simplification - replace complex words with simpler ones
-        const simplifications = {
-            'characterized by': 'having',
-            'involving': 'having',
-            'pertaining to': 'about',
-            'experiencing': 'feeling',
-            'manifestation': 'sign',
-            'indicating': 'showing',
-            'subsequently': 'then',
-            'consequently': 'so',
-            'nevertheless': 'but',
-            'furthermore': 'also',
-            'additionally': 'also'
-        };
-        
-        let simplified = definition;
-        for (const [complex, simple] of Object.entries(simplifications)) {
-            simplified = simplified.replace(new RegExp(complex, 'gi'), simple);
-        }
-        
-        return simplified;
-    }
-
-    getFallbackDefinition(emotion, level, isSimplified) {
-        // Enhanced fallback definitions
-        const definitions = {
-            // Core emotions
-            'Happy': {
-                standard: 'A positive emotional state characterized by feelings of joy, satisfaction, contentment, and fulfillment.',
-                simplified: 'Feeling good, joyful, and pleased with things.'
-            },
-            'Sad': {
-                standard: 'An emotional state characterized by feelings of disappointment, grief, hopelessness, disinterest, and dampened mood.',
-                simplified: 'Feeling unhappy, upset, or down about something.'
-            },
-            'Angry': {
-                standard: 'A strong feeling of annoyance, displeasure, or hostility arising from perceived provocation, hurt, or threat.',
-                simplified: 'Feeling mad or upset when something bothers you.'
-            },
-            'Fearful': {
-                standard: 'An emotion induced by a perceived threat, causing a desire to escape, hide, or freeze.',
-                simplified: 'Feeling scared or worried that something bad might happen.'
-            },
-            'Surprised': {
-                standard: 'A sudden feeling of wonder or astonishment caused by something unexpected.',
-                simplified: 'Feeling shocked or amazed by something you didn\'t expect.'
-            },
-            'Disgusted': {
-                standard: 'A feeling of revulsion or strong disapproval aroused by something unpleasant or offensive.',
-                simplified: 'Feeling sick or yucky about something gross.'
-            },
-            'Bad': {
-                standard: 'A general negative emotional state encompassing discomfort, dissatisfaction, or distress.',
-                simplified: 'Feeling not good or uncomfortable.'
-            }
-        };
-        
-        const emotionDef = definitions[emotion];
-        if (emotionDef) {
-            return isSimplified ? emotionDef.simplified : emotionDef.standard;
-        }
-        
-        // Generic fallback
-        if (isSimplified) {
-            return `${emotion} is a feeling that people have. It's one way our emotions work.`;
-        } else {
-            return `${emotion} is a ${level}-level emotion that represents a specific aspect of human emotional experience.`;
-        }
+        // This should not happen since we have comprehensive definitions
+        console.warn(`No definition found for emotion: ${emotion}`);
+        return isSimplified 
+            ? `${emotion} is a feeling that people experience.`
+            : `${emotion} is an emotion that represents a specific aspect of human emotional experience.`;
     }
 
     collapseAllTiles() {
@@ -665,7 +570,7 @@ class FeelingsWheelApp {
             definitionElement.classList.add('loading');
             definitionElement.textContent = 'Loading definition...';
             
-            // Re-fetch definition
+            // Reload definition for new mode
             this.fetchEmotionDefinition(wedgeId, emotionName, level);
         });
     }

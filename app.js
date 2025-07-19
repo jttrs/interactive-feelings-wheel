@@ -266,19 +266,16 @@ class FeelingsWheelApp {
         // Setup simplified mode toggle
         const simplifiedModeToggle = document.getElementById('simplified-mode-panel');
         simplifiedModeToggle.addEventListener('change', (event) => {
-            // SIMPLIFIED: Let wheel engine handle mode switching, app just clears incompatible tiles
             const isSimplified = event.target.checked;
             
-            if (isSimplified) {
-                // Remove tertiary tiles when switching to simplified mode
-                this.removeTertiaryTiles();
-            }
+            // CRITICAL FIX: Clear app state completely and let wheel engine manage everything
+            this.clearAllTiles();
             
-            // Let wheel engine handle the mode switch and state management
+            // Let wheel engine handle mode switching and state restoration
             this.wheelGenerator.setSimplifiedMode(isSimplified);
             
-            // Update remaining tile definitions for new mode
-            this.refreshAllTileDefinitions();
+            // Recreate tiles from wheel engine's restored state
+            this.recreateTilesFromWheelState();
         });
 
         // Setup reset button
@@ -458,6 +455,8 @@ class FeelingsWheelApp {
     // ===== ANIMATED RESET FUNCTIONALITY =====
 
     resetWithAnimation() {
+        // CRITICAL FIX: Only reset current mode, prevent cross-mode contamination
+        
         // If no selections, just do instant reset
         if (this.emotionTiles.size === 0 && this.wheelGenerator.currentRotation === 0) {
             this.wheelGenerator.reset();
@@ -472,46 +471,17 @@ class FeelingsWheelApp {
         // Mark wheel as animating to prevent user interaction
         this.wheelGenerator.isAnimating = true;
 
-        // Start coordinated animations
-        this.animateUnwindTiles();
+        // IMPROVED: Clear app state first, then let wheel handle its own reset
+        this.clearAllTiles();
+        
+        // Let wheel engine handle its own reset (only affects current mode)
+        this.wheelGenerator.reset();
+        
+        // Simple rotation animation
         this.animateUnwindRotation();
     }
 
-    animateUnwindTiles() {
-        // Get tiles in reverse chronological order (newest first, as they appear in panel)
-        const tilesToRemove = [...this.tileOrder]; // Copy the array
-        
-        if (tilesToRemove.length === 0) return;
-
-        // Stagger removal: 120ms between each tile for elegant cascade
-        tilesToRemove.forEach((wedgeId, index) => {
-            setTimeout(() => {
-                // Deselect the wedge first (creates de-emphasis effect)
-                this.wheelGenerator.toggleWedgeSelection(wedgeId);
-                
-                // Remove tile with a subtle fade out
-                const tile = this.emotionTiles.get(wedgeId);
-                if (tile) {
-                    tile.style.transition = 'opacity 0.2s ease-out, transform 0.2s ease-out';
-                    tile.style.opacity = '0';
-                    tile.style.transform = 'translateX(20px)';
-                    
-                    // Actually remove after fade
-                    setTimeout(() => {
-                        this.removeEmotionTile(wedgeId);
-                    }, 200);
-                }
-            }, index * 120); // 120ms stagger between each tile
-        });
-
-        // Clear tracking arrays after all tiles are processed
-        const totalTileTime = tilesToRemove.length * 120 + 200; // Last tile + fade time
-        setTimeout(() => {
-            this.emotionTiles.clear();
-            this.tileOrder = [];
-            this.showInstructions();
-        }, totalTileTime);
-    }
+    // REMOVED: animateUnwindTiles() - simplified reset approach
 
     animateUnwindRotation() {
         const startRotation = this.wheelGenerator.currentRotation;
@@ -626,26 +596,33 @@ class FeelingsWheelApp {
     // These were part of the old duplicate color system that caused conflicts
     // All color resolution now uses centralized family-aware system in feelings-data.js
 
-    // ===== SIMPLIFIED MODE MANAGEMENT (SIMPLIFIED APPROACH) =====
+    // ===== PROPER STATE SYNCHRONIZATION =====
     
-    removeTertiaryTiles() {
-        // Simple approach: just remove tertiary tiles when switching to simplified mode
-        const tilesToRemove = [];
-        this.emotionTiles.forEach((tile, wedgeId) => {
-            if (wedgeId.startsWith('tertiary-')) {
-                tilesToRemove.push(wedgeId);
+    recreateTilesFromWheelState() {
+        // Recreate tiles based on wheel engine's current selectedWedges state
+        console.log(`🔄 Recreating tiles from wheel state...`);
+        
+        this.wheelGenerator.selectedWedges.forEach(wedgeId => {
+            // Find the actual wedge element to get emotion info
+            const wedge = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
+            if (wedge) {
+                const emotion = wedge.getAttribute('data-emotion');
+                const level = wedge.getAttribute('data-level');
+                
+                console.log(`✅ Recreating tile for: ${wedgeId} (${emotion})`);
+                
+                // Use the same tile creation flow as normal selection
+                this.addEmotionTile(wedgeId, emotion, level);
+            } else {
+                console.warn(`⚠️ Wedge not found for ID: ${wedgeId} (may not exist in current mode)`);
             }
         });
         
-        tilesToRemove.forEach(wedgeId => {
-            this.removeEmotionTile(wedgeId);
-        });
-        
-        console.log(`🔽 Removed ${tilesToRemove.length} tertiary tiles for simplified mode`);
+        console.log(`🔄 Recreated ${this.emotionTiles.size} tiles from wheel state`);
     }
     
     extractLevelFromWedgeId(wedgeId) {
-        // Extract level from wedge ID format: "level-family-emotion"
+        // Extract level from wedge ID format: "level-family-emotion" 
         return wedgeId.split('-')[0];
     }
 }

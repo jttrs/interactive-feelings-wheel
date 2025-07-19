@@ -889,27 +889,18 @@ class FeelingsWheelGenerator {
 
     // Public method to toggle wedge selection (called from panel tile X buttons)
     toggleWedgeSelection(wedgeId) {
-        console.log(`🎯 toggleWedgeSelection called with: ${wedgeId}`);
-        
         // Parse the wedgeId to get emotion and level
         const [level, ...emotionParts] = wedgeId.split('-');
         const emotion = emotionParts.join('-'); // Handle emotions with hyphens in their names
-        console.log(`  📊 Parsed: level=${level}, emotion=${emotion}`);
         
         // Find the wedge element
         const wedge = this.container.querySelector(`.wedge[data-emotion="${emotion}"][data-level="${level}"]`);
-        console.log(`  🔍 Found wedge:`, wedge ? 'YES' : 'NO');
         
         if (wedge) {
-            const isCurrentlySelected = this.selectedWedges.has(wedgeId);
-            console.log(`  📊 Currently selected: ${isCurrentlySelected}`);
-            
             // Use centralized selection/deselection logic directly (no fake events needed)
-            if (isCurrentlySelected) {
-                console.log(`  ➡️ Calling deselectWedge...`);
+            if (this.selectedWedges.has(wedgeId)) {
                 this.deselectWedge(wedgeId, wedge, emotion);
             } else {
-                console.log(`  ➡️ Calling selectWedge...`);
                 this.selectWedge(wedgeId, wedge, emotion);
             }
             
@@ -918,9 +909,8 @@ class FeelingsWheelGenerator {
                 detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
             });
             document.dispatchEvent(customEvent);
-            console.log(`  ✅ Event dispatched, final selected state: ${this.selectedWedges.has(wedgeId)}`);
         } else {
-            console.error(`  ❌ Could not find wedge for selector: .wedge[data-emotion="${emotion}"][data-level="${level}"]`);
+            console.error(`Could not find wedge for: ${emotion} (${level})`);
         }
     }
 
@@ -958,20 +948,15 @@ class FeelingsWheelGenerator {
     }
 
     moveTextForWedge(emotion, level, targetGroup) {
-        console.log(`📝 moveTextForWedge: ${emotion} (${level}) → ${targetGroup.tagName || 'unknown'}`);
-        
         // Find text element using unique data attributes instead of just textContent
-        // This handles duplicate emotion names across different levels
+        // This handles duplicate emotion names across different levels (e.g., "Embarrassed" appears in both Hurt and Disapproving)
         const textSelector = `text[data-emotion="${emotion}"][data-level="${level}"]`;
         const textElement = this.container.querySelector(textSelector);
         
         if (textElement) {
-            console.log(`  🎯 Found text via selector: ${textSelector}`);
-            console.log(`    Current parent: ${textElement.parentNode?.tagName || 'none'}`);
             targetGroup.appendChild(textElement);
-            console.log(`    ✅ Moved to ${targetGroup.tagName}`);
         } else {
-            console.error(`  ❌ No text found for selector: ${textSelector}`);
+            console.error(`Could not find text element for: ${emotion} (${level})`);
         }
     }
 
@@ -993,35 +978,23 @@ class FeelingsWheelGenerator {
     }
     
     deselectWedge(wedgeId, wedge, emotion) {
-        console.log(`🔧 DESELECT DEBUG: Starting deselection for ${wedgeId} (${emotion})`);
-        
         // Centralized wedge deselection logic - handles ALL deselection properly
         const level = wedge.getAttribute('data-level');
         
         this.selectedWedges.delete(wedgeId);
         wedge.classList.remove('selected');
-        console.log(`  ✅ Removed from selectedWedges, removed 'selected' class`);
         
         // Clear any lingering visual effects
         wedge.style.filter = '';
         wedge.style.opacity = '';
         wedge.style.transform = '';
-        console.log(`  ✅ Cleared visual effects`);
         
         // Remove shadow copy first
         this.removeShadowCopy(wedgeId);
-        console.log(`  ✅ Removed shadow copy`);
         
-        // Move wedge back to base layer
-        console.log(`  🔄 Moving wedge to base layer. Current parent: ${wedge.parentNode?.tagName || 'none'}`);
+        // Move wedge and text back to base layer
         this.baseGroup.appendChild(wedge);
-        console.log(`  ✅ Wedge moved to baseGroup`);
-        
-        // Move text back to base layer using unique identification
-        console.log(`  🔄 Moving text for emotion: ${emotion} (level: ${level})`);
         this.moveTextForWedge(emotion, level, this.baseGroup);
-        
-        console.log(`🔧 DESELECT COMPLETE for ${wedgeId}\n`);
     }
 
     updateRotation() {

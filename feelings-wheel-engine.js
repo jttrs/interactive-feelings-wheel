@@ -993,16 +993,20 @@ class FeelingsWheelGenerator {
 
             // ===== UNIQUE WEDGE ID SYSTEM =====
         
-        createUniqueWedgeId(level, emotion, parent) {
-            // Create truly unique wedge IDs that handle duplicate emotion names
+        createUniqueWedgeId(level, emotion, parent, coreFamily = null) {
+            // Create family-aware unique wedge IDs for better color resolution
             const result = (() => {
                 switch (level) {
                     case 'core':
                         return `core-${emotion}`;
                     case 'secondary':
+                        // Format: secondary-CoreFamily-SecondaryEmotion
                         return `secondary-${parent}-${emotion}`;
                     case 'tertiary':
-                        return `tertiary-${parent}-${emotion}`;
+                        // Format: tertiary-CoreFamily-SecondaryParent-TertiaryEmotion
+                        // Find the core family for this tertiary emotion
+                        const family = this.findCoreFamily(parent);
+                        return `tertiary-${family}-${parent}-${emotion}`;
                     default:
                         return `${level}-${emotion}`;
                 }
@@ -1011,8 +1015,18 @@ class FeelingsWheelGenerator {
             return result;
         }
         
+        findCoreFamily(secondaryEmotion) {
+            // Find which core emotion family a secondary emotion belongs to
+            for (const coreEmotion of this.data.core) {
+                if (this.data.secondary[coreEmotion.name]?.includes(secondaryEmotion)) {
+                    return coreEmotion.name;
+                }
+            }
+            return 'Unknown';
+        }
+        
         parseUniqueWedgeId(wedgeId) {
-            // Parse unique wedge ID back into components
+            // Parse family-aware unique wedge ID back into components
             const parts = wedgeId.split('-');
             const level = parts[0];
             
@@ -1021,25 +1035,29 @@ class FeelingsWheelGenerator {
                     return {
                         level: 'core',
                         emotion: parts.slice(1).join('-'),
-                        parent: null
+                        parent: null,
+                        coreFamily: parts.slice(1).join('-') // Core emotions are their own family
                     };
                 case 'secondary':
                     return {
                         level: 'secondary',
                         emotion: parts.slice(2).join('-'),
-                        parent: parts[1]
+                        parent: parts[1], // Core emotion (parent)
+                        coreFamily: parts[1] // Core emotion family
                     };
                 case 'tertiary':
                     return {
                         level: 'tertiary',
-                        emotion: parts.slice(2).join('-'),
-                        parent: parts[1]
+                        emotion: parts.slice(3).join('-'),
+                        parent: parts.slice(2, 3).join('-'), // Secondary emotion (direct parent)
+                        coreFamily: parts[1] // Core emotion family
                     };
                 default:
                     return {
                         level,
                         emotion: parts.slice(1).join('-'),
-                        parent: null
+                        parent: null,
+                        coreFamily: null
                     };
             }
         }

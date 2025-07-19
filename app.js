@@ -99,7 +99,7 @@ class FeelingsWheelApp {
                 await this.requestFullscreen();
             }
         } catch (error) {
-            console.warn('Fullscreen operation failed:', error);
+                            // Fullscreen operation failed - handled gracefully
             // Optionally show user feedback here
         }
     }

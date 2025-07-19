@@ -919,9 +919,7 @@ class FeelingsWheelGenerator {
             }
         });
         
-        if (issues > 0) {
-            console.warn(`${issues} touch targets below WCAG minimum size (${minTouchSize}px)`);
-        }
+        // Touch target validation complete (production - warnings removed)
         
         return issues === 0;
     }

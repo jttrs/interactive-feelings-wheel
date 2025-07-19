@@ -836,33 +836,14 @@ class FeelingsWheelGenerator {
             this.svg.style.cursor = 'grab';
         });
         
-        // Mouse wheel for rotation - aggressive momentum control
-        let lastWheelTime = 0;
-        let wheelTimeout = null;
+        // Mouse wheel for rotation - restored to original functionality
         this.svg.addEventListener('wheel', (e) => {
             // Prevent interaction during animations
             if (this.isAnimating) return;
             
             e.preventDefault();
-            
-            // AGGRESSIVE momentum control - debounce instead of throttle
-            const now = performance.now();
-            if (now - lastWheelTime < 50) return; // Increased from 16ms to 50ms
-            lastWheelTime = now;
-            
-            // Clear any pending momentum
-            clearTimeout(wheelTimeout);
-            
-            // Very small rotation increments for precise control
-            const rotationDelta = e.deltaY > 0 ? 1.5 : -1.5; // Further reduced from 3 to 1.5 degrees
-            this.currentRotation += rotationDelta;
+            this.currentRotation += e.deltaY > 0 ? 5 : -5;
             this.updateRotation();
-            
-            // Set timeout to "brake" any remaining momentum after 100ms
-            wheelTimeout = setTimeout(() => {
-                // Momentum has stopped
-                lastWheelTime = 0;
-            }, 100);
         });
         
         // Click events for emotions
@@ -915,6 +896,21 @@ class FeelingsWheelGenerator {
             detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
         });
         document.dispatchEvent(customEvent);
+    }
+
+    // Public method to toggle wedge selection (called from panel tile X buttons)
+    toggleWedgeSelection(wedgeId) {
+        // Parse the wedgeId to get emotion and level
+        const [level, ...emotionParts] = wedgeId.split('-');
+        const emotion = emotionParts.join('-'); // Handle emotions with hyphens in their names
+        
+        // Find the wedge element
+        const wedge = this.container.querySelector(`.wedge[data-emotion="${emotion}"][data-level="${level}"]`);
+        if (wedge) {
+            // Create a fake click event to trigger the existing logic
+            const fakeEvent = { target: wedge };
+            this.handleWedgeClick(fakeEvent);
+        }
     }
 
     createShadowCopy(originalWedge, wedgeId) {

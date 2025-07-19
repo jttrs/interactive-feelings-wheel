@@ -674,7 +674,7 @@ body {
 
 /* Emotion Tiles */
 .emotion-tiles {
-    padding: 0 1.25rem 1.25rem 1.25rem;
+    padding: 1.25rem; /* Add proper top padding so first tile isn't flush with panel top */
     display: flex;
     flex-direction: column;
     gap: 0.75rem;

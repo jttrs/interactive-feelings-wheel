@@ -141,20 +141,10 @@ class FeelingsWheelApp {
             if (this.isCurrentlyFullscreen()) {
                 fullscreenButton.classList.add('active');
                 fullscreenButton.title = 'Exit fullscreen (ESC)';
-                
-                // DEBUG: Verify icon color fix
-                const icon = fullscreenButton.querySelector('.control-icon');
-                if (icon) {
-                    const iconColor = window.getComputedStyle(icon).color;
-                    console.log(`✅ FIXED: Icon color is now: ${iconColor} (should be light grey)`);
-                }
             } else {
                 fullscreenButton.classList.remove('active');
                 fullscreenButton.title = 'Enter fullscreen (F11)';
-                console.log('🔬 FULLSCREEN BUTTON DEBUG - NORMAL STATE');
             }
-        } else {
-            console.log('❌ FULLSCREEN BUTTON NOT FOUND!');
         }
     }
     

@@ -449,18 +449,8 @@ class FeelingsWheelGenerator {
 
     // Helper function to lighten colors for middle and outer rings
     lightenColor(color, percent) {
-        const num = parseInt(color.replace("#", ""), 16);
-        const R = (num >> 16) & 0xFF;
-        const G = (num >> 8) & 0xFF;
-        const B = num & 0xFF;
-        
-        // Use a more gradual lightening approach
-        const factor = 1 + (percent / 100);
-        const newR = Math.min(255, Math.round(R + (255 - R) * (percent / 100)));
-        const newG = Math.min(255, Math.round(G + (255 - G) * (percent / 100)));
-        const newB = Math.min(255, Math.round(B + (255 - B) * (percent / 100)));
-        
-        return "#" + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
+        // Use the centralized color lightening function for consistency
+        return FEELINGS_DATA.lightenColor(color, percent);
     }
 
     // Calculate dynamic angles based on secondary emotion counts

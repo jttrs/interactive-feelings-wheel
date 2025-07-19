@@ -172,17 +172,25 @@ const FEELINGS_DATA = {
         return fallbackColor;
     },
 
-    // Helper function to lighten colors
+    // Helper function to lighten colors (FIXED: proper lightening algorithm)
     lightenColor(color, percent) {
+        // Parse hex color
         const num = parseInt(color.replace("#", ""), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = (num >> 16) + amt;
-        const G = (num >> 8 & 0x00FF) + amt;
-        const B = (num & 0x0000FF) + amt;
-        return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
-            (B < 255 ? B < 1 ? 0 : B : 255))
-            .toString(16).slice(1);
+        const R = (num >> 16) & 0xFF;
+        const G = (num >> 8) & 0xFF; 
+        const B = num & 0xFF;
+        
+        // Apply lightening: blend with white
+        const factor = percent / 100;
+        const newR = Math.round(R + (255 - R) * factor);
+        const newG = Math.round(G + (255 - G) * factor);
+        const newB = Math.round(B + (255 - B) * factor);
+        
+        // Convert back to hex
+        const result = "#" + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
+        
+        console.log(`🎨 lightenColor(${color}, ${percent}%) → ${result}`);
+        return result;
     },
 
     // ===== EMOTION-SPECIFIC DEFINITIONS =====

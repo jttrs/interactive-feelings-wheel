@@ -433,8 +433,9 @@ body {
     position: fixed; /* Position relative to viewport when panel is hidden */
     right: 0; /* Flush with right edge of screen */
     left: auto; /* Override the left positioning */
-    top: 50%;
-    transform: translateY(-50%);
+    /* Match the exact vertical position of the panel - not centered on viewport */
+    top: calc(50vh - 32px); /* Center of screen minus half button height for perfect alignment */
+    transform: none; /* Remove transform to avoid positioning conflicts */
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid rgba(255, 255, 255, 0.6);
     border-right: none;

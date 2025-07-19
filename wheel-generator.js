@@ -836,13 +836,22 @@ class FeelingsWheelGenerator {
             this.svg.style.cursor = 'grab';
         });
         
-        // Mouse wheel for rotation
+        // Mouse wheel for rotation - with momentum control
+        let lastWheelTime = 0;
         this.svg.addEventListener('wheel', (e) => {
             // Prevent interaction during animations
             if (this.isAnimating) return;
             
             e.preventDefault();
-            this.currentRotation += e.deltaY > 0 ? 5 : -5;
+            
+            // Throttle wheel events to reduce momentum effect from trackpads
+            const now = performance.now();
+            if (now - lastWheelTime < 16) return; // ~60fps throttling
+            lastWheelTime = now;
+            
+            // Use smaller rotation increments for more precise control
+            const rotationDelta = e.deltaY > 0 ? 3 : -3; // Reduced from 5 to 3 degrees
+            this.currentRotation += rotationDelta;
             this.updateRotation();
         });
         

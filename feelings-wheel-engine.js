@@ -438,13 +438,8 @@ class FeelingsWheelGenerator {
                 // Apply emphasis effect (move to top layer, add shadow)
                 this.topGroup.appendChild(wedge);
                 
-                // Find corresponding text and move it too
-                const textElements = this.container.querySelectorAll('text');
-                textElements.forEach(textEl => {
-                    if (textEl.textContent === emotion) {
-                        this.topGroup.appendChild(textEl);
-                    }
-                });
+                // Use centralized text movement method
+                this.moveTextForWedge(emotion, this.topGroup);
                 
                 // Create shadow copy
                 this.createShadowCopy(wedge, wedgeId);
@@ -882,17 +877,27 @@ class FeelingsWheelGenerator {
 
     // Public method to toggle wedge selection (called from panel tile X buttons)
     toggleWedgeSelection(wedgeId) {
+        console.log(`🎯 toggleWedgeSelection called with: ${wedgeId}`);
+        
         // Parse the wedgeId to get emotion and level
         const [level, ...emotionParts] = wedgeId.split('-');
         const emotion = emotionParts.join('-'); // Handle emotions with hyphens in their names
+        console.log(`  📊 Parsed: level=${level}, emotion=${emotion}`);
         
         // Find the wedge element
         const wedge = this.container.querySelector(`.wedge[data-emotion="${emotion}"][data-level="${level}"]`);
+        console.log(`  🔍 Found wedge:`, wedge ? 'YES' : 'NO');
+        
         if (wedge) {
+            const isCurrentlySelected = this.selectedWedges.has(wedgeId);
+            console.log(`  📊 Currently selected: ${isCurrentlySelected}`);
+            
             // Use centralized selection/deselection logic directly (no fake events needed)
-            if (this.selectedWedges.has(wedgeId)) {
+            if (isCurrentlySelected) {
+                console.log(`  ➡️ Calling deselectWedge...`);
                 this.deselectWedge(wedgeId, wedge, emotion);
             } else {
+                console.log(`  ➡️ Calling selectWedge...`);
                 this.selectWedge(wedgeId, wedge, emotion);
             }
             
@@ -901,6 +906,9 @@ class FeelingsWheelGenerator {
                 detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
             });
             document.dispatchEvent(customEvent);
+            console.log(`  ✅ Event dispatched, final selected state: ${this.selectedWedges.has(wedgeId)}`);
+        } else {
+            console.error(`  ❌ Could not find wedge for selector: .wedge[data-emotion="${emotion}"][data-level="${level}"]`);
         }
     }
 
@@ -938,13 +946,22 @@ class FeelingsWheelGenerator {
     }
 
     moveTextForWedge(emotion, targetGroup) {
+        console.log(`📝 moveTextForWedge: ${emotion} → ${targetGroup.tagName || 'unknown'}`);
+        
         // Find and move the text element for this emotion using the stored textElements array
         // This is more reliable than searching by textContent which can match multiple elements
-        this.textElements.forEach(textData => {
+        let moved = false;
+        this.textElements.forEach((textData, index) => {
             if (textData.element.textContent === emotion) {
+                console.log(`  🎯 Found text at index ${index}, moving...`);
                 targetGroup.appendChild(textData.element);
+                moved = true;
             }
         });
+        
+        if (!moved) {
+            console.warn(`  ⚠️ No text found for emotion: ${emotion}`);
+        }
     }
 
     // ===== CENTRALIZED WEDGE SELECTION MANAGEMENT =====
@@ -963,21 +980,67 @@ class FeelingsWheelGenerator {
     }
     
     deselectWedge(wedgeId, wedge, emotion) {
+        console.log(`🔧 DESELECT DEBUG: Starting deselection for ${wedgeId} (${emotion})`);
+        
         // Centralized wedge deselection logic - handles ALL deselection properly
         this.selectedWedges.delete(wedgeId);
         wedge.classList.remove('selected');
+        console.log(`  ✅ Removed from selectedWedges, removed 'selected' class`);
         
         // Clear any lingering visual effects
         wedge.style.filter = '';
         wedge.style.opacity = '';
         wedge.style.transform = '';
+        console.log(`  ✅ Cleared visual effects`);
         
         // Remove shadow copy first
         this.removeShadowCopy(wedgeId);
+        console.log(`  ✅ Removed shadow copy`);
         
-        // Move wedge and its text back to base layer
+        // Move wedge back to base layer
+        console.log(`  🔄 Moving wedge to base layer. Current parent: ${wedge.parentNode?.tagName || 'none'}`);
         this.baseGroup.appendChild(wedge);
-        this.moveTextForWedge(emotion, this.baseGroup);
+        console.log(`  ✅ Wedge moved to baseGroup`);
+        
+        // Move text back to base layer
+        console.log(`  🔄 Moving text for emotion: ${emotion}`);
+        console.log(`  📊 textElements array length: ${this.textElements.length}`);
+        
+        // More robust text finding - use multiple methods
+        let textMoved = false;
+        
+        // Method 1: Use stored textElements array
+        this.textElements.forEach((textData, index) => {
+            if (textData.element.textContent === emotion) {
+                console.log(`  🎯 Found text via textElements[${index}]: "${textData.element.textContent}"`);
+                console.log(`    Current parent: ${textData.element.parentNode?.tagName || 'none'}`);
+                this.baseGroup.appendChild(textData.element);
+                console.log(`    ✅ Moved to baseGroup`);
+                textMoved = true;
+            }
+        });
+        
+        // Method 2: Fallback - search all text elements if not found
+        if (!textMoved) {
+            console.log(`  ⚠️ Text not found via textElements, trying DOM search...`);
+            const allTextElements = this.container.querySelectorAll('text');
+            console.log(`  📊 Found ${allTextElements.length} text elements in DOM`);
+            
+            allTextElements.forEach((textEl, index) => {
+                console.log(`    text[${index}]: "${textEl.textContent}" (parent: ${textEl.parentNode?.tagName || 'none'})`);
+                if (textEl.textContent === emotion) {
+                    console.log(`    🎯 MATCH! Moving to baseGroup`);
+                    this.baseGroup.appendChild(textEl);
+                    textMoved = true;
+                }
+            });
+        }
+        
+        if (!textMoved) {
+            console.error(`  ❌ ERROR: Could not find text element for emotion: ${emotion}`);
+        }
+        
+        console.log(`🔧 DESELECT COMPLETE for ${wedgeId}\n`);
     }
 
     updateRotation() {

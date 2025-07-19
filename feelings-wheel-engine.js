@@ -266,7 +266,7 @@ class FeelingsWheelGenerator {
             return constraint;
         });
         fontSizes.core = Math.min(...coreConstraints);
-
+        
         // Calculate secondary emotion font sizes
         const secondaryConstraints = [];
         coreAngles.forEach(core => {
@@ -280,7 +280,7 @@ class FeelingsWheelGenerator {
             });
         });
         fontSizes.secondary = Math.min(...secondaryConstraints);
-
+        
         // Calculate tertiary emotion font sizes (only in full mode)
         if (!this.isSimplifiedMode) {
             const tertiaryConstraints = [];
@@ -974,13 +974,13 @@ class FeelingsWheelGenerator {
                 this.deselectWedge(wedgeId, wedge, emotion);
             } else {
                 this.selectWedge(wedgeId, wedge, emotion);
-            }
-            
-            // Dispatch custom event for app to handle
-            const customEvent = new CustomEvent('emotionSelected', {
-                detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
-            });
-            document.dispatchEvent(customEvent);
+        }
+        
+        // Dispatch custom event for app to handle
+        const customEvent = new CustomEvent('emotionSelected', {
+            detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
+        });
+        document.dispatchEvent(customEvent);
         }
     }
 
@@ -1118,17 +1118,6 @@ class FeelingsWheelGenerator {
             
             // Use more specific selector to exclude shadow copies (they don't have 'wedge' class anymore)
             const element = this.container.querySelector(`.wedge[data-wedge-id="${expectedWedgeId}"]:not(.shadow-wedge)`);
-            console.log(`🔍 findWedgeByUniqueId: looking for "${expectedWedgeId}", found=${element ? 'YES' : 'NO'}`);
-            if (element) {
-                const actualId = element.getAttribute('data-wedge-id');
-
-
-            } else {
-                // Debug: show what IDs actually exist
-                const allWedges = this.container.querySelectorAll('.wedge[data-wedge-id]');
-                const actualIds = Array.from(allWedges).map(w => w.getAttribute('data-wedge-id')).filter(id => id.includes(emotion));
-                console.log(`   ❌ Not found. Actual IDs for "${emotion}": ${actualIds.join(', ')}`);
-            }
             return element;
         }
         

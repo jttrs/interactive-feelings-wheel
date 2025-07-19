@@ -422,15 +422,15 @@ class FeelingsWheelGenerator {
     applySelectedWedges() {
         // Re-apply selection state to wedges after regeneration
         this.selectedWedges.forEach(wedgeId => {
-            // Parse the stored wedgeId format: "level-emotion"
-            const [level, emotion] = wedgeId.split('-', 2);
+            // Parse the unique wedge ID format
+            const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
             
             // Skip tertiary emotions in simplified mode since they don't exist
             if (this.isSimplifiedMode && level === 'tertiary') {
                 return;
             }
             
-            const wedge = this.container.querySelector(`.wedge[data-emotion="${emotion}"][data-level="${level}"]`);
+            const wedge = this.findWedgeByUniqueId(level, emotion, parent);
             if (wedge) {
                 // Find the wedge click handler logic and apply it
                 wedge.classList.add('selected');
@@ -439,7 +439,7 @@ class FeelingsWheelGenerator {
                 this.topGroup.appendChild(wedge);
                 
                 // Use centralized text movement method
-                this.moveTextForWedge(emotion, level, this.topGroup);
+                this.moveTextForWedge(emotion, level, parent, this.topGroup);
                 
                 // Create shadow copy
                 this.createShadowCopy(wedge, wedgeId);
@@ -869,9 +869,12 @@ class FeelingsWheelGenerator {
         const wedge = event.target;
         const emotion = wedge.getAttribute('data-emotion');
         const level = wedge.getAttribute('data-level');
+        const parent = wedge.getAttribute('data-parent');
+        
+        // Create truly unique wedge ID that includes hierarchical context
+        const wedgeId = this.createUniqueWedgeId(level, emotion, parent);
         
         // Toggle selection using centralized methods
-        const wedgeId = `${level}-${emotion}`;
         if (this.selectedWedges.has(wedgeId)) {
             // Deselection - use centralized method
             this.deselectWedge(wedgeId, wedge, emotion);
@@ -889,12 +892,11 @@ class FeelingsWheelGenerator {
 
     // Public method to toggle wedge selection (called from panel tile X buttons)
     toggleWedgeSelection(wedgeId) {
-        // Parse the wedgeId to get emotion and level
-        const [level, ...emotionParts] = wedgeId.split('-');
-        const emotion = emotionParts.join('-'); // Handle emotions with hyphens in their names
+        // Parse the unique wedge ID to get components
+        const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
         
-        // Find the wedge element
-        const wedge = this.container.querySelector(`.wedge[data-emotion="${emotion}"][data-level="${level}"]`);
+        // Find the wedge element using unique identification
+        const wedge = this.findWedgeByUniqueId(level, emotion, parent);
         
         if (wedge) {
             // Use centralized selection/deselection logic directly (no fake events needed)
@@ -910,7 +912,7 @@ class FeelingsWheelGenerator {
             });
             document.dispatchEvent(customEvent);
         } else {
-            console.error(`Could not find wedge for: ${emotion} (${level})`);
+            console.error(`Could not find wedge for unique ID: ${wedgeId}`);
         }
     }
 
@@ -947,31 +949,103 @@ class FeelingsWheelGenerator {
         }
     }
 
-    moveTextForWedge(emotion, level, targetGroup) {
-        // Find text element using unique data attributes instead of just textContent
-        // This handles duplicate emotion names across different levels (e.g., "Embarrassed" appears in both Hurt and Disapproving)
-        const textSelector = `text[data-emotion="${emotion}"][data-level="${level}"]`;
+    moveTextForWedge(emotion, level, parent, targetGroup) {
+        // Find text element using unique data attributes that include parent context
+        // This handles duplicate emotion names even within the same level (e.g., "Embarrassed" tertiary appears under both Hurt and Disapproving)
+        let textSelector;
+        if (level === 'tertiary' && parent) {
+            // For tertiary emotions, include parent to distinguish duplicates
+            textSelector = `text[data-emotion="${emotion}"][data-level="${level}"][data-parent="${parent}"]`;
+        } else if (level === 'secondary' && parent) {
+            // For secondary emotions, include parent for consistency
+            textSelector = `text[data-emotion="${emotion}"][data-level="${level}"][data-parent="${parent}"]`;
+        } else {
+            // For core emotions, level and emotion are sufficient
+            textSelector = `text[data-emotion="${emotion}"][data-level="${level}"]`;
+        }
+        
         const textElement = this.container.querySelector(textSelector);
         
         if (textElement) {
             targetGroup.appendChild(textElement);
         } else {
-            console.error(`Could not find text element for: ${emotion} (${level})`);
+            console.error(`Could not find text element for: ${emotion} (${level}) with parent: ${parent}`);
         }
     }
 
-    // ===== CENTRALIZED WEDGE SELECTION MANAGEMENT =====
+            // ===== UNIQUE WEDGE ID SYSTEM =====
+        
+        createUniqueWedgeId(level, emotion, parent) {
+            // Create truly unique wedge IDs that handle duplicate emotion names
+            switch (level) {
+                case 'core':
+                    return `core-${emotion}`;
+                case 'secondary':
+                    return `secondary-${parent}-${emotion}`;
+                case 'tertiary':
+                    return `tertiary-${parent}-${emotion}`;
+                default:
+                    return `${level}-${emotion}`;
+            }
+        }
+        
+        parseUniqueWedgeId(wedgeId) {
+            // Parse unique wedge ID back into components
+            const parts = wedgeId.split('-');
+            const level = parts[0];
+            
+            switch (level) {
+                case 'core':
+                    return {
+                        level: 'core',
+                        emotion: parts.slice(1).join('-'),
+                        parent: null
+                    };
+                case 'secondary':
+                    return {
+                        level: 'secondary',
+                        emotion: parts.slice(2).join('-'),
+                        parent: parts[1]
+                    };
+                case 'tertiary':
+                    return {
+                        level: 'tertiary',
+                        emotion: parts.slice(2).join('-'),
+                        parent: parts[1]
+                    };
+                default:
+                    return {
+                        level,
+                        emotion: parts.slice(1).join('-'),
+                        parent: null
+                    };
+            }
+        }
+        
+        findWedgeByUniqueId(level, emotion, parent) {
+            // Find wedge element using unique identification that handles duplicates
+            let selector;
+            if (parent) {
+                selector = `.wedge[data-emotion="${emotion}"][data-level="${level}"][data-parent="${parent}"]`;
+            } else {
+                selector = `.wedge[data-emotion="${emotion}"][data-level="${level}"]`;
+            }
+            return this.container.querySelector(selector);
+        }
+        
+        // ===== CENTRALIZED WEDGE SELECTION MANAGEMENT =====
     
     selectWedge(wedgeId, wedge, emotion) {
         // Centralized wedge selection logic
         const level = wedge.getAttribute('data-level');
+        const parent = wedge.getAttribute('data-parent');
         
         this.selectedWedges.add(wedgeId);
         wedge.classList.add('selected');
         
         // Move wedge and its text to top layer
         this.topGroup.appendChild(wedge);
-        this.moveTextForWedge(emotion, level, this.topGroup);
+        this.moveTextForWedge(emotion, level, parent, this.topGroup);
         
         // Create shadow copy
         this.createShadowCopy(wedge, wedgeId);
@@ -980,6 +1054,7 @@ class FeelingsWheelGenerator {
     deselectWedge(wedgeId, wedge, emotion) {
         // Centralized wedge deselection logic - handles ALL deselection properly
         const level = wedge.getAttribute('data-level');
+        const parent = wedge.getAttribute('data-parent');
         
         this.selectedWedges.delete(wedgeId);
         wedge.classList.remove('selected');
@@ -994,7 +1069,7 @@ class FeelingsWheelGenerator {
         
         // Move wedge and text back to base layer
         this.baseGroup.appendChild(wedge);
-        this.moveTextForWedge(emotion, level, this.baseGroup);
+        this.moveTextForWedge(emotion, level, parent, this.baseGroup);
     }
 
     updateRotation() {
@@ -1150,9 +1225,8 @@ class FeelingsWheelGenerator {
         // Use centralized deselection for each selected wedge
         const selectedWedgeIds = [...this.selectedWedges]; // Copy the set to avoid modification during iteration
         selectedWedgeIds.forEach(wedgeId => {
-            const [level, ...emotionParts] = wedgeId.split('-');
-            const emotion = emotionParts.join('-');
-            const wedge = this.container.querySelector(`.wedge[data-emotion="${emotion}"][data-level="${level}"]`);
+            const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
+            const wedge = this.findWedgeByUniqueId(level, emotion, parent);
             if (wedge) {
                 this.deselectWedge(wedgeId, wedge, emotion);
             }

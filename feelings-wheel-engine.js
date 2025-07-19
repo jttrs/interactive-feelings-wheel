@@ -252,10 +252,13 @@ class FeelingsWheelGenerator {
     }
 
     calculateDynamicFontSizes() {
-        // Calculate optimal font sizes for each ring based on available wedge space
-        // This analyzes all wedges in each ring to find the constraining factor
-        
-        // Calculate optimal font sizes for each ring based on available wedge space
+        // DEBUG: Comprehensive font sizing debug
+        console.log('🔤 DEBUGGING DYNAMIC FONT SIZING');
+        console.log(`   Container size: ${this.containerSize}px`);
+        console.log(`   Core radius: ${this.coreRadius}px`);
+        console.log(`   Middle radius: ${this.middleRadius}px`);
+        console.log(`   Outer radius: ${this.outerRadius}px`);
+        console.log(`   Simplified mode: ${this.isSimplifiedMode}`);
         
         const coreAngles = this.calculateCoreAngles();
         const fontSizes = {};
@@ -265,9 +268,11 @@ class FeelingsWheelGenerator {
             const radialWidth = this.coreRadius * 0.8; // Core is a circle, use 80% of radius for text space
             const angularWidth = core.size;
             const constraint = this.calculateOptimalTextSize(radialWidth, angularWidth, core.name.length);
+            console.log(`   Core "${core.name}": radialWidth=${radialWidth.toFixed(1)}, constraint=${constraint.toFixed(1)}`);
             return constraint;
         });
         fontSizes.core = Math.min(...coreConstraints);
+        console.log(`   Final CORE font size: ${fontSizes.core.toFixed(1)}px`);
 
         
         // Calculate secondary emotion font sizes
@@ -277,15 +282,13 @@ class FeelingsWheelGenerator {
             const anglePerSecondary = core.size / secondaryEmotions.length;
             const radialWidth = this.middleRadius - this.coreRadius; // Ring thickness
             
-
-            
             secondaryEmotions.forEach(emotion => {
                 const constraint = this.calculateOptimalTextSize(radialWidth, anglePerSecondary, emotion.length);
-
                 secondaryConstraints.push(constraint);
             });
         });
         fontSizes.secondary = Math.min(...secondaryConstraints);
+        console.log(`   Final SECONDARY font size: ${fontSizes.secondary.toFixed(1)}px`);
 
         
         // Calculate tertiary emotion font sizes (only in full mode)
@@ -309,16 +312,15 @@ class FeelingsWheelGenerator {
                 });
             });
             fontSizes.tertiary = tertiaryConstraints.length > 0 ? Math.min(...tertiaryConstraints) : 12;
+            console.log(`   Final TERTIARY font size: ${fontSizes.tertiary.toFixed(1)}px`);
         }
+        
+        console.log(`🔤 FINAL FONT SIZES:`, fontSizes);
         return fontSizes;
     }
     
     calculateOptimalTextSize(radialWidth, angularWidth, textLength) {
-        // FIXED: Proper dynamic font size calculation that fills available space
-        
-        // For radial text, the constraints are:
-        // 1. Font height must fit within ring thickness (radial width)
-        // 2. Text length must fit along the radial span (from inner to outer radius)
+        // DEBUG: Font size calculation step by step
         
         // Primary constraint: font height fits in ring thickness
         const maxHeightFromRing = radialWidth * 0.6; // Use 60% of ring thickness for text height
@@ -341,19 +343,34 @@ class FeelingsWheelGenerator {
         const minSize = Math.max(6, this.containerSize * 0.008); // Minimum readable size
         const maxSize = this.containerSize * 0.08; // Maximum reasonable size
         
-        optimalSize = Math.max(minSize, Math.min(maxSize, optimalSize));
+        const boundedSize = Math.max(minSize, Math.min(maxSize, optimalSize));
         
-        // Return CSS pixels directly (no DPI division needed for SVG font-size)
-        return optimalSize;
+        // DEBUG logging
+        const debugInfo = {
+            radialWidth: radialWidth.toFixed(1),
+            textLength,
+            maxHeightFromRing: maxHeightFromRing.toFixed(1),
+            maxSizeFromLength: maxSizeFromLength.toFixed(1),
+            optimalSize: optimalSize.toFixed(1),
+            minSize: minSize.toFixed(1),
+            maxSize: maxSize.toFixed(1),
+            boundedSize: boundedSize.toFixed(1)
+        };
+        console.log(`      Text calc:`, debugInfo);
+        
+        return boundedSize;
     }
 
     calculateFontSize(level) {
-        // Legacy method - now dynamically calculated sizes are stored and retrieved
+        // DEBUG: Font size retrieval
         if (this.dynamicFontSizes) {
-            return this.dynamicFontSizes[level] || this.containerSize * 0.02;
+            const size = this.dynamicFontSizes[level] || this.containerSize * 0.02;
+            console.log(`   Getting font size for ${level}: ${size.toFixed(1)}px (from dynamic sizes)`);
+            return size;
         }
         
-        // Fallback to old system if dynamic sizes not yet calculated
+        // DEBUG: Fallback system
+        console.log(`   WARNING: Using fallback font size for ${level} - dynamic sizes not calculated`);
         const baseSize = this.containerSize * 0.02;
         switch (level) {
             case 'core':

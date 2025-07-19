@@ -1209,7 +1209,7 @@ path:not(.shadow-wedge) {
 }
 
 /* SVG Text elements - optimize text rendering */
-text {
+svg text {
     /* Optimize text rendering for readability */
     text-rendering: optimizeLegibility;
     /* Enable font smoothing for crisp text */
@@ -1219,8 +1219,7 @@ text {
     dominant-baseline: central;
     /* Maintain font metrics during transforms */
     vector-effect: non-scaling-stroke;
-    /* Ensure minimum readable size on all DPI */
-    font-size: max(8px, 0.8rem);
+    /* DO NOT set font-size here - let SVG attributes control this for dynamic sizing */
 }
 
 /* Main wheel groups - enable hardware acceleration ONLY for groups that use CSS transforms */

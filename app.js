@@ -156,9 +156,15 @@ class FeelingsWheelApp {
         this.emotionTiles = new Map(); // Maps wedgeId -> tile element
         this.tileOrder = []; // Track order of tiles (newest first)
 
-        // Setup panel minimization
+        // Setup panel minimization (desktop)
         const minimizeTab = document.getElementById('panel-minimize-tab');
         minimizeTab.addEventListener('click', () => {
+            this.togglePanelMinimization();
+        });
+
+        // Setup mobile collapse handle
+        const mobileHandle = document.getElementById('mobile-collapse-handle');
+        mobileHandle.addEventListener('click', () => {
             this.togglePanelMinimization();
         });
 
@@ -505,9 +511,11 @@ class FeelingsWheelApp {
 
     togglePanelMinimization() {
         const panel = document.querySelector('.info-panel');
+        const mainLayout = document.querySelector('.main-layout');
         const arrow = document.querySelector('.minimize-arrow');
         
         panel.classList.toggle('minimized');
+        mainLayout.classList.toggle('panel-minimized'); // For wheel centering
         
         // Update arrow direction - CSS handles rotation automatically
         if (panel.classList.contains('minimized')) {

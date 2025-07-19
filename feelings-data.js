@@ -164,6 +164,34 @@ const FEELINGS_DATA = {
         
         return fallbackMap[level] || '#4a90e2';
     },
+    
+    // Get core emotion color for tile accents (no lightening applied)
+    getCoreEmotionColor(wedgeId) {
+        // Parse the wedge ID to get components
+        const parts = wedgeId.split('-');
+        const level = parts[0];
+        
+        // Determine the core family based on the wedge ID format
+        let coreFamily;
+        if (level === 'core') {
+            coreFamily = parts[1];
+        } else if (level === 'secondary') {
+            coreFamily = parts[1]; // Core family is always at position 1
+        } else if (level === 'tertiary') {
+            coreFamily = parts[1]; // Core family is always at position 1 for family-aware IDs
+        }
+        
+        if (coreFamily) {
+            // Find the core emotion color and return it directly (no lightening)
+            const coreEmotion = this.core.find(core => core.name === coreFamily);
+            if (coreEmotion) {
+                return coreEmotion.color;
+            }
+        }
+        
+        // Fallback to core color
+        return '#4a90e2';
+    },
 
     // Helper function to lighten colors (FIXED: proper lightening algorithm)
     lightenColor(color, percent) {

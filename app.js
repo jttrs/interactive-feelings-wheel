@@ -499,8 +499,8 @@ class FeelingsWheelApp {
         const tilesContainer = document.getElementById('emotion-tiles');
         tilesContainer.style.overflowX = 'hidden';
 
-        // FIXED: Always 1.5s total duration regardless of tile count
-        const totalDuration = 1500; // Always 1.5 seconds
+        // FIXED: Always 1s total duration regardless of tile count
+        const totalDuration = 1000; // Always 1 second
         const tileAnimationDuration = Math.max(150, totalDuration * 0.6 / tileArray.length); // 60% of time for individual tiles
         const staggerDelay = Math.max(50, (totalDuration * 0.4) / tileArray.length); // 40% of time for stagger
 
@@ -666,7 +666,8 @@ class FeelingsWheelApp {
     }
 
     getEmotionColor(wedgeId) {
-        return FEELINGS_DATA.getEmotionColor(wedgeId);
+        // Get the core family color for tile accents (no lightening)
+        return FEELINGS_DATA.getCoreEmotionColor(wedgeId);
     }
 
     togglePanelMinimization() {

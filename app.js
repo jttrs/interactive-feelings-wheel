@@ -1,4 +1,5 @@
-// Main Application Logic - Minimal UI
+// Main Application Controller - Coordinates between wheel engine and panel UI
+// Architecture: feelings-wheel-engine.js handles wheel rendering/interaction, app.js handles panel/coordination
 class FeelingsWheelApp {
     constructor() {
         this.wheelGenerator = null;

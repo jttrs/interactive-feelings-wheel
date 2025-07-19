@@ -659,7 +659,6 @@ class FeelingsWheelGenerator {
             text.setAttribute("data-emotion", core.name);
             text.setAttribute("data-level", "core");
             // Add unique wedge ID to text as well for proper text-wedge association
-            const coreWedgeId = this.createUniqueWedgeId("core", core.name, null);
             text.setAttribute("data-wedge-id", coreWedgeId);
             text.textContent = core.name;
             
@@ -718,7 +717,6 @@ class FeelingsWheelGenerator {
                 text.setAttribute("data-level", "secondary");
                 text.setAttribute("data-parent", core.name);
                 // Add unique wedge ID to text as well for proper text-wedge association
-                const secondaryWedgeId = this.createUniqueWedgeId("secondary", emotion, core.name);
                 text.setAttribute("data-wedge-id", secondaryWedgeId);
                 text.textContent = emotion;
                 
@@ -786,7 +784,6 @@ class FeelingsWheelGenerator {
                         text.setAttribute("data-parent", emotion);
                         text.setAttribute("data-grandparent", core.name);
                         // Add unique wedge ID to text as well for proper text-wedge association
-                        const tertiaryWedgeId = this.createUniqueWedgeId("tertiary", tertiary, emotion);
                         text.setAttribute("data-wedge-id", tertiaryWedgeId);
                         text.textContent = tertiary;
                         

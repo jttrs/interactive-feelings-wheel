@@ -175,6 +175,11 @@ class FeelingsWheelApp {
                     this.resetAllSelections();
                     break;
                     
+                case 'p':
+                    event.preventDefault();
+                    this.togglePanelMinimization();
+                    break;
+                    
                 case 'arrowleft':
                     event.preventDefault();
                     this.rotateWheel(-15); // Rotate left 15 degrees
@@ -183,6 +188,16 @@ class FeelingsWheelApp {
                 case 'arrowright':
                     event.preventDefault();
                     this.rotateWheel(15); // Rotate right 15 degrees
+                    break;
+                    
+                case 'arrowup':
+                    event.preventDefault();
+                    this.rotateWheel(-15); // Rotate counterclockwise 15 degrees
+                    break;
+                    
+                case 'arrowdown':
+                    event.preventDefault();
+                    this.rotateWheel(15); // Rotate clockwise 15 degrees
                     break;
                     
                 case 'f11':
@@ -197,10 +212,10 @@ class FeelingsWheelApp {
     }
 
     toggleSimplifiedMode() {
-        // Find and trigger the simplified mode toggle button
-        const toggleButton = document.getElementById('simplified-mode-toggle');
-        if (toggleButton) {
-            toggleButton.click();
+        // Find and trigger the simplified mode toggle input
+        const toggleInput = document.getElementById('simplified-mode-panel');
+        if (toggleInput) {
+            toggleInput.click();
         }
     }
 

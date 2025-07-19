@@ -637,6 +637,9 @@ class FeelingsWheelGenerator {
             path.setAttribute("class", "wedge core-wedge");
             path.setAttribute("data-emotion", core.name);
             path.setAttribute("data-level", "core");
+            // Add unique wedge ID for proper identification
+            const coreWedgeId = this.createUniqueWedgeId("core", core.name, null);
+            path.setAttribute("data-wedge-id", coreWedgeId);
             path.style.cursor = "pointer";
             
             this.wheelGroup.appendChild(path);
@@ -655,6 +658,9 @@ class FeelingsWheelGenerator {
             // Add data attributes for unique identification
             text.setAttribute("data-emotion", core.name);
             text.setAttribute("data-level", "core");
+            // Add unique wedge ID to text as well for proper text-wedge association
+            const coreWedgeId = this.createUniqueWedgeId("core", core.name, null);
+            text.setAttribute("data-wedge-id", coreWedgeId);
             text.textContent = core.name;
             
             // Store text element for dynamic rotation
@@ -689,6 +695,9 @@ class FeelingsWheelGenerator {
                 path.setAttribute("data-emotion", emotion);
                 path.setAttribute("data-level", "secondary");
                 path.setAttribute("data-parent", core.name);
+                // Add unique wedge ID for proper identification
+                const secondaryWedgeId = this.createUniqueWedgeId("secondary", emotion, core.name);
+                path.setAttribute("data-wedge-id", secondaryWedgeId);
                 path.style.cursor = "pointer";
                 
                 this.wheelGroup.appendChild(path);
@@ -708,6 +717,9 @@ class FeelingsWheelGenerator {
                 text.setAttribute("data-emotion", emotion);
                 text.setAttribute("data-level", "secondary");
                 text.setAttribute("data-parent", core.name);
+                // Add unique wedge ID to text as well for proper text-wedge association
+                const secondaryWedgeId = this.createUniqueWedgeId("secondary", emotion, core.name);
+                text.setAttribute("data-wedge-id", secondaryWedgeId);
                 text.textContent = emotion;
                 
                 // Store text element for dynamic rotation
@@ -750,6 +762,9 @@ class FeelingsWheelGenerator {
                         path.setAttribute("data-level", "tertiary");
                         path.setAttribute("data-parent", emotion);
                         path.setAttribute("data-grandparent", core.name);
+                        // Add unique wedge ID for proper identification
+                        const tertiaryWedgeId = this.createUniqueWedgeId("tertiary", tertiary, emotion);
+                        path.setAttribute("data-wedge-id", tertiaryWedgeId);
                         path.style.cursor = "pointer";
                         
                         this.wheelGroup.appendChild(path);
@@ -770,6 +785,9 @@ class FeelingsWheelGenerator {
                         text.setAttribute("data-level", "tertiary");
                         text.setAttribute("data-parent", emotion);
                         text.setAttribute("data-grandparent", core.name);
+                        // Add unique wedge ID to text as well for proper text-wedge association
+                        const tertiaryWedgeId = this.createUniqueWedgeId("tertiary", tertiary, emotion);
+                        text.setAttribute("data-wedge-id", tertiaryWedgeId);
                         text.textContent = tertiary;
                         
                         // Store text element for dynamic rotation
@@ -950,26 +968,15 @@ class FeelingsWheelGenerator {
     }
 
     moveTextForWedge(emotion, level, parent, targetGroup) {
-        // Find text element using unique data attributes that include parent context
-        // This handles duplicate emotion names even within the same level (e.g., "Embarrassed" tertiary appears under both Hurt and Disapproving)
-        let textSelector;
-        if (level === 'tertiary' && parent) {
-            // For tertiary emotions, include parent to distinguish duplicates
-            textSelector = `text[data-emotion="${emotion}"][data-level="${level}"][data-parent="${parent}"]`;
-        } else if (level === 'secondary' && parent) {
-            // For secondary emotions, include parent for consistency
-            textSelector = `text[data-emotion="${emotion}"][data-level="${level}"][data-parent="${parent}"]`;
-        } else {
-            // For core emotions, level and emotion are sufficient
-            textSelector = `text[data-emotion="${emotion}"][data-level="${level}"]`;
-        }
-        
-        const textElement = this.container.querySelector(textSelector);
+        // Use the unique wedge ID to find the associated text element
+        // This is the most reliable method since both wedge and text have the same unique ID
+        const wedgeId = this.createUniqueWedgeId(level, emotion, parent);
+        const textElement = this.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
         
         if (textElement) {
             targetGroup.appendChild(textElement);
         } else {
-            console.error(`Could not find text element for: ${emotion} (${level}) with parent: ${parent}`);
+            console.error(`Could not find text element for wedge ID: ${wedgeId}`);
         }
     }
 
@@ -1023,14 +1030,9 @@ class FeelingsWheelGenerator {
         }
         
         findWedgeByUniqueId(level, emotion, parent) {
-            // Find wedge element using unique identification that handles duplicates
-            let selector;
-            if (parent) {
-                selector = `.wedge[data-emotion="${emotion}"][data-level="${level}"][data-parent="${parent}"]`;
-            } else {
-                selector = `.wedge[data-emotion="${emotion}"][data-level="${level}"]`;
-            }
-            return this.container.querySelector(selector);
+            // Find wedge element using the unique wedge ID - most reliable method
+            const wedgeId = this.createUniqueWedgeId(level, emotion, parent);
+            return this.container.querySelector(`.wedge[data-wedge-id="${wedgeId}"]`);
         }
         
         // ===== CENTRALIZED WEDGE SELECTION MANAGEMENT =====

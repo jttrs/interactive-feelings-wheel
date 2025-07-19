@@ -486,7 +486,7 @@ class FeelingsWheelApp {
     }
 
     animateUnwindTiles() {
-        // Phase 1: Animate tiles out in reverse order (newest to oldest)
+        // Get tiles in current order (newest first - this is correct)
         const tileArray = Array.from(this.emotionTiles.values());
         if (tileArray.length === 0) {
             // No tiles to animate, just do wheel rotation
@@ -495,23 +495,33 @@ class FeelingsWheelApp {
             return;
         }
 
-        // Start with the most recent tile (top of stack)
+        // FIXED: Prevent horizontal scrollbar during animation
+        const tilesContainer = document.getElementById('emotion-tiles');
+        tilesContainer.style.overflowX = 'hidden';
+
+        // FIXED: Always 1.5s total duration regardless of tile count
+        const totalDuration = 1500; // Always 1.5 seconds
+        const tileAnimationDuration = Math.max(150, totalDuration * 0.6 / tileArray.length); // 60% of time for individual tiles
+        const staggerDelay = Math.max(50, (totalDuration * 0.4) / tileArray.length); // 40% of time for stagger
+
+        // FIXED: Start wheel animation concurrently (not sequentially)
+        this.wheelGenerator.reset(); // Clear selections immediately
+        this.animateUnwindRotation(); // Start wheel animation NOW
+
         let currentTileIndex = 0;
-        const tileAnimationDuration = 200; // 200ms per tile
         
         const animateTileOut = () => {
             if (currentTileIndex >= tileArray.length) {
-                // All tiles animated out, now clear the wheel and start rotation
-                this.wheelGenerator.reset();
+                // All tiles animated out - clean up and restore container
                 this.clearAllTiles();
-                this.animateUnwindRotation();
+                tilesContainer.style.overflowX = ''; // Restore normal overflow
                 return;
             }
 
             const tile = tileArray[currentTileIndex];
             const wedgeId = tile.getAttribute('data-wedge-id');
             
-            // Deselect in wheel first (removes visual selection)
+            // Deselect in wheel (visual cleanup)
             if (this.wheelGenerator.selectedWedges.has(wedgeId)) {
                 this.wheelGenerator.selectedWedges.delete(wedgeId);
                 const wedge = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
@@ -523,7 +533,7 @@ class FeelingsWheelApp {
                 }
             }
             
-            // Animate tile out with scale and fade
+            // Animate tile out with scale and fade (prevent scrollbar)
             tile.style.transition = `all ${tileAnimationDuration}ms cubic-bezier(0.4, 0, 1, 1)`;
             tile.style.transform = 'translateX(100%) scale(0.8)';
             tile.style.opacity = '0';
@@ -534,11 +544,11 @@ class FeelingsWheelApp {
                     tile.remove();
                 }
                 this.emotionTiles.delete(wedgeId);
-                
-                // Continue to next tile
-                currentTileIndex++;
-                setTimeout(animateTileOut, 100); // 100ms delay between tiles
             }, tileAnimationDuration);
+            
+            // Continue to next tile with dynamic stagger timing
+            currentTileIndex++;
+            setTimeout(animateTileOut, staggerDelay);
         };
 
         // Start the tile animation sequence
@@ -550,23 +560,23 @@ class FeelingsWheelApp {
         const targetRotation = 0;
         const rotationDelta = targetRotation - startRotation;
         
-        // If no rotation needed, skip rotation animation
+        // If no rotation needed, just complete reset after tile animation time
         if (Math.abs(rotationDelta) < 1) {
             setTimeout(() => {
                 this.completeReset();
-            }, 300); // Shorter wait since tiles are already gone
+            }, 1500); // Wait for full 1.5s tile animation
             return;
         }
 
-        // 1.2 second smooth rotation with ease-out
-        const duration = 1200;
+        // FIXED: 1.5 second rotation to match tile animation duration
+        const duration = 1500; // Same as tile animation
         const startTime = performance.now();
 
         const animateFrame = (currentTime) => {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
             
-            // Ease-out cubic for natural deceleration
+            // Ease-out cubic for natural deceleration (matches original feel)
             const easeOut = 1 - Math.pow(1 - progress, 3);
             
             const currentRotation = startRotation + (rotationDelta * easeOut);

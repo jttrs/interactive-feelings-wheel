@@ -863,32 +863,14 @@ class FeelingsWheelGenerator {
         const emotion = wedge.getAttribute('data-emotion');
         const level = wedge.getAttribute('data-level');
         
-        // Toggle selection - simplified without complex animations
+        // Toggle selection using centralized methods
         const wedgeId = `${level}-${emotion}`;
         if (this.selectedWedges.has(wedgeId)) {
-            // Deselection
-            this.selectedWedges.delete(wedgeId);
-            wedge.classList.remove('selected');
-            
-            // Clear any lingering visual effects
-            wedge.style.filter = '';
-            wedge.style.opacity = '';
-            wedge.style.transform = '';
-            this.removeShadowCopy(wedgeId);
-            
-            // Move wedge and its text back to base layer
-            this.baseGroup.appendChild(wedge);
-            this.moveTextForWedge(emotion, this.baseGroup);
-            
+            // Deselection - use centralized method
+            this.deselectWedge(wedgeId, wedge, emotion);
         } else {
-            // Selection
-            this.selectedWedges.add(wedgeId);
-            wedge.classList.add('selected');
-            
-            this.createShadowCopy(wedge, wedgeId);
-            // Move wedge and its text to top layer
-            this.topGroup.appendChild(wedge);
-            this.moveTextForWedge(emotion, this.topGroup);
+            // Selection - use centralized method  
+            this.selectWedge(wedgeId, wedge, emotion);
         }
         
         // Dispatch custom event for app to handle
@@ -907,9 +889,18 @@ class FeelingsWheelGenerator {
         // Find the wedge element
         const wedge = this.container.querySelector(`.wedge[data-emotion="${emotion}"][data-level="${level}"]`);
         if (wedge) {
-            // Create a fake click event to trigger the existing logic
-            const fakeEvent = { target: wedge };
-            this.handleWedgeClick(fakeEvent);
+            // Use centralized selection/deselection logic directly (no fake events needed)
+            if (this.selectedWedges.has(wedgeId)) {
+                this.deselectWedge(wedgeId, wedge, emotion);
+            } else {
+                this.selectWedge(wedgeId, wedge, emotion);
+            }
+            
+            // Dispatch custom event for app to handle
+            const customEvent = new CustomEvent('emotionSelected', {
+                detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
+            });
+            document.dispatchEvent(customEvent);
         }
     }
 
@@ -947,13 +938,46 @@ class FeelingsWheelGenerator {
     }
 
     moveTextForWedge(emotion, targetGroup) {
-        // Find and move the text element for this emotion
-        const textElements = this.container.querySelectorAll('text');
-        textElements.forEach(textEl => {
-            if (textEl.textContent === emotion) {
-                targetGroup.appendChild(textEl);
+        // Find and move the text element for this emotion using the stored textElements array
+        // This is more reliable than searching by textContent which can match multiple elements
+        this.textElements.forEach(textData => {
+            if (textData.element.textContent === emotion) {
+                targetGroup.appendChild(textData.element);
             }
         });
+    }
+
+    // ===== CENTRALIZED WEDGE SELECTION MANAGEMENT =====
+    
+    selectWedge(wedgeId, wedge, emotion) {
+        // Centralized wedge selection logic
+        this.selectedWedges.add(wedgeId);
+        wedge.classList.add('selected');
+        
+        // Move wedge and its text to top layer
+        this.topGroup.appendChild(wedge);
+        this.moveTextForWedge(emotion, this.topGroup);
+        
+        // Create shadow copy
+        this.createShadowCopy(wedge, wedgeId);
+    }
+    
+    deselectWedge(wedgeId, wedge, emotion) {
+        // Centralized wedge deselection logic - handles ALL deselection properly
+        this.selectedWedges.delete(wedgeId);
+        wedge.classList.remove('selected');
+        
+        // Clear any lingering visual effects
+        wedge.style.filter = '';
+        wedge.style.opacity = '';
+        wedge.style.transform = '';
+        
+        // Remove shadow copy first
+        this.removeShadowCopy(wedgeId);
+        
+        // Move wedge and its text back to base layer
+        this.baseGroup.appendChild(wedge);
+        this.moveTextForWedge(emotion, this.baseGroup);
     }
 
     updateRotation() {
@@ -1106,28 +1130,29 @@ class FeelingsWheelGenerator {
         // Clear all active animations first
         this.clearAllAnimations();
         
-        // Clear all selections
-        this.selectedWedges.clear();
+        // Use centralized deselection for each selected wedge
+        const selectedWedgeIds = [...this.selectedWedges]; // Copy the set to avoid modification during iteration
+        selectedWedgeIds.forEach(wedgeId => {
+            const [level, ...emotionParts] = wedgeId.split('-');
+            const emotion = emotionParts.join('-');
+            const wedge = this.container.querySelector(`.wedge[data-emotion="${emotion}"][data-level="${level}"]`);
+            if (wedge) {
+                this.deselectWedge(wedgeId, wedge, emotion);
+            }
+        });
         
-        // Reset all wedge styles and move back to base layer
+        // Final cleanup - ensure everything is in base layer
         const wedges = this.container.querySelectorAll('.wedge');
         wedges.forEach(wedge => {
-            wedge.classList.remove('selected');
-            // Clear any lingering visual effects
-            wedge.style.filter = '';
-            wedge.style.opacity = '';
-            wedge.style.transform = '';
-            // Move wedge back to base layer if it's not already there
             if (wedge.parentNode !== this.baseGroup) {
                 this.baseGroup.appendChild(wedge);
             }
         });
         
-        // Move all text elements back to base layer
-        const textElements = this.container.querySelectorAll('text');
-        textElements.forEach(textEl => {
-            if (textEl.parentNode !== this.baseGroup) {
-                this.baseGroup.appendChild(textEl);
+        // Move all text elements back to base layer using the reliable method
+        this.textElements.forEach(textData => {
+            if (textData.element.parentNode !== this.baseGroup) {
+                this.baseGroup.appendChild(textData.element);
             }
         });
         

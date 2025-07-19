@@ -416,10 +416,7 @@ class FeelingsWheelGenerator {
         this.updateRotation();
         this.applySelectedWedges();
         
-        // Reposition controls after wheel regeneration since wheel size may have changed
-        requestAnimationFrame(() => {
-            this.repositionControlsUnified();
-        });
+        // OLD CONTROL REPOSITIONING REMOVED
     }
     
     applySelectedWedges() {
@@ -790,8 +787,7 @@ class FeelingsWheelGenerator {
         
         this.container.appendChild(this.svg);
         
-        // Setup intelligent responsive controls positioning
-        this.setupSmartControlsPositioning();
+        // OLD CONTROL POSITIONING REMOVED - panel handles all controls now
         
         // Mark current mode as initialized
         const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
@@ -1123,15 +1119,9 @@ class FeelingsWheelGenerator {
         // Clear all shadow copies
         this.shadowGroup.innerHTML = '';
         
-        // For debugging - temporarily disable smooth animation and use instant reset
-        console.log('Reset called, current rotation:', this.currentRotation, 'isAnimating:', this.isAnimating);
-        
-        // Instant reset for now to debug other issues
+        // Reset rotation instantly
         this.currentRotation = 0;
         this.updateRotation();
-        requestAnimationFrame(() => {
-            this.repositionControlsUnified();
-        });
         
         // Update the stored state for current mode only
         const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
@@ -1141,40 +1131,16 @@ class FeelingsWheelGenerator {
     }
 
     setupSmartControlsPositioning() {
-        // Get the controls container
-        const controls = this.container.parentElement.querySelector('.wheel-controls');
-        if (!controls) return;
-        
-        // Store reference for resize handling
-        this.controlsContainer = controls;
-        
-        // Calculate optimal positioning
-        this.repositionControlsUnified();
-        
-        // Setup resize observer for dynamic adaptation
-        this.setupControlsResizeObserver();
-        
-        // Setup window resize handler with proper debouncing
-        window.addEventListener('resize', () => {
-            clearTimeout(this.windowResizeTimeout);
-            this.windowResizeTimeout = setTimeout(() => {
-                this.repositionControlsUnified();
-            }, 200); // Slightly longer debounce for window resize
-        });
+        // OLD CONTROL POSITIONING SYSTEM DISABLED - panel handles all controls now
+        return;
     }
     
     /**
      * Unified repositioning system - immediate positioning after layout updates
      */
     repositionControlsUnified() {
-        if (!this.controlsContainer) return;
-        
-        // Simple immediate positioning - no artificial delays
-        try {
-            this.positionControlsIntelligently();
-        } catch (error) {
-            console.warn('Positioning failed:', error);
-        }
+        // OLD CONTROL POSITIONING SYSTEM DISABLED
+        return;
     }
     
     positionControlsIntelligently() {
@@ -1326,10 +1292,7 @@ class FeelingsWheelGenerator {
         if (window.ResizeObserver) {
             this.controlsResizeObserver = new ResizeObserver(() => {
                 // Debounce resize events
-                clearTimeout(this.resizeTimeout);
-                this.resizeTimeout = setTimeout(() => {
-                    this.repositionControlsUnified();
-                }, 150); // Longer debounce for stability
+                // OLD CONTROL REPOSITIONING REMOVED
             });
             
             this.controlsResizeObserver.observe(this.container);

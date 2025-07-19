@@ -932,10 +932,18 @@ body {
     color: #f8f9fa; /* Light grey icon for visibility on blue background */
 }
 
+.control-btn.active .control-icon {
+    color: #f8f9fa !important; /* Force light grey on icon specifically */
+}
+
 .control-btn.active:hover {
     background: #357abd;
     border-color: #2563eb;
     color: #f8f9fa; /* Keep light grey on hover */
+}
+
+.control-btn.active:hover .control-icon {
+    color: #f8f9fa !important; /* Force light grey on icon during hover */
 }
 
 /* Old grid-based minimization CSS removed - now using floating design */

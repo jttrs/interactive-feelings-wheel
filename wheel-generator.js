@@ -897,7 +897,7 @@ class FeelingsWheelGenerator {
         
         // Dispatch custom event for app to handle
         const customEvent = new CustomEvent('emotionSelected', {
-            detail: { emotion, level, selected: this.selectedWedges.has(wedgeId) }
+            detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
         });
         document.dispatchEvent(customEvent);
     }

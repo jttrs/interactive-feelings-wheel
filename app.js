@@ -248,6 +248,9 @@ class FeelingsWheelApp {
         minimizeTab.addEventListener('click', () => {
             this.togglePanelMinimization();
         });
+        
+        // Initialize arrow direction based on current panel state
+        this.updateArrowDirection();
 
         // Setup mobile collapse handle
         const mobileHandle = document.getElementById('mobile-collapse-handle');
@@ -670,19 +673,37 @@ class FeelingsWheelApp {
         return FEELINGS_DATA.getCoreEmotionColor(wedgeId);
     }
 
+    updateArrowDirection() {
+        const panel = document.querySelector('.info-panel');
+        const arrow = document.querySelector('.minimize-arrow');
+        
+        if (!panel || !arrow) return;
+        
+        // Update arrow direction - points toward action (collapse/expand)
+        if (panel.classList.contains('minimized')) {
+            arrow.textContent = '◀'; // Left arrow when minimized (points toward collapsed panel)
+        } else {
+            arrow.textContent = '▶'; // Right arrow when expanded (points away to collapse)
+        }
+    }
+
     togglePanelMinimization() {
         const panel = document.querySelector('.info-panel');
         const mainLayout = document.querySelector('.main-layout');
-        const arrow = document.querySelector('.minimize-arrow');
         
         panel.classList.toggle('minimized');
         mainLayout.classList.toggle('panel-minimized'); // For wheel centering
         
-        // Update arrow direction - CSS handles rotation automatically
-        if (panel.classList.contains('minimized')) {
-            arrow.textContent = '▶'; // Right arrow when minimized
-        } else {
-            arrow.textContent = '◀'; // Left arrow when expanded
+        // Update arrow direction
+        this.updateArrowDirection();
+        
+        // MOBILE FIX: Trigger wheel resize after panel state change
+        // This ensures the wheel recalculates its size based on new available space
+        if (this.wheelGenerator && window.innerWidth <= 767) {
+            // Small delay to allow CSS transitions to settle
+            setTimeout(() => {
+                this.wheelGenerator.handleResize();
+            }, 350); // Slightly longer than CSS transition (0.3s)
         }
     }
 

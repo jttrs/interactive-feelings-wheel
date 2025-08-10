@@ -354,7 +354,7 @@ body {
 @media (max-width: 767px) {
     .wheel-section {
         padding-right: 0;
-        padding-bottom: 340px; /* Account for bottom panel height */
+        padding-bottom: 50px; /* Reduced padding - JavaScript will handle precise sizing */
     }
     
     .main-layout.panel-minimized .wheel-section {
@@ -403,7 +403,9 @@ body {
         right: 0;
         width: 100%;
         max-width: none;
-        height: 320px;
+        height: auto;
+        min-height: 280px;
+        max-height: 350px;
         border-radius: 20px 20px 0 0;
         margin: 0;
         border: 2px solid rgba(255, 255, 255, 0.8);
@@ -534,9 +536,7 @@ body {
     /* Default expanded state: ▶ (no rotation needed) */
 }
 
-.info-panel.minimized .minimize-arrow {
-    transform: rotate(180deg); /* ▶ becomes ◀ (expand panel) when collapsed */
-}
+/* REMOVED: CSS rotation conflicts with JavaScript arrow direction control */
 
 /* Mobile Collapse Handle */
 .mobile-collapse-handle {
@@ -1198,8 +1198,7 @@ svg {
     image-rendering: -webkit-optimize-contrast;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
-    /* Ensure crisp rendering at all zoom levels */
-    vector-effect: non-scaling-stroke;
+    /* REMOVED: vector-effect: non-scaling-stroke; - conflicts with responsive stroke widths */
     /* Enable hardware acceleration for smooth transforms */
     will-change: transform;
     transform: translateZ(0);
@@ -1266,7 +1265,7 @@ svg text {
 /* Enhanced selection styling with smooth transitions */
 .selected {
     stroke: #333 !important;
-    stroke-width: 2 !important;
+    /* RESPONSIVE SELECTION STROKE: Removed hardcoded stroke-width, JavaScript will set responsive value */
     filter: saturate(1.4) brightness(1.15);
     transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     /* Subtle glow effect for selected state */
@@ -1293,11 +1292,11 @@ svg text {
 @keyframes deselectionFade {
     0% { 
         filter: saturate(1.4) brightness(1.15);
-        stroke-width: 2px;
+        /* RESPONSIVE STROKE: Removed hardcoded stroke-width, JavaScript manages responsive values */
     }
     100% { 
         filter: saturate(1) brightness(1);
-        stroke-width: 1px;
+        /* RESPONSIVE STROKE: JavaScript will handle stroke width transitions */
     }
 }
 

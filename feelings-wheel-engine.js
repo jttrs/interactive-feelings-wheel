@@ -245,6 +245,66 @@ class FeelingsWheelGenerator {
 
     // ===== END ANIMATION ENGINE =====
     
+    // ===== CENTRALIZED RESPONSIVE SCALING SYSTEM =====
+    
+    calculateResponsiveScaling(wheelSize) {
+        // Create a unified scaling system for ALL visual parameters
+        // This ensures consistent proportional scaling across the entire wheel
+        
+        const baseScale = wheelSize / 400; // Reference size: 400px wheel
+        const isMobile = window.innerWidth <= 767;
+        
+        return {
+            // Stroke widths (all scale proportionally) - reduced for lighter appearance
+            primaryDivisionStroke: Math.max(0.4, wheelSize * 0.004),    // 0.4% of wheel size (was 0.6%)
+            secondaryDivisionStroke: Math.max(0.2, wheelSize * 0.003),  // 0.3% of wheel size (was 0.4%)
+            tertiaryDivisionStroke: Math.max(0.1, wheelSize * 0.0008),  // 0.08% of wheel size (was 0.1%)
+            wedgeStroke: Math.max(0.2, wheelSize * 0.0015),             // 0.15% of wheel size (was 0.2%)
+            // REMOVED selectedStroke: CSS handles selection emphasis with filters, not thick borders
+            
+            // Font scaling factors (use small percentages, not raw baseScale)
+            fontScale: isMobile ? 
+                Math.max(0.008, 0.006 * baseScale) :  // Mobile: 0.6% * scale factor
+                Math.max(0.006, 0.005 * baseScale),   // Desktop: 0.5% * scale factor
+                
+            // Touch target scaling for mobile accessibility
+            touchTargetScale: isMobile ? Math.max(1.2, baseScale) : baseScale,
+            
+            // General scaling factor for other elements
+            generalScale: baseScale
+        };
+    }
+    
+    updateAllResponsiveScaling() {
+        // Update stroke widths for all existing elements after wheel resize
+        // This ensures consistent scaling when wheel size changes
+        
+        if (!this.responsiveScaling) return; // Safety check
+        
+        // Update all regular wedges (selected and unselected use same stroke width)
+        const allWedges = this.container.querySelectorAll('.wedge:not(.shadow-wedge)');
+        allWedges.forEach(wedge => {
+            // All wedges use standard stroke width - CSS handles selection emphasis
+            wedge.setAttribute("stroke-width", this.responsiveScaling.wedgeStroke.toString());
+        });
+        
+        // Update all division lines
+        const primaryLines = this.container.querySelectorAll('.primary-division-line');
+        primaryLines.forEach(line => {
+            line.setAttribute("stroke-width", this.responsiveScaling.primaryDivisionStroke.toString());
+        });
+        
+        const secondaryLines = this.container.querySelectorAll('.secondary-division-line');
+        secondaryLines.forEach(line => {
+            line.setAttribute("stroke-width", this.responsiveScaling.secondaryDivisionStroke.toString());
+        });
+        
+        const tertiaryLines = this.container.querySelectorAll('.dyad-division-line');
+        tertiaryLines.forEach(line => {
+            line.setAttribute("stroke-width", this.responsiveScaling.tertiaryDivisionStroke.toString());
+        });
+    }
+    
     updateRadii() {
         // Radii are now calculated dynamically in the generate() method
         // based on container size and mode. This method is kept for compatibility
@@ -327,8 +387,11 @@ class FeelingsWheelGenerator {
         // Take the smaller of the two constraints
         let optimalSize = Math.min(maxHeightFromRing, maxSizeFromLength);
         
-        // Apply reasonable bounds (use CSS pixel dimensions consistently)
-        const minSize = Math.max(6, this.containerSize * 0.008); // Minimum readable size
+        // RESPONSIVE CONSTRAINTS: Set bounds that scale with wheel size
+        const isMobile = window.innerWidth <= 767;
+        
+        // Use much smaller minimums here since calculateFontSize will apply final responsive minimum
+        const minSize = Math.max(2, this.containerSize * 0.004); // Very small minimum to let natural calculation work
         const maxSize = this.containerSize * 0.08; // Maximum reasonable size
         
         const boundedSize = Math.max(minSize, Math.min(maxSize, optimalSize));
@@ -337,22 +400,51 @@ class FeelingsWheelGenerator {
     }
 
     calculateFontSize(level) {
+        // UNIFIED FONT CALCULATION: Use centralized responsive scaling system
+        let fontSize;
+        
         // Get dynamically calculated font size for the specified ring level
-        if (this.dynamicFontSizes) {
-            return this.dynamicFontSizes[level] || this.containerSize * 0.02;
+        if (this.dynamicFontSizes && this.dynamicFontSizes[level]) {
+            fontSize = this.dynamicFontSizes[level];
+        } else {
+            // Fallback to basic sizing if dynamic sizes not calculated
+            const baseSize = this.containerSize * 0.02;
+            
+            switch (level) {
+                case 'core':
+                    fontSize = baseSize * 0.8;
+                    break;
+                case 'secondary':
+                    fontSize = baseSize * 0.7;
+                    break;
+                case 'tertiary':
+                    fontSize = baseSize * 0.6;
+                    break;
+                default:
+                    fontSize = baseSize;
+            }
         }
         
-        // Fallback to basic sizing if dynamic sizes not calculated
-        const baseSize = this.containerSize * 0.02;
-        switch (level) {
-            case 'core':
-                return Math.max(10, baseSize * 0.8);
-            case 'secondary':
-                return Math.max(8, baseSize * 0.7);
-            case 'tertiary':
-                return Math.max(6, baseSize * 0.6);
-            default:
-                return baseSize;
+        // SAFETY CHECK: Only apply responsive scaling if it exists
+        if (this.responsiveScaling && this.responsiveScaling.fontScale) {
+            // APPLY CENTRALIZED RESPONSIVE SCALING: Ensure consistent behavior across all pathways
+            const responsiveMin = this.containerSize * this.responsiveScaling.fontScale;
+            const scaledMin = level === 'core' ? responsiveMin : 
+                             level === 'secondary' ? responsiveMin * 0.8 : 
+                             responsiveMin * 0.6;
+            
+            // Return the larger of calculated size or responsive minimum
+            return Math.max(scaledMin, fontSize);
+        } else {
+            // FALLBACK: Use legacy mobile-aware scaling when responsive scaling not yet available
+            const isMobile = window.innerWidth <= 767;
+            const minScale = isMobile ? 0.008 : 0.006;
+            const responsiveMin = this.containerSize * minScale;
+            const scaledMin = level === 'core' ? responsiveMin : 
+                             level === 'secondary' ? responsiveMin * 0.8 : 
+                             responsiveMin * 0.6;
+            
+            return Math.max(scaledMin, fontSize);
         }
     }
     
@@ -407,6 +499,9 @@ class FeelingsWheelGenerator {
         // Apply current state to the new wheel
         this.updateRotation();
         this.applySelectedWedges();
+        
+        // REMOVED REDUNDANT CALL: generate() already handles all responsive scaling
+        // this.updateAllResponsiveScaling(); // Not needed - generate() does this
         
         // OLD CONTROL REPOSITIONING REMOVED
     }
@@ -495,7 +590,11 @@ class FeelingsWheelGenerator {
         
         const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
         
-        return `M ${x1} ${y1} L ${x2} ${y2} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x3} ${y3} L ${x4} ${y4} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x1} ${y1}`;
+        const pathData = `M ${x1} ${y1} L ${x2} ${y2} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x3} ${y3} L ${x4} ${y4} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x1} ${y1}`;
+        
+
+        
+        return pathData;
     }
 
     // Position text in the middle of a wedge with radial orientation
@@ -538,8 +637,47 @@ class FeelingsWheelGenerator {
         this.textElements = [];
         
         // Get container dimensions with DPI awareness
+        if (!this.container) {
+            console.error('❌ No container element found!');
+            return;
+        }
+        
         const containerRect = this.container.getBoundingClientRect();
-        const cssSize = Math.min(containerRect.width, containerRect.height);
+        
+        // MOBILE FIX: Account for mobile layout constraints
+        let availableWidth = containerRect.width;
+        let availableHeight = containerRect.height;
+        
+        // Check if we're on mobile (viewport width <= 767px)
+        const isMobile = window.innerWidth <= 767;
+        
+        if (isMobile) {
+            // On mobile, account for bottom panel that takes 320px-340px
+            // Get the actual info panel height to be precise
+            const infoPanel = document.querySelector('.info-panel');
+            let panelHeight = 320; // Default fallback
+            
+            if (infoPanel && !infoPanel.classList.contains('minimized')) {
+                // Panel is visible, get its actual height
+                const panelRect = infoPanel.getBoundingClientRect();
+                panelHeight = panelRect.height || 320;
+            } else if (infoPanel && infoPanel.classList.contains('minimized')) {
+                // Panel is minimized, no height constraint
+                panelHeight = 0;
+            }
+            
+            // Subtract panel height and some margin from available height
+            availableHeight = Math.max(150, availableHeight - panelHeight - 20); // Lower minimum for very small screens
+            
+            // SMART ADAPTATION: If wheel becomes too small, suggest simplified mode
+            const resultingSize = Math.min(availableWidth, availableHeight);
+            if (resultingSize < 250 && !this.isSimplifiedMode) {
+                // Very small wheel - simplified mode would help but don't force it
+                console.info('ℹ️ Wheel is quite small. Consider using Simplified Mode for better text readability.');
+            }
+        }
+        
+        const cssSize = Math.min(availableWidth, availableHeight);
         
         // Update DPI information
         this.dpr = window.devicePixelRatio || 1;
@@ -547,7 +685,11 @@ class FeelingsWheelGenerator {
         
         const size = cssSize; // Use CSS size for layout, effective size for font calculations
         
-
+        // CRITICAL VALIDATION: Ensure we have a valid size
+        if (!size || size <= 0) {
+            console.error('❌ Invalid wheel size:', { size, cssSize, availableWidth, availableHeight });
+            return; // Don't generate wheel with invalid size
+        }
         
         // Make the wheel fill almost the entire available space
         this.centerX = size / 2;
@@ -557,6 +699,9 @@ class FeelingsWheelGenerator {
         
         // Store size for font scaling
         this.containerSize = size;
+        
+        // CENTRALIZED RESPONSIVE SCALING SYSTEM
+        this.responsiveScaling = this.calculateResponsiveScaling(size);
         
         // Calculate radii based on mode and available space
         if (this.isSimplifiedMode) {
@@ -570,6 +715,8 @@ class FeelingsWheelGenerator {
             this.middleRadius = maxRadius * 0.7; // 70% of outer radius (increased from 62.5%)
             this.coreRadius = maxRadius * 0.35;    // 35% of outer radius (increased from 25%)
         }
+        
+
         
         // Calculate dynamic font sizes based on wedge dimensions and available space
         // This ensures text is optimally sized for each ring while maintaining uniformity
@@ -621,7 +768,10 @@ class FeelingsWheelGenerator {
             ));
             path.setAttribute("fill", core.color);
             path.setAttribute("stroke", "#333");
-            path.setAttribute("stroke-width", "1");
+            // RESPONSIVE WEDGE STROKE: Use centralized scaling system with safety check
+            const strokeWidth = (this.responsiveScaling && this.responsiveScaling.wedgeStroke) ? 
+                this.responsiveScaling.wedgeStroke : Math.max(0.3, this.containerSize * 0.002);
+            path.setAttribute("stroke-width", strokeWidth.toString());
             path.setAttribute("class", "wedge core-wedge");
             path.setAttribute("data-emotion", core.name);
             path.setAttribute("data-level", "core");
@@ -639,7 +789,15 @@ class FeelingsWheelGenerator {
             text.setAttribute("y", textPos.y);
             text.setAttribute("text-anchor", "middle");
             text.setAttribute("dominant-baseline", "middle");
-            text.setAttribute("font-size", `${this.calculateFontSize('core')}px`);
+            
+            // SMART TEXT SIZING: Start with calculated size but allow adaptive sizing for small wheels
+            let fontSize = this.calculateFontSize('core');
+            if (this.containerSize < 300) {
+                // For very small wheels, prioritize fitting over minimum size
+                fontSize = Math.max(this.containerSize * 0.02, fontSize * 0.7);
+            }
+            
+            text.setAttribute("font-size", `${fontSize}px`);
             text.setAttribute("font-weight", "normal");
             text.setAttribute("fill", "#333");
             text.setAttribute("pointer-events", "none");
@@ -677,7 +835,10 @@ class FeelingsWheelGenerator {
                 ));
                 path.setAttribute("fill", this.lightenColor(core.color, 40));
                 path.setAttribute("stroke", "#333");
-                path.setAttribute("stroke-width", "1");
+                // RESPONSIVE WEDGE STROKE: Use centralized scaling system with safety check
+                const strokeWidth = (this.responsiveScaling && this.responsiveScaling.wedgeStroke) ? 
+                    this.responsiveScaling.wedgeStroke : Math.max(0.3, this.containerSize * 0.002);
+                path.setAttribute("stroke-width", strokeWidth.toString());
                 path.setAttribute("class", "wedge secondary-wedge");
                 path.setAttribute("data-emotion", emotion);
                 path.setAttribute("data-level", "secondary");
@@ -696,7 +857,14 @@ class FeelingsWheelGenerator {
                 text.setAttribute("y", textPos.y);
                 text.setAttribute("text-anchor", "middle");
                 text.setAttribute("dominant-baseline", "middle");
-                text.setAttribute("font-size", `${this.calculateFontSize('secondary')}px`);
+                
+                // SMART TEXT SIZING: Adaptive sizing for small wheels
+                let fontSize = this.calculateFontSize('secondary');
+                if (this.containerSize < 300) {
+                    fontSize = Math.max(this.containerSize * 0.015, fontSize * 0.7);
+                }
+                
+                text.setAttribute("font-size", `${fontSize}px`);
                 text.setAttribute("font-weight", "normal");
                 text.setAttribute("fill", "#333");
                 text.setAttribute("pointer-events", "none");
@@ -742,7 +910,10 @@ class FeelingsWheelGenerator {
                         ));
                         path.setAttribute("fill", this.lightenColor(core.color, 70));
                         path.setAttribute("stroke", "#333");
-                        path.setAttribute("stroke-width", "1");
+                        // RESPONSIVE WEDGE STROKE: Use centralized scaling system with safety check
+                        const strokeWidth = (this.responsiveScaling && this.responsiveScaling.wedgeStroke) ? 
+                            this.responsiveScaling.wedgeStroke : Math.max(0.3, this.containerSize * 0.002);
+                        path.setAttribute("stroke-width", strokeWidth.toString());
                         path.setAttribute("class", "wedge tertiary-wedge");
                         path.setAttribute("data-emotion", tertiary);
                         path.setAttribute("data-level", "tertiary");
@@ -762,7 +933,14 @@ class FeelingsWheelGenerator {
                         text.setAttribute("y", textPos.y);
                         text.setAttribute("text-anchor", "middle");
                         text.setAttribute("dominant-baseline", "middle");
-                        text.setAttribute("font-size", `${this.calculateFontSize('tertiary')}px`);
+                        
+                        // SMART TEXT SIZING: Adaptive sizing for small wheels
+                        let fontSize = this.calculateFontSize('tertiary');
+                        if (this.containerSize < 300) {
+                            fontSize = Math.max(this.containerSize * 0.01, fontSize * 0.6);
+                        }
+                        
+                        text.setAttribute("font-size", `${fontSize}px`);
                         text.setAttribute("font-weight", "normal");
                         text.setAttribute("fill", "#333");
                         text.setAttribute("pointer-events", "none");
@@ -796,6 +974,10 @@ class FeelingsWheelGenerator {
         this.updateTextRotations();
         
         this.container.appendChild(this.svg);
+        
+
+        
+
         
         // Mark current mode as initialized
         const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
@@ -882,7 +1064,30 @@ class FeelingsWheelGenerator {
         this.resizeTimeout = setTimeout(() => {
             const oldSize = this.containerSize;
             const containerRect = this.container.getBoundingClientRect();
-            const newCssSize = Math.min(containerRect.width, containerRect.height);
+            
+            // MOBILE FIX: Use same logic as generate() for consistent sizing
+            let availableWidth = containerRect.width;
+            let availableHeight = containerRect.height;
+            
+            // Check if we're on mobile (viewport width <= 767px)
+            const isMobile = window.innerWidth <= 767;
+            
+            if (isMobile) {
+                // On mobile, account for bottom panel
+                const infoPanel = document.querySelector('.info-panel');
+                let panelHeight = 320; // Default fallback
+                
+                if (infoPanel && !infoPanel.classList.contains('minimized')) {
+                    const panelRect = infoPanel.getBoundingClientRect();
+                    panelHeight = panelRect.height || 320;
+                } else if (infoPanel && infoPanel.classList.contains('minimized')) {
+                    panelHeight = 0;
+                }
+                
+                availableHeight = Math.max(200, availableHeight - panelHeight - 20);
+            }
+            
+            const newCssSize = Math.min(availableWidth, availableHeight);
             
             // Only regenerate if significant change (avoid constant regeneration)
             if (Math.abs(newCssSize - oldSize) > 10) {
@@ -1140,10 +1345,10 @@ class FeelingsWheelGenerator {
         const level = wedge.getAttribute('data-level');
         const parent = wedge.getAttribute('data-parent');
         
-
-        
         this.selectedWedges.add(wedgeId);
         wedge.classList.add('selected');
+        
+        // SELECTION STYLING: Use CSS for visual emphasis (filters, not thick borders)
         
         // Move wedge and its text to top layer - pass the existing wedge ID
         this.topGroup.appendChild(wedge);
@@ -1160,6 +1365,8 @@ class FeelingsWheelGenerator {
         
         this.selectedWedges.delete(wedgeId);
         wedge.classList.remove('selected');
+        
+        // DESELECTION STYLING: CSS handles visual reset automatically
         
         // Clear any lingering visual effects
         wedge.style.filter = '';
@@ -1239,7 +1446,10 @@ class FeelingsWheelGenerator {
             divisionLine.setAttribute("x2", x2);
             divisionLine.setAttribute("y2", y2);
             divisionLine.setAttribute("stroke", "#333");
-            divisionLine.setAttribute("stroke-width", "2.5");
+            // RESPONSIVE STROKE WIDTH: Use centralized scaling system with safety check
+            const strokeWidth = (this.responsiveScaling && this.responsiveScaling.primaryDivisionStroke) ? 
+                this.responsiveScaling.primaryDivisionStroke : Math.max(0.5, this.containerSize * 0.006);
+            divisionLine.setAttribute("stroke-width", strokeWidth.toString());
             divisionLine.setAttribute("class", "primary-division-line");
             divisionLine.style.pointerEvents = "none";
             
@@ -1272,7 +1482,10 @@ class FeelingsWheelGenerator {
                     divisionLine.setAttribute("x2", x2);
                     divisionLine.setAttribute("y2", y2);
                     divisionLine.setAttribute("stroke", "#333");
-                    divisionLine.setAttribute("stroke-width", "1.5");
+                    // RESPONSIVE STROKE WIDTH: Use centralized scaling system with safety check
+                    const strokeWidth = (this.responsiveScaling && this.responsiveScaling.secondaryDivisionStroke) ? 
+                        this.responsiveScaling.secondaryDivisionStroke : Math.max(0.3, this.containerSize * 0.004);
+                    divisionLine.setAttribute("stroke-width", strokeWidth.toString());
                     divisionLine.setAttribute("class", "secondary-division-line");
                     divisionLine.style.pointerEvents = "none";
                     
@@ -1310,7 +1523,10 @@ class FeelingsWheelGenerator {
                     divisionLine.setAttribute("x2", x2);
                     divisionLine.setAttribute("y2", y2);
                     divisionLine.setAttribute("stroke", "#333");
-                    divisionLine.setAttribute("stroke-width", "0.25");
+                    // RESPONSIVE STROKE WIDTH: Use centralized scaling system with safety check
+                    const strokeWidth = (this.responsiveScaling && this.responsiveScaling.tertiaryDivisionStroke) ? 
+                        this.responsiveScaling.tertiaryDivisionStroke : Math.max(0.1, this.containerSize * 0.001);
+                    divisionLine.setAttribute("stroke-width", strokeWidth.toString());
                     divisionLine.setAttribute("class", "dyad-division-line");
                     divisionLine.style.pointerEvents = "none";
                     

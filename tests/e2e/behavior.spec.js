@@ -59,6 +59,26 @@ test('reset clears all selections and tiles', async ({ page }) => {
     await expect(page.locator('.wedge.selected')).toHaveCount(0);
 });
 
+test('animated reset (rotated + multiple tiles) fully clears state', async ({ page }) => {
+    // Runs with real motion so the staggered tile-unwind + rotation animation path
+    // (engine.animateResetRotation + clearSelection) actually executes.
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
+    // Rotate so the unwind has real work to do.
+    await page.mouse.wheel(0, 200);
+    await expect(page.locator('.emotion-tile')).toHaveCount(3);
+    await page.locator('#reset-btn-panel').click();
+    // Wait out the ~1s animation.
+    await expect(page.locator('.emotion-tile')).toHaveCount(0, { timeout: 3000 });
+    await expect(page.locator('.wedge.selected')).toHaveCount(0);
+    // Wheel should be interactive again (isAnimating cleared) and instructions back.
+    await expect(page.locator('#panel-instructions')).toBeVisible();
+    await page.locator('.core-wedge[data-emotion="Sad"]').click();
+    await expect(page.locator('.emotion-tile')).toHaveCount(1);
+});
+
 test('simplified mode removes the tertiary ring', async ({ page }) => {
     await expect(page.locator('.tertiary-wedge').first()).toBeAttached();
     // The checkbox itself is display:none; users toggle it via its label.

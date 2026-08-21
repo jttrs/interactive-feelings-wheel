@@ -496,7 +496,7 @@ export class FeelingsWheelApp {
         const tileArray = Array.from(this.emotionTiles.values());
         if (tileArray.length === 0) {
             // No tiles to animate, but still animate wheel rotation
-            this.clearWheelSelectionsOnly(); // Clear selections without snapping rotation
+            this.wheelGenerator.clearSelections(); // Clear selections without snapping rotation
             this.animateUnwindRotation(); // Animate wheel back to 0°
             return;
         }
@@ -512,11 +512,11 @@ export class FeelingsWheelApp {
 
         // FIXED: Start wheel animation concurrently (not sequentially)
         // Clear selections but DON'T reset rotation yet (let animation handle it)
-        this.clearWheelSelectionsOnly();
+        this.wheelGenerator.clearSelections();
         this.animateUnwindRotation(); // Start wheel animation NOW
 
         let currentTileIndex = 0;
-        
+
         const animateTileOut = () => {
             if (currentTileIndex >= tileArray.length) {
                 // All tiles animated out - clean up and restore container
@@ -527,19 +527,10 @@ export class FeelingsWheelApp {
 
             const tile = tileArray[currentTileIndex];
             const wedgeId = tile.getAttribute('data-wedge-id');
-            
-            // Deselect in wheel (visual cleanup)
-            if (this.wheelGenerator.selectedWedges.has(wedgeId)) {
-                this.wheelGenerator.selectedWedges.delete(wedgeId);
-                const wedge = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
-                if (wedge) {
-                    wedge.classList.remove('selected');
-                    wedge.style.filter = '';
-                    this.wheelGenerator.removeShadowCopy(wedgeId);
-                    this.wheelGenerator.baseGroup.appendChild(wedge);
-                }
-            }
-            
+
+            // Deselect in wheel (visual cleanup) via the engine's public API.
+            this.wheelGenerator.clearSelection(wedgeId);
+
             // Animate tile out with scale and fade (prevent scrollbar)
             tile.style.transition = `all ${tileAnimationDuration}ms cubic-bezier(0.4, 0, 1, 1)`;
             tile.style.transform = 'translateX(100%) scale(0.8)';
@@ -563,77 +554,14 @@ export class FeelingsWheelApp {
     }
 
     animateUnwindRotation() {
-        const startRotation = this.wheelGenerator.currentRotation;
-        const targetRotation = 0;
-        
-        // FIXED: Use shortest rotation path calculation from wheel engine
-        const rotationDelta = this.wheelGenerator.getShortestRotationPath(startRotation, targetRotation);
-        
-        // If no rotation needed, just complete reset after tile animation time
-        if (Math.abs(rotationDelta) < 1) {
-            setTimeout(() => {
-                this.completeReset();
-            }, 1000); // Wait for full 1s tile animation
-            return;
-        }
-
-        // FIXED: 1 second rotation to match tile animation duration
-        const duration = 1000; // Same as tile animation
-        const startTime = performance.now();
-
-        const animateFrame = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Ease-out cubic for natural deceleration (matches original feel)
-            const easeOut = 1 - Math.pow(1 - progress, 3);
-            
-            const currentRotation = startRotation + (rotationDelta * easeOut);
-            this.wheelGenerator.currentRotation = currentRotation;
-            this.wheelGenerator.updateRotation();
-
-            if (progress < 1) {
-                requestAnimationFrame(animateFrame);
-            } else {
-                // Animation complete - ensure exact final position
-                this.wheelGenerator.currentRotation = targetRotation;
-                this.wheelGenerator.updateRotation();
-                this.completeReset();
-            }
-        };
-
-        requestAnimationFrame(animateFrame);
-    }
-
-    clearWheelSelectionsOnly() {
-        // Clear visual selections without affecting rotation
-        const selectedWedgeIds = [...this.wheelGenerator.selectedWedges];
-        selectedWedgeIds.forEach(wedgeId => {
-            this.wheelGenerator.selectedWedges.delete(wedgeId);
-            const wedge = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
-            if (wedge) {
-                wedge.classList.remove('selected');
-                wedge.style.filter = '';
-                this.wheelGenerator.removeShadowCopy(wedgeId);
-                this.wheelGenerator.baseGroup.appendChild(wedge);
-            }
-        });
-        
-        // Clear shadow copies
-        this.wheelGenerator.shadowGroup.innerHTML = '';
+        // Delegate the wheel-layer rotation animation to the engine (1s to match the
+        // tile unwind), then finalize app + engine state when it resolves.
+        this.wheelGenerator.animateResetRotation(1000).then(() => this.completeReset());
     }
 
     completeReset() {
-        // Ensure final state is clean
-        this.wheelGenerator.currentRotation = 0;
-        this.wheelGenerator.updateRotation();
-        
-        // Update stored state for current mode
-        const currentState = this.wheelGenerator.isSimplifiedMode ? 
-            this.wheelGenerator.simplifiedModeState : this.wheelGenerator.fullModeState;
-        currentState.rotation = 0;
-        currentState.selectedWedges = new Set();
-        currentState.hasBeenInitialized = true;
+        // Engine owns its own reset-state bookkeeping.
+        this.wheelGenerator.commitResetState();
 
         // Re-enable interactions
         this.wheelGenerator.isAnimating = false;

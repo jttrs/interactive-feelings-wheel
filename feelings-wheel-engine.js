@@ -1199,18 +1199,13 @@ export class FeelingsWheelGenerator {
         let wedgeId;
         if (existingWedgeId) {
             wedgeId = existingWedgeId;
-
         } else {
             wedgeId = this.createUniqueWedgeId(level, emotion, parent);
-
         }
-        
+
         const textElement = this.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
-        
         if (textElement) {
             targetGroup.appendChild(textElement);
-        } else {
-
         }
     }
 
@@ -1298,16 +1293,11 @@ export class FeelingsWheelGenerator {
             return element;
         }
         
-        // NEW METHOD: Find wedge by its actual stored ID (most reliable)
+        // Find wedge by its actual stored ID (most reliable)
         findWedgeByStoredId(wedgeId) {
-
-            const element = this.container.querySelector(`.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`);
-            if (element) {
-
-            } else {
-
-            }
-            return element;
+            return this.container.querySelector(
+                `.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`
+            );
         }
         
         // ===== CENTRALIZED WEDGE SELECTION MANAGEMENT =====
@@ -1545,6 +1535,76 @@ export class FeelingsWheelGenerator {
         this.updateRotation();
         
         // Update the stored state for current mode only
+        const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
+        currentState.rotation = 0;
+        currentState.selectedWedges = new Set();
+        currentState.hasBeenInitialized = true;
+    }
+
+    // ===== PUBLIC RESET/SELECTION API (used by the app's animated reset) =====
+    // These own all wheel-layer DOM mutation so the app controller never has to reach
+    // into engine internals (baseGroup/shadowGroup/selectedWedges) directly.
+
+    // Clear every selected wedge visually WITHOUT touching rotation. Returns the ids
+    // that were cleared (newest-first order is the app's concern, not ours).
+    clearSelections() {
+        const cleared = [...this.selectedWedges];
+        cleared.forEach((wedgeId) => this.clearSelection(wedgeId));
+        // Remove any residual shadow copies.
+        this.shadowGroup.innerHTML = '';
+        return cleared;
+    }
+
+    // Clear a single wedge's selection visuals and move it back to the base layer.
+    // No-op if the id is not currently selected.
+    clearSelection(wedgeId) {
+        if (!this.selectedWedges.has(wedgeId)) return;
+        this.selectedWedges.delete(wedgeId);
+        const wedge = this.container.querySelector(
+            `.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`
+        );
+        if (wedge) {
+            wedge.classList.remove('selected');
+            wedge.style.filter = '';
+            this.removeShadowCopy(wedgeId);
+            this.baseGroup.appendChild(wedge);
+        }
+    }
+
+    // Animate rotation back to 0 over `duration` ms (ease-out cubic), resolving when
+    // done. Mirrors the app's previous hand-rolled unwind so the feel is unchanged.
+    animateResetRotation(duration = 1000) {
+        return new Promise((resolve) => {
+            const startRotation = this.currentRotation;
+            const delta = this.getShortestRotationPath(startRotation, 0);
+
+            if (Math.abs(delta) < 1) {
+                setTimeout(resolve, duration);
+                return;
+            }
+
+            const startTime = performance.now();
+            const frame = (now) => {
+                const progress = Math.min((now - startTime) / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                this.currentRotation = startRotation + delta * easeOut;
+                this.updateRotation();
+                if (progress < 1) {
+                    requestAnimationFrame(frame);
+                } else {
+                    this.currentRotation = 0;
+                    this.updateRotation();
+                    resolve();
+                }
+            };
+            requestAnimationFrame(frame);
+        });
+    }
+
+    // Persist the "cleared" state for the current mode after a reset completes.
+    commitResetState() {
+        this.currentRotation = 0;
+        this.updateRotation();
         const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
         currentState.rotation = 0;
         currentState.selectedWedges = new Set();

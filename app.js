@@ -662,8 +662,10 @@ export class FeelingsWheelApp {
     }
 
     getEmotionColor(wedgeId) {
-        // Get the core family color for tile accents (no lightening)
-        return FEELINGS_DATA.getCoreEmotionColor(wedgeId);
+        // Resolve the wedge's core family via the engine's structured registry,
+        // then map the family name to its accent color (no lightening for tiles).
+        const meta = this.wheelGenerator.parseUniqueWedgeId(wedgeId);
+        return FEELINGS_DATA.getCoreEmotionColor(meta.coreFamily);
     }
 
     updateArrowDirection() {
@@ -738,8 +740,8 @@ export class FeelingsWheelApp {
     }
     
     extractLevelFromWedgeId(wedgeId) {
-        // Extract level from wedge ID format: "level-family-emotion" 
-        return wedgeId.split('-')[0];
+        // Resolve level via the engine's structured registry rather than string parsing.
+        return this.wheelGenerator.parseUniqueWedgeId(wedgeId).level;
     }
 }
 

@@ -122,75 +122,12 @@ export const FEELINGS_DATA = {
     },
 
     // ===== CENTRALIZED COLOR SYSTEM =====
-    // This is the single source of truth for all emotion colors
-    getEmotionColor(wedgeId) {
-        // Parse the wedge ID to get components
-        const parts = wedgeId.split('-');
-        const level = parts[0];
-        
-        // Determine the core family based on the wedge ID format
-        let coreFamily;
-        if (level === 'core') {
-            coreFamily = parts[1];
-        } else if (level === 'secondary') {
-            coreFamily = parts[1]; // Core family is always at position 1
-        } else if (level === 'tertiary') {
-            coreFamily = parts[1]; // Core family is always at position 1 for family-aware IDs
-        }
-        
-        if (coreFamily) {
-            // Find the core emotion color
-            const coreEmotion = this.core.find(core => core.name === coreFamily);
-            if (coreEmotion) {
-                let familyColor = coreEmotion.color;
-                
-                // Apply lightening based on level (same as wheel generation)
-                if (level === 'secondary') {
-                    familyColor = this.lightenColor(familyColor, 40);
-                } else if (level === 'tertiary') {
-                    familyColor = this.lightenColor(familyColor, 70);
-                }
-                
-                return familyColor;
-            }
-        }
-        
-        // Final fallback to level-based colors
-        const fallbackMap = {
-            'core': '#4a90e2',
-            'secondary': '#7bb3f2', 
-            'tertiary': '#a8d0f7'
-        };
-        
-        return fallbackMap[level] || '#4a90e2';
-    },
-    
-    // Get core emotion color for tile accents (no lightening applied)
-    getCoreEmotionColor(wedgeId) {
-        // Parse the wedge ID to get components
-        const parts = wedgeId.split('-');
-        const level = parts[0];
-        
-        // Determine the core family based on the wedge ID format
-        let coreFamily;
-        if (level === 'core') {
-            coreFamily = parts[1];
-        } else if (level === 'secondary') {
-            coreFamily = parts[1]; // Core family is always at position 1
-        } else if (level === 'tertiary') {
-            coreFamily = parts[1]; // Core family is always at position 1 for family-aware IDs
-        }
-        
-        if (coreFamily) {
-            // Find the core emotion color and return it directly (no lightening)
-            const coreEmotion = this.core.find(core => core.name === coreFamily);
-            if (coreEmotion) {
-                return coreEmotion.color;
-            }
-        }
-        
-        // Fallback to core color
-        return '#4a90e2';
+    // Single source of truth for emotion colors. Callers pass a core family NAME
+    // (e.g. "Angry") rather than a wedge-id string, so this layer stays decoupled
+    // from the id encoding used by the wheel engine.
+    getCoreEmotionColor(family) {
+        const coreEmotion = this.core.find((core) => core.name === family);
+        return coreEmotion ? coreEmotion.color : '#4a90e2';
     },
 
     // Helper function to lighten colors (FIXED: proper lightening algorithm)

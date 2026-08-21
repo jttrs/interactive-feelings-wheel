@@ -9,7 +9,13 @@ export class FeelingsWheelGenerator {
         this.centerY = 300;
         this.isSimplifiedMode = false;
         this.selectedWedges = new Set();
-        
+
+        // Structured wedge identity: maps a wedgeId string to its metadata
+        // { level, emotion, parent, family }. Populated by createUniqueWedgeId at
+        // generation time so wedge meaning is resolved by lookup, not by re-parsing
+        // the id string (which is fragile for emotions containing separators).
+        this.wedgeRegistry = new Map();
+
         // Rotation state
         this.currentRotation = 0;
         this.isDragging = false;
@@ -637,7 +643,8 @@ export class FeelingsWheelGenerator {
         // Clear container and text elements
         this.container.innerHTML = '';
         this.textElements = [];
-        
+        this.wedgeRegistry.clear();
+
         // Get container dimensions with DPI awareness
         if (!this.container) {
             console.error('❌ No container element found!');
@@ -1208,28 +1215,41 @@ export class FeelingsWheelGenerator {
     }
 
             // ===== UNIQUE WEDGE ID SYSTEM =====
-        
-        createUniqueWedgeId(level, emotion, parent, coreFamily = null) {
-            // Create family-aware unique wedge IDs for better color resolution
-            const result = (() => {
-                switch (level) {
-                    case 'core':
-                        return `core-${emotion}`;
-                    case 'secondary':
-                        // Format: secondary-CoreFamily-SecondaryEmotion
-                        return `secondary-${parent}-${emotion}`;
-                    case 'tertiary':
-                        // Format: tertiary-CoreFamily-SecondaryParent-TertiaryEmotion
-                        // Find the core family for this tertiary emotion
-                        const family = this.findCoreFamily(parent);
-                        return `tertiary-${family}-${parent}-${emotion}`;
-                    default:
-                        return `${level}-${emotion}`;
-                }
-            })();
-                    return result;
+
+        createUniqueWedgeId(level, emotion, parent) {
+            // Build the family-aware id string AND register its structured metadata so
+            // that meaning is later recovered by lookup rather than by splitting the
+            // string on '-' (which breaks for emotions containing that separator).
+            const family =
+                level === 'core'
+                    ? emotion
+                    : level === 'secondary'
+                      ? parent
+                      : level === 'tertiary'
+                        ? this.findCoreFamily(parent)
+                        : null;
+
+            let id;
+            switch (level) {
+                case 'core':
+                    id = `core-${emotion}`;
+                    break;
+                case 'secondary':
+                    // Format: secondary-CoreFamily-SecondaryEmotion
+                    id = `secondary-${parent}-${emotion}`;
+                    break;
+                case 'tertiary':
+                    // Format: tertiary-CoreFamily-SecondaryParent-TertiaryEmotion
+                    id = `tertiary-${family}-${parent}-${emotion}`;
+                    break;
+                default:
+                    id = `${level}-${emotion}`;
+            }
+
+            this.wedgeRegistry.set(id, { level, emotion, parent: parent ?? null, family });
+            return id;
         }
-        
+
         findCoreFamily(secondaryEmotion) {
             // Find which core emotion family a secondary emotion belongs to
             for (const coreEmotion of this.data.core) {
@@ -1239,41 +1259,32 @@ export class FeelingsWheelGenerator {
             }
             return 'Unknown';
         }
-        
+
         parseUniqueWedgeId(wedgeId) {
-            // Parse family-aware unique wedge ID back into components
+            // Prefer the structured registry populated at generation time.
+            const meta = this.wedgeRegistry.get(wedgeId);
+            if (meta) {
+                return {
+                    level: meta.level,
+                    emotion: meta.emotion,
+                    parent: meta.parent,
+                    coreFamily: meta.family,
+                };
+            }
+
+            // Defensive fallback for ids not seen during generation (e.g. a stale id
+            // referenced after a mode switch). Preserves the original parsing semantics.
             const parts = wedgeId.split('-');
             const level = parts[0];
-            
             switch (level) {
                 case 'core':
-                    return {
-                        level: 'core',
-                        emotion: parts.slice(1).join('-'),
-                        parent: null,
-                        coreFamily: parts.slice(1).join('-') // Core emotions are their own family
-                    };
+                    return { level, emotion: parts.slice(1).join('-'), parent: null, coreFamily: parts.slice(1).join('-') };
                 case 'secondary':
-                    return {
-                        level: 'secondary',
-                        emotion: parts.slice(2).join('-'),
-                        parent: parts[1], // Core emotion (parent)
-                        coreFamily: parts[1] // Core emotion family
-                    };
+                    return { level, emotion: parts.slice(2).join('-'), parent: parts[1], coreFamily: parts[1] };
                 case 'tertiary':
-                    return {
-                        level: 'tertiary',
-                        emotion: parts.slice(3).join('-'),
-                        parent: parts.slice(2, 3).join('-'), // Secondary emotion (direct parent)
-                        coreFamily: parts[1] // Core emotion family
-                    };
+                    return { level, emotion: parts.slice(3).join('-'), parent: parts[2], coreFamily: parts[1] };
                 default:
-                    return {
-                        level,
-                        emotion: parts.slice(1).join('-'),
-                        parent: null,
-                        coreFamily: null
-                    };
+                    return { level, emotion: parts.slice(1).join('-'), parent: null, coreFamily: null };
             }
         }
         

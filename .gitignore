@@ -1,0 +1,10 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+blob-report/
+.vitest/
+mcp-server.log
+.temp_wiki_content/
+*.log
+.DS_Store

@@ -1,5 +1,7 @@
 // Feelings Wheel Engine - Core wheel UI system: rendering, interaction, animation, and state management
-class FeelingsWheelGenerator {
+import { FEELINGS_DATA } from './feelings-data.js';
+
+export class FeelingsWheelGenerator {
     constructor(container, data) {
         this.container = container;
         this.data = data;

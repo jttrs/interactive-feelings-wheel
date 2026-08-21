@@ -1,5 +1,5 @@
 // Feelings Wheel Data - Exact match to reference image provided by user
-const FEELINGS_DATA = {
+export const FEELINGS_DATA = {
     // Core emotions (center circle) - 7 primary emotions in clockwise order starting with Angry at 0°
     core: [
         { name: "Angry", color: "#FFB3B3" }, // Pastel Red - at 0 degrees
@@ -477,9 +477,4 @@ const FEELINGS_DATA = {
             simplified: "Feeling alone and far away from other people."
         }
     }
-};
-
-// Export for use in other files
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = FEELINGS_DATA;
-} 
+}; 

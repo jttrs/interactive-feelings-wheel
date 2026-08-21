@@ -1,6 +1,9 @@
 // Main Application Controller - Coordinates between wheel engine and panel UI
 // Architecture: feelings-wheel-engine.js handles wheel rendering/interaction, app.js handles panel/coordination
-class FeelingsWheelApp {
+import { FeelingsWheelGenerator } from './feelings-wheel-engine.js';
+import { FEELINGS_DATA } from './feelings-data.js';
+
+export class FeelingsWheelApp {
     constructor() {
         this.wheelGenerator = null;
         this.init();
@@ -751,4 +754,4 @@ class FeelingsWheelApp {
 }
 
 // Initialize the app
-const app = new FeelingsWheelApp(); 
+export const app = new FeelingsWheelApp();

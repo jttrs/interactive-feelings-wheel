@@ -661,16 +661,6 @@ export class FeelingsWheelApp {
         instructionsSection.style.display = 'block';
     }
 
-    updateInstructionsVisibility() {
-        const instructionsSection = document.getElementById('panel-instructions');
-        
-        if (this.emotionTiles.size === 0) {
-            instructionsSection.style.display = 'block';
-        } else {
-            instructionsSection.style.display = 'none';
-        }
-    }
-
     getEmotionColor(wedgeId) {
         // Get the core family color for tile accents (no lightening)
         return FEELINGS_DATA.getCoreEmotionColor(wedgeId);

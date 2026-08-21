@@ -400,6 +400,9 @@ export const RenderingMixin = (Base) =>
             this.svg.setAttribute("height", "100%");
             this.svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
             this.svg.style.cursor = "grab";
+            // Expose the wheel as a labelled group of emotion buttons for assistive tech.
+            this.svg.setAttribute("role", "group");
+            this.svg.setAttribute("aria-label", "Feelings wheel. Use arrow keys to move between emotions and Enter or Space to select.");
 
             // Create four layers for proper rendering
             // 1. Base layer for unemphasized wedges
@@ -450,6 +453,7 @@ export const RenderingMixin = (Base) =>
                 // Add unique wedge ID for proper identification
                 const coreWedgeId = this.createUniqueWedgeId("core", core.name, null);
                 path.setAttribute("data-wedge-id", coreWedgeId);
+                this.applyWedgeAccessibility(path, "core", core.name, null);
                 path.style.cursor = "pointer";
 
                 this.wheelGroup.appendChild(path);
@@ -518,6 +522,7 @@ export const RenderingMixin = (Base) =>
                     // Add unique wedge ID for proper identification
                     const secondaryWedgeId = this.createUniqueWedgeId("secondary", emotion, core.name);
                     path.setAttribute("data-wedge-id", secondaryWedgeId);
+                    this.applyWedgeAccessibility(path, "secondary", emotion, core.name);
                     path.style.cursor = "pointer";
 
                     this.wheelGroup.appendChild(path);
@@ -594,6 +599,7 @@ export const RenderingMixin = (Base) =>
                             // Add unique wedge ID for proper identification
                             const tertiaryWedgeId = this.createUniqueWedgeId("tertiary", tertiary, emotion);
                             path.setAttribute("data-wedge-id", tertiaryWedgeId);
+                            this.applyWedgeAccessibility(path, "tertiary", tertiary, emotion);
                             path.style.cursor = "pointer";
 
                             this.wheelGroup.appendChild(path);
@@ -752,6 +758,24 @@ export const RenderingMixin = (Base) =>
                 }
             }
             return 'Unknown';
+        }
+
+        // Human-readable label for assistive tech, e.g.
+        // "Frustrated, a secondary emotion under Angry".
+        buildWedgeAriaLabel(level, emotion, parent) {
+            if (level === 'core') return `${emotion}, a core emotion`;
+            if (level === 'secondary') return `${emotion}, a secondary emotion under ${parent}`;
+            if (level === 'tertiary') return `${emotion}, a specific emotion under ${parent}`;
+            return emotion;
+        }
+
+        // Apply the shared accessibility semantics to a wedge <path>. Wedges are
+        // exposed as toggle buttons; keyboard focus/traversal is wired in interaction.js.
+        applyWedgeAccessibility(path, level, emotion, parent) {
+            path.setAttribute('role', 'button');
+            path.setAttribute('tabindex', '-1'); // roving tabindex; one wedge made 0 after generation
+            path.setAttribute('aria-pressed', 'false');
+            path.setAttribute('aria-label', this.buildWedgeAriaLabel(level, emotion, parent));
         }
 
         parseUniqueWedgeId(wedgeId) {

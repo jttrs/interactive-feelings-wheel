@@ -145,12 +145,70 @@ export const InteractionMixin = (Base) =>
                 }
             });
 
+            // Keyboard support: Enter/Space selects the focused wedge; Arrow keys move
+            // focus between wedges (roving tabindex). Arrow handling is scoped to when a
+            // wedge is focused and stops propagation so it does not also rotate the wheel
+            // via the app's global arrow-key shortcut — mouse/scroll behavior is unchanged.
+            this.svg.addEventListener('keydown', (e) => {
+                const target = e.target;
+                if (!target || !target.classList || !target.classList.contains('wedge')) return;
+
+                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    this.handleWedgeClick({ target });
+                    return;
+                }
+
+                if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.moveWedgeFocus(target, e.key);
+                }
+            });
+
+            // Establish the single tab-stop into the wheel.
+            this.initRovingTabindex();
+
             // DPI-aware resize handling
             window.addEventListener('resize', () => this.handleResize());
             window.addEventListener('orientationchange', () => {
                 // Mobile orientation change - allow time for layout to settle
                 setTimeout(() => this.handleResize(), 200);
             });
+        }
+
+        // Ordered list of focusable wedges (document order == core, then secondary, then tertiary).
+        getFocusableWedges() {
+            return Array.from(
+                this.container.querySelectorAll('.wedge:not(.shadow-wedge)')
+            );
+        }
+
+        // Make exactly one wedge part of the tab order so the wheel is a single tab-stop.
+        initRovingTabindex() {
+            const wedges = this.getFocusableWedges();
+            wedges.forEach((w) => w.setAttribute('tabindex', '-1'));
+            if (wedges.length) wedges[0].setAttribute('tabindex', '0');
+        }
+
+        // Move keyboard focus among wedges, updating the roving tabindex.
+        moveWedgeFocus(current, key) {
+            const wedges = this.getFocusableWedges();
+            const i = wedges.indexOf(current);
+            if (i === -1) return;
+
+            let next;
+            if (key === 'Home') next = 0;
+            else if (key === 'End') next = wedges.length - 1;
+            else {
+                const forward = key === 'ArrowRight' || key === 'ArrowDown';
+                next = (i + (forward ? 1 : -1) + wedges.length) % wedges.length;
+            }
+
+            current.setAttribute('tabindex', '-1');
+            const target = wedges[next];
+            target.setAttribute('tabindex', '0');
+            target.focus();
         }
 
         // DPI-aware resize handler
@@ -253,6 +311,7 @@ export const InteractionMixin = (Base) =>
 
             this.selectedWedges.add(wedgeId);
             wedge.classList.add('selected');
+            wedge.setAttribute('aria-pressed', 'true');
 
             // SELECTION STYLING: Use CSS for visual emphasis (filters, not thick borders)
 
@@ -271,6 +330,7 @@ export const InteractionMixin = (Base) =>
 
             this.selectedWedges.delete(wedgeId);
             wedge.classList.remove('selected');
+            wedge.setAttribute('aria-pressed', 'false');
 
             // DESELECTION STYLING: CSS handles visual reset automatically
 
@@ -362,6 +422,7 @@ export const InteractionMixin = (Base) =>
             );
             if (wedge) {
                 wedge.classList.remove('selected');
+                wedge.setAttribute('aria-pressed', 'false');
                 wedge.style.filter = '';
                 this.removeShadowCopy(wedgeId);
                 this.baseGroup.appendChild(wedge);

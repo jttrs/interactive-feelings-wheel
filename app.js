@@ -302,17 +302,25 @@ export class FeelingsWheelApp {
 
     handleEmotionSelection(detail) {
         const { emotion, level, selected, wedgeId } = detail;
-        
+
         if (selected) {
             // Add new emotion tile
             this.addEmotionTile(wedgeId, emotion, level);
+            this.announce(`Selected ${emotion}.`);
         } else {
             // Remove emotion tile
             this.removeEmotionTile(wedgeId);
+            this.announce(`Removed ${emotion}.`);
         }
-        
+
         // Update instructions visibility
         this.updateInstructionsVisibility();
+    }
+
+    // Announce a message to screen readers via the polite live region.
+    announce(message) {
+        const region = document.getElementById('sr-announcer');
+        if (region) region.textContent = message;
     }
 
     addEmotionTile(wedgeId, emotion, level) {
@@ -486,6 +494,8 @@ export class FeelingsWheelApp {
 
         // Mark wheel as animating to prevent user interaction
         this.wheelGenerator.isAnimating = true;
+
+        this.announce('Cleared all selected emotions.');
 
         // RESTORED: Full reset animation with tile unwinding + wheel rotation
         this.animateUnwindTiles();

@@ -88,6 +88,30 @@
     box-sizing: border-box;
 }
 
+/* Visually-hidden content that remains available to screen readers. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Keyboard focus indicator for wedges (does not affect mouse users). */
+.wedge:focus-visible {
+    outline: 3px solid #1a1a1a;
+    outline-offset: -1px;
+}
+@media (prefers-contrast: high) {
+    .wedge:focus-visible {
+        outline-width: 4px;
+    }
+}
+
 body {
     font-family: Arial, sans-serif;
     font-size: calc(var(--base-font-size) * var(--font-scale));

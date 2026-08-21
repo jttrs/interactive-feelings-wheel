@@ -10,11 +10,14 @@
     <div class="container">
         <main class="main-layout">
             <!-- Left Column: Wheel Area (70%) -->
-            <section class="wheel-section">
+            <section class="wheel-section" aria-label="Feelings wheel">
                 <div class="wheel-container">
                     <div id="wheel-container"></div>
                 </div>
             </section>
+
+            <!-- Visually-hidden live region: announces selection changes to screen readers -->
+            <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
             <!-- Right Column: Information Panel (30%) -->
             <aside class="info-panel">
@@ -84,11 +87,11 @@
                 <!-- Panel Footer with Controls -->
                 <footer class="panel-footer">
                                          <div class="panel-controls">
-                         <button id="reset-btn-panel" class="control-btn" title="Reset all selections">
-                             <span class="control-icon">↻</span>
+                         <button id="reset-btn-panel" class="control-btn" title="Reset all selections" aria-label="Reset all selections">
+                             <span class="control-icon" aria-hidden="true">↻</span>
                          </button>
-                         <button id="fullscreen-btn-panel" class="control-btn" title="Toggle fullscreen">
-                             <span class="control-icon">⛶</span>
+                         <button id="fullscreen-btn-panel" class="control-btn" title="Toggle fullscreen" aria-label="Toggle fullscreen">
+                             <span class="control-icon" aria-hidden="true">⛶</span>
                          </button>
                          <div class="mode-toggle">
                              <input type="checkbox" id="simplified-mode-panel" class="toggle-input" />

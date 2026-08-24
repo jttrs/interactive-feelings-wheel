@@ -17,5 +17,22 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['tests/unit/**/*.test.js'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      // Measure the app logic only; exclude glue/config/test scaffolding.
+      include: ['feelings-wheel-engine.js', 'src/**', 'feelings-data.js', 'app.js'],
+      exclude: ['tests/**', 'dist/**', '*.config.js'],
+      // Honest floors set just below what the current suite achieves (see below).
+      // app.js is DOM/browser glue exercised by Playwright e2e, not unit tests, so
+      // global line coverage is intentionally modest; the logic-heavy engine/data
+      // modules carry the real coverage weight.
+      thresholds: {
+        lines: 45,
+        functions: 55,
+        statements: 45,
+        branches: 70,
+      },
+    },
   },
 });

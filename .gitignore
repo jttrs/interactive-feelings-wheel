@@ -4,6 +4,7 @@ test-results/
 playwright-report/
 blob-report/
 .vitest/
+coverage/
 mcp-server.log
 .temp_wiki_content/
 *.log

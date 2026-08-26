@@ -86,3 +86,53 @@ describe('animation lifecycle', () => {
         expect(gen.isAnimating).toBe(false);
     });
 });
+
+describe('scroll momentum (anti-flicker)', () => {
+    let gen;
+    const { SENSITIVITY, MAX_VELOCITY } = FeelingsWheelGenerator.ScrollPhysics;
+
+    beforeEach(() => {
+        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+    });
+
+    afterEach(() => {
+        gen.stopMomentum();
+    });
+
+    it('accumulates velocity scaled by scroll MAGNITUDE, not just its sign', () => {
+        gen.applyScrollInput(100);
+        expect(gen.scrollVelocity).toBeCloseTo(100 * SENSITIVITY, 6);
+        // A tiny nudge adds a tiny amount — NOT a full-size step like the old code.
+        gen.scrollVelocity = 0;
+        gen.applyScrollInput(1.2);
+        expect(gen.scrollVelocity).toBeCloseTo(1.2 * SENSITIVITY, 6);
+        expect(Math.abs(gen.scrollVelocity)).toBeLessThan(1);
+    });
+
+    it('clamps velocity so a hard flick cannot spin unbounded', () => {
+        gen.applyScrollInput(100000);
+        expect(gen.scrollVelocity).toBe(MAX_VELOCITY);
+        gen.applyScrollInput(-100000);
+        expect(gen.scrollVelocity).toBe(-MAX_VELOCITY);
+    });
+
+    it('nets the correct direction from a jittery, sign-alternating slow scroll (regression)', () => {
+        // Reproduces the reported bug: a slow trackpad emits tiny deltas whose sign
+        // flips around zero. The OLD code (sign * 5deg) ping-ponged +5/0/+5/0.
+        // Velocity accumulation must instead net the true intent without reversal.
+        const jittery = [1.2, -0.4, 0.8, -0.2, 1.0, -0.6, 0.5, -0.3, 0.9, -0.1];
+        const net = jittery.reduce((a, b) => a + b, 0); // +2.8 (positive intent)
+        jittery.forEach((dy) => gen.applyScrollInput(dy));
+        // Final velocity has the same sign as the net scroll and never got clamped.
+        expect(Math.sign(gen.scrollVelocity)).toBe(Math.sign(net));
+        expect(gen.scrollVelocity).toBeCloseTo(net * SENSITIVITY, 6);
+    });
+
+    it('stopMomentum halts the loop and zeroes velocity', () => {
+        gen.applyScrollInput(100);
+        expect(gen.scrollVelocity).not.toBe(0);
+        gen.stopMomentum();
+        expect(gen.scrollVelocity).toBe(0);
+        expect(gen.momentumRafId).toBeNull();
+    });
+});

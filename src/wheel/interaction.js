@@ -1,7 +1,9 @@
 export const InteractionMixin = (Base) =>
     class extends Base {
         saveCurrentState() {
-            const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
+            const currentState = this.isSimplifiedMode
+                ? this.simplifiedModeState
+                : this.fullModeState;
             currentState.rotation = this.currentRotation;
             currentState.selectedWedges = new Set(this.selectedWedges);
             currentState.hasBeenInitialized = true;
@@ -37,6 +39,9 @@ export const InteractionMixin = (Base) =>
         }
 
         regenerateWheel() {
+            // A momentum loop from the previous SVG would write to stale groups.
+            this.stopMomentum();
+
             // Clear existing wheel
             this.textElements = [];
 
@@ -60,7 +65,7 @@ export const InteractionMixin = (Base) =>
 
         applySelectedWedges() {
             // Re-apply selection state to wedges after regeneration
-            this.selectedWedges.forEach(wedgeId => {
+            this.selectedWedges.forEach((wedgeId) => {
                 // Parse the unique wedge ID format
                 const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
 
@@ -91,6 +96,9 @@ export const InteractionMixin = (Base) =>
             this.svg.addEventListener('mousedown', (e) => {
                 // Prevent interaction during animations
                 if (this.isAnimating) return;
+
+                // Grabbing the wheel arrests any in-flight scroll glide.
+                this.stopMomentum();
 
                 this.isDragging = true;
                 this.svg.style.cursor = 'grabbing';
@@ -124,15 +132,19 @@ export const InteractionMixin = (Base) =>
                 this.svg.style.cursor = 'grab';
             });
 
-            // Mouse wheel for rotation - restored to original functionality
-            this.svg.addEventListener('wheel', (e) => {
-                // Prevent interaction during animations
-                if (this.isAnimating) return;
-
-                e.preventDefault();
-                this.currentRotation += e.deltaY > 0 ? 5 : -5;
-                this.updateRotation();
-            });
+            // Mouse wheel for rotation. Scale by the scroll MAGNITUDE (not just its
+            // sign) and feed a decaying-velocity model so the wheel has weight and
+            // does not flicker on the tiny sign-alternating deltas a slow trackpad
+            // emits. { passive: false } because we call preventDefault().
+            this.svg.addEventListener(
+                'wheel',
+                (e) => {
+                    if (this.isAnimating) return;
+                    e.preventDefault();
+                    this.applyScrollInput(e.deltaY);
+                },
+                { passive: false }
+            );
 
             // Click events for emotions
             this.svg.addEventListener('click', (e) => {
@@ -159,7 +171,11 @@ export const InteractionMixin = (Base) =>
                     return;
                 }
 
-                if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+                if (
+                    ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(
+                        e.key
+                    )
+                ) {
                     e.preventDefault();
                     e.stopPropagation();
                     this.moveWedgeFocus(target, e.key);
@@ -179,9 +195,7 @@ export const InteractionMixin = (Base) =>
 
         // Ordered list of focusable wedges (document order == core, then secondary, then tertiary).
         getFocusableWedges() {
-            return Array.from(
-                this.container.querySelectorAll('.wedge:not(.shadow-wedge)')
-            );
+            return Array.from(this.container.querySelectorAll('.wedge:not(.shadow-wedge)'));
         }
 
         // Make exactly one wedge part of the tab order so the wheel is a single tab-stop.
@@ -274,7 +288,7 @@ export const InteractionMixin = (Base) =>
 
             // Dispatch custom event for app to handle
             const customEvent = new CustomEvent('emotionSelected', {
-                detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
+                detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId },
             });
             document.dispatchEvent(customEvent);
         }
@@ -294,13 +308,13 @@ export const InteractionMixin = (Base) =>
                     this.deselectWedge(wedgeId, wedge, emotion);
                 } else {
                     this.selectWedge(wedgeId, wedge, emotion);
-            }
+                }
 
-            // Dispatch custom event for app to handle
-            const customEvent = new CustomEvent('emotionSelected', {
-                detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId }
-            });
-            document.dispatchEvent(customEvent);
+                // Dispatch custom event for app to handle
+                const customEvent = new CustomEvent('emotionSelected', {
+                    detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId },
+                });
+                document.dispatchEvent(customEvent);
             }
         }
 
@@ -355,13 +369,71 @@ export const InteractionMixin = (Base) =>
             this.updateAllShadowTransforms();
         }
 
+        // ===== SCROLL MOMENTUM =====
+        // Tunables. SENSITIVITY converts a scroll delta (px) into degrees of velocity;
+        // FRICTION is the per-frame velocity retention (higher = heavier/longer glide);
+        // MAX_VELOCITY caps a fast flick; MIN_VELOCITY is when we snap to rest.
+        static ScrollPhysics = {
+            SENSITIVITY: 0.12,
+            FRICTION: 0.9,
+            MAX_VELOCITY: 12,
+            MIN_VELOCITY: 0.05,
+        };
+
+        // Feed one wheel event into the momentum model. Adds magnitude-scaled velocity
+        // (so tiny jittery deltas add tiny, sign-correct nudges instead of a full ±5°
+        // swing) and kicks the decay loop.
+        applyScrollInput(deltaY) {
+            const P = this.constructor.ScrollPhysics;
+            this.scrollVelocity += deltaY * P.SENSITIVITY;
+            // Clamp so a hard flick can't spin absurdly fast.
+            this.scrollVelocity = Math.max(
+                -P.MAX_VELOCITY,
+                Math.min(P.MAX_VELOCITY, this.scrollVelocity)
+            );
+            if (this.momentumRafId === null) this.startMomentum();
+        }
+
+        startMomentum() {
+            const P = this.constructor.ScrollPhysics;
+            const step = () => {
+                // A programmatic animation (e.g. reset) takes over: drop momentum.
+                if (this.isAnimating) {
+                    this.scrollVelocity = 0;
+                    this.momentumRafId = null;
+                    return;
+                }
+
+                this.currentRotation += this.scrollVelocity;
+                this.updateRotation();
+                this.scrollVelocity *= P.FRICTION;
+
+                if (Math.abs(this.scrollVelocity) < P.MIN_VELOCITY) {
+                    this.scrollVelocity = 0;
+                    this.momentumRafId = null;
+                    return; // settled
+                }
+                this.momentumRafId = requestAnimationFrame(step);
+            };
+            this.momentumRafId = requestAnimationFrame(step);
+        }
+
+        stopMomentum() {
+            if (this.momentumRafId !== null) {
+                cancelAnimationFrame(this.momentumRafId);
+                this.momentumRafId = null;
+            }
+            this.scrollVelocity = 0;
+        }
+
         reset() {
             // Clear all active animations first
             this.clearAllAnimations();
+            this.stopMomentum();
 
             // Use centralized deselection for each selected wedge
             const selectedWedgeIds = [...this.selectedWedges]; // Copy the set to avoid modification during iteration
-            selectedWedgeIds.forEach(wedgeId => {
+            selectedWedgeIds.forEach((wedgeId) => {
                 const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
                 const wedge = this.findWedgeByUniqueId(level, emotion, parent);
                 if (wedge) {
@@ -371,14 +443,14 @@ export const InteractionMixin = (Base) =>
 
             // Final cleanup - ensure everything is in base layer
             const wedges = this.container.querySelectorAll('.wedge');
-            wedges.forEach(wedge => {
+            wedges.forEach((wedge) => {
                 if (wedge.parentNode !== this.baseGroup) {
                     this.baseGroup.appendChild(wedge);
                 }
             });
 
             // Move all text elements back to base layer using the reliable method
-            this.textElements.forEach(textData => {
+            this.textElements.forEach((textData) => {
                 if (textData.element.parentNode !== this.baseGroup) {
                     this.baseGroup.appendChild(textData.element);
                 }
@@ -392,7 +464,9 @@ export const InteractionMixin = (Base) =>
             this.updateRotation();
 
             // Update the stored state for current mode only
-            const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
+            const currentState = this.isSimplifiedMode
+                ? this.simplifiedModeState
+                : this.fullModeState;
             currentState.rotation = 0;
             currentState.selectedWedges = new Set();
             currentState.hasBeenInitialized = true;
@@ -463,7 +537,9 @@ export const InteractionMixin = (Base) =>
         commitResetState() {
             this.currentRotation = 0;
             this.updateRotation();
-            const currentState = this.isSimplifiedMode ? this.simplifiedModeState : this.fullModeState;
+            const currentState = this.isSimplifiedMode
+                ? this.simplifiedModeState
+                : this.fullModeState;
             currentState.rotation = 0;
             currentState.selectedWedges = new Set();
             currentState.hasBeenInitialized = true;

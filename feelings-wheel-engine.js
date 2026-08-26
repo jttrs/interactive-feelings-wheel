@@ -5,7 +5,9 @@ import { InteractionMixin } from './src/wheel/interaction.js';
 
 // Compose the mixins over an empty base; every method lands on one prototype chain
 // so shared `this` state behaves exactly as the original monolithic class.
-export class FeelingsWheelGenerator extends InteractionMixin(RenderingMixin(AnimationMixin(class {}))) {
+export class FeelingsWheelGenerator extends InteractionMixin(
+    RenderingMixin(AnimationMixin(class {}))
+) {
     constructor(container, data) {
         super();
         this.container = container;
@@ -29,6 +31,12 @@ export class FeelingsWheelGenerator extends InteractionMixin(RenderingMixin(Anim
         this.wheelGroup = null;
         this.textElements = [];
 
+        // Scroll-momentum state: the wheel carries angular velocity that decays each
+        // frame, giving it perceived "weight" and absorbing the sign-jitter that slow
+        // trackpad scrolling produces (which otherwise flickers the rotation).
+        this.scrollVelocity = 0; // degrees per frame
+        this.momentumRafId = null;
+
         // Animation system
         this.animations = new Map();
         this.animationId = null;
@@ -44,12 +52,12 @@ export class FeelingsWheelGenerator extends InteractionMixin(RenderingMixin(Anim
         this.fullModeState = {
             rotation: 0,
             selectedWedges: new Set(),
-            hasBeenInitialized: false
+            hasBeenInitialized: false,
         };
         this.simplifiedModeState = {
             rotation: 0,
             selectedWedges: new Set(),
-            hasBeenInitialized: false
+            hasBeenInitialized: false,
         };
 
         // Set dynamic radii based on mode

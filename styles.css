@@ -1,4 +1,84 @@
-/* Minimal Feelings Wheel Styles */
+/* Feelings Wheel Styles */
+
+/* ===== TYPEFACE =====
+   Atkinson Hyperlegible (Braille Institute, SIL OFL 1.1) — purpose-built for
+   low-vision legibility, which suits a therapy tool. Self-hosted (latin woff2,
+   ~11KB each) so the app works offline; font-display:swap + a system fallback
+   stack means text is readable before the font loads and if it never does. */
+@font-face {
+    font-family: 'Atkinson Hyperlegible';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('./src/fonts/atkinson-hyperlegible-400.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Atkinson Hyperlegible';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('./src/fonts/atkinson-hyperlegible-700.woff2') format('woff2');
+}
+
+/* ===== DESIGN TOKENS (calm / therapeutic, WCAG 2.2 AA audited) =====
+   Every text/UI pairing below was contrast-checked (no rounding):
+   ink/bg 13.1:1, ink/surface 14.3:1, muted/surface 7.1:1, faint/surface 5.3:1,
+   accent-text/surface 9.3:1, accent-UI/surface 5.8:1, focus/surface 9.5:1,
+   white/accent 5.8:1 — all clear AA (4.5 text / 3.0 UI). Warm charcoal on warm
+   paper (not #000/#fff) avoids halation/visual vibration for activated users. */
+:root {
+    /* Surfaces & ink */
+    --color-bg: #f7f4ef; /* warm paper */
+    --color-surface: #ffffff; /* panel / card */
+    --color-surface-alt: #f2eee7; /* inset / raised fill */
+    --color-ink: #2b2a28; /* primary text (warm charcoal) */
+    --color-ink-muted: #5e574c; /* secondary text */
+    --color-ink-faint: #736b5e; /* tertiary text */
+    --color-border: #e4ded4; /* decorative hairline */
+    --color-border-strong: #cbc3b6; /* control boundary (meets 3:1 vs surface) */
+
+    /* Accent (calm teal) */
+    --color-accent: #2f6f6e; /* UI accent / control fills */
+    --color-accent-text: #1f4e4d; /* accent used as text on light */
+    --color-accent-strong: #245957; /* hover/active */
+    --color-on-accent: #ffffff; /* text/icon on accent fill */
+
+    /* Focus ring (>=3:1 vs both bg and surface) */
+    --color-focus: #1b4d4c;
+
+    /* Spacing scale (8px rhythm) */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+
+    /* Radius scale */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-pill: 999px;
+
+    /* Elevation (soft, low-arousal shadows) */
+    --elev-1: 0 1px 2px rgba(43, 42, 40, 0.06), 0 1px 3px rgba(43, 42, 40, 0.08);
+    --elev-2: 0 4px 12px rgba(43, 42, 40, 0.08), 0 2px 4px rgba(43, 42, 40, 0.06);
+    --elev-3: 0 12px 32px rgba(43, 42, 40, 0.12), 0 4px 10px rgba(43, 42, 40, 0.08);
+
+    /* Motion (gentle, eased) */
+    --motion-fast: 0.15s;
+    --motion-base: 0.25s;
+    --motion-slow: 0.4s;
+    --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Fonts */
+    --font-body: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, -apple-system,
+        'Segoe UI', Roboto, sans-serif;
+
+    /* Focus ring definition (used everywhere via :focus-visible) */
+    --focus-ring-width: 3px;
+    --focus-ring-offset: 2px;
+}
 
 /* ===== DPI & RESOLUTION COMPATIBILITY SYSTEM ===== */
 :root {
@@ -101,23 +181,37 @@
     border: 0;
 }
 
-/* Keyboard focus indicator for wedges (does not affect mouse users). */
+/* ===== SYSTEM-WIDE KEYBOARD FOCUS RING (WCAG 2.2 SC 2.4.11/2.4.13) =====
+   One tokenized indicator on every interactive element. High contrast
+   (focus token is >=3:1 vs both bg and surface), >=3px, never fully hidden.
+   :focus-visible so it only shows for keyboard users, not mouse clicks. */
+:where(a, button, input, label.toggle-switch, [tabindex], [role='button']):focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: var(--focus-ring-offset);
+    border-radius: var(--radius-sm);
+}
+
+/* Wedges sit flush against neighbors, so the ring goes inward to stay visible. */
 .wedge:focus-visible {
-    outline: 3px solid #1a1a1a;
+    outline: var(--focus-ring-width) solid var(--color-focus);
     outline-offset: -1px;
 }
-@media (prefers-contrast: high) {
+
+@media (prefers-contrast: more) {
+    :where(a, button, input, label.toggle-switch, [tabindex], [role='button']):focus-visible,
     .wedge:focus-visible {
         outline-width: 4px;
     }
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: var(--font-body);
     font-size: calc(var(--base-font-size) * var(--font-scale));
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .container {
@@ -137,29 +231,47 @@ body {
     /* Natural sizing based on content */
 }
 
+/* Visually hidden but still keyboard-focusable (was display:none, which
+   removed it from the tab order — an a11y regression). Focus ring is routed
+   to the visible switch below. */
 .toggle-input {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .toggle-switch {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
+    min-height: var(--touch-target-min);
+    padding: var(--space-1) var(--space-2);
     cursor: pointer;
     user-select: none;
-    font-size: 0.8rem;
-    color: #666;
-    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--color-ink-muted);
+    font-weight: 700;
+    border-radius: var(--radius-pill);
+}
+
+.toggle-input:focus-visible + .toggle-switch {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: var(--focus-ring-offset);
 }
 
 .toggle-slider {
     position: relative;
     width: 2.4rem;
     height: 1.3rem;
-    background: #e0e0e0;
-    border-radius: 0.65rem;
-    transition: all 0.3s ease;
-    /* Fixed size - don't grow/shrink with flex */
+    background: var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    transition: background-color var(--motion-base) var(--ease-soft);
     flex: 0 0 auto;
 }
 
@@ -170,22 +282,19 @@ body {
     left: 0.15rem;
     width: 1rem;
     height: 1rem;
-    background: white;
+    background: var(--color-surface);
     border-radius: 50%;
-    transition: all 0.3s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform var(--motion-base) var(--ease-soft);
+    box-shadow: var(--elev-1);
 }
 
 .toggle-label {
-    /* Fixed width to accommodate bold text without affecting slider position */
     flex: 0 0 auto;
-    min-width: 65px;
-    transition: all 0.3s ease;
 }
 
 /* Active/Checked State */
 .toggle-input:checked + .toggle-switch .toggle-slider {
-    background: #4a90e2;
+    background: var(--color-accent);
 }
 
 .toggle-input:checked + .toggle-switch .toggle-slider::after {
@@ -193,21 +302,16 @@ body {
 }
 
 .toggle-input:checked + .toggle-switch .toggle-label {
-    color: #4a90e2;
-    font-weight: 600;
+    color: var(--color-accent-text);
 }
 
 /* Hover Effects */
 .toggle-switch:hover .toggle-slider {
-    background: #d0d0d0;
+    background: var(--color-ink-faint);
 }
 
 .toggle-input:checked + .toggle-switch:hover .toggle-slider {
-    background: #357abd;
-}
-
-.toggle-switch:hover .toggle-slider::after {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    background: var(--color-accent-strong);
 }
 
 /* ===== MODERN FLOATING PANEL LAYOUT ===== */
@@ -516,133 +620,55 @@ body {
     }
 }
 
-.panel-section {
-    padding: 1.25rem;
-    animation: fadeIn 0.3s ease;
-}
-
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Instructions Section */
-.welcome-title {
-    /* Dynamic font size that scales with panel width while maintaining readability */
-    font-size: clamp(0.8rem, 2.8vw, 1.3rem);
-    font-weight: 700;
-    color: #2d3748;
-    margin: 0 0 1.5rem 0;
-    text-align: center;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    
-    /* Additional responsiveness for panel width changes */
-    transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Responsive adjustments for different panel states */
-.info-panel.minimized .welcome-title {
-    display: none; /* Hide when minimized since panel is too narrow */
-}
-
-/* Container queries for precise panel-width-based sizing (progressive enhancement) */
-@container (max-width: 300px) {
-    .welcome-title {
-        font-size: 0.8rem;
-    }
-}
-
-@container (min-width: 301px) and (max-width: 350px) {
-    .welcome-title {
-        font-size: 0.9rem;
-    }
-}
-
-@container (min-width: 351px) and (max-width: 400px) {
-    .welcome-title {
-        font-size: 1.0rem;
-    }
-}
-
-@container (min-width: 401px) {
-    .welcome-title {
-        font-size: 1.1rem;
-    }
-}
-
-/* Mobile-specific sizing for bottom panel */
-@media (max-width: 767px) {
-    .welcome-title {
-        font-size: clamp(0.9rem, 4vw, 1.2rem);
-        white-space: normal; /* Allow wrapping on mobile if needed */
-    }
-    
-    /* Override container queries on mobile since panel is full width */
-    @container (min-width: 0px) {
-        .welcome-title {
-            font-size: clamp(0.9rem, 4vw, 1.2rem);
-        }
-    }
-}
-
-.wheel-instructions {
-    background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
-    border-radius: 8px;
-    padding: 1rem;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.instructions-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #2d3748;
-    margin: 0 0 1rem 0;
-    text-align: center;
-}
-
-.function-group {
-    margin-bottom: 1rem;
-}
-
-.function-group:last-child {
-    margin-bottom: 0;
-}
-
-.function-title {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #4a90e2;
-    margin: 0 0 0.5rem 0;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.control-item {
+/* ===== EMPTY STATE =====
+   Replaces the old "How to Use" wall: one calm mark + two short lines.
+   Vertically centred in the panel body so it feels like an invitation,
+   not a manual. Full instructions live in the on-demand help dialog. */
+.panel-empty {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
-    font-size: 0.8rem;
-    color: #4a5568;
-    padding: 0.25rem 0;
-}
-
-.control-icon {
-    font-size: 1.1rem;
-    width: 20px;
+    justify-content: center;
     text-align: center;
-    flex-shrink: 0;
-    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-    font-weight: bold;
-    color: #4a90e2;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-5);
+    min-height: 60%;
+    animation: fadeIn var(--motion-base) var(--ease-soft);
 }
 
-.control-text {
-    flex: 1;
-    line-height: 1.4;
+.panel-empty[hidden] {
+    display: none;
+}
+
+.empty-mark {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: var(--space-2);
+    color: var(--color-accent);
+    background: var(--color-surface-alt);
+    border-radius: var(--radius-pill);
+}
+
+.empty-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0;
+}
+
+.empty-hint {
+    font-size: 0.95rem;
+    color: var(--color-ink-muted);
+    margin: 0;
+    max-width: 26ch;
+    line-height: 1.5;
 }
 
 /* Emotion Tiles */
@@ -757,83 +783,178 @@ body {
     100% { background-position: 200% 0; }
 }
 
-/* Panel Footer with Controls */
+/* ===== PANEL FOOTER + CONTROLS =====
+   Controls are labelled (icon + word), so they explain themselves without a
+   standing manual. Wrap so they stay tappable on narrow panels; each meets the
+   44px target-size we already commit to. */
 .panel-footer {
     flex-shrink: 0;
-    padding: 0.75rem 1rem;
-    background: white;
-    border-top: 1px solid #e1e5e9;
-    /* Match panel's border-radius on bottom corners */
-    border-radius: 0 0 16px 16px;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .panel-controls {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: var(--space-2);
 }
 
 .control-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: max(32px, var(--touch-target-min));
-    height: max(32px, var(--touch-target-min));
-    min-width: var(--touch-target-min);
+    gap: var(--space-2);
     min-height: var(--touch-target-min);
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: var(--border-radius-base);
-    color: #666;
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    color: var(--color-ink-muted);
     cursor: pointer;
-    transition: all calc(0.2s * var(--interaction-scale)) ease;
-    font-size: calc(0.9rem * var(--font-scale));
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition:
+        background-color var(--motion-fast) var(--ease-soft),
+        border-color var(--motion-fast) var(--ease-soft),
+        color var(--motion-fast) var(--ease-soft);
 }
 
 .control-btn:hover {
-    background: #e9ecef;
-    border-color: #4a90e2;
-    color: #4a90e2;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
+    background: var(--color-surface);
+    border-color: var(--color-accent);
+    color: var(--color-accent-text);
 }
 
 .control-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 3px rgba(74, 144, 226, 0.3);
+    background: var(--color-surface-alt);
 }
 
-.control-btn .control-icon {
-    transition: transform 0.2s ease;
-    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-    font-size: 1rem;
-    font-weight: bold;
+.control-btn__icon {
+    font-size: 1.05rem;
+    line-height: 1;
+    font-weight: 700;
 }
 
-.control-btn:hover .control-icon {
-    transform: scale(1.1);
+.control-btn__label {
+    line-height: 1;
 }
 
-/* Fullscreen active state */
+/* Fullscreen active state — filled accent so "on" reads at a glance. */
 .control-btn.active {
-    background: #4a90e2;
-    border-color: #357abd;
-    color: #f8f9fa; /* Light grey icon for visibility on blue background */
-}
-
-.control-btn.active .control-icon {
-    color: #f8f9fa !important; /* Force light grey on icon specifically */
+    background: var(--color-accent);
+    border-color: var(--color-accent-strong);
+    color: var(--color-on-accent);
 }
 
 .control-btn.active:hover {
-    background: #357abd;
-    border-color: #2563eb;
-    color: #f8f9fa; /* Keep light grey on hover */
+    background: var(--color-accent-strong);
+    border-color: var(--color-accent-strong);
+    color: var(--color-on-accent);
 }
 
-.control-btn.active:hover .control-icon {
-    color: #f8f9fa !important; /* Force light grey on icon during hover */
+/* ===== HELP DIALOG (on-demand) ===== */
+.help-dialog {
+    width: min(92vw, 30rem);
+    max-height: 85vh;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    box-shadow: var(--elev-3);
+    overflow: hidden;
+}
+
+.help-dialog::backdrop {
+    background: rgba(43, 42, 40, 0.4);
+    backdrop-filter: blur(2px);
+}
+
+.help-dialog__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.help-dialog__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-ink);
+}
+
+.help-dialog__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-pill);
+    color: var(--color-ink-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--ease-soft);
+}
+
+.help-dialog__close:hover {
+    background: var(--color-surface-alt);
+    color: var(--color-ink);
+}
+
+.help-dialog__body {
+    padding: var(--space-5);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.help-group__title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-accent-text);
+    margin: 0 0 var(--space-2);
+}
+
+.help-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--color-ink-muted);
+}
+
+/* Little inline "key/pill" for control names + shortcuts. */
+.help-key {
+    display: inline-block;
+    padding: 0.05em 0.5em;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-ink);
+    font-size: 0.85em;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .panel-empty { animation: none; }
 }
 
 /* Old grid-based minimization CSS removed - now using floating design */

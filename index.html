@@ -33,74 +33,52 @@
                 </div>
                 
                 <div class="panel-content">
-                                         <!-- Welcome Instructions -->
-                     <div class="panel-section" id="panel-instructions">
-                         <h3 class="welcome-title">Welcome to the Interactive Feelings Wheel!</h3>
-                        
-                                                 <div class="wheel-instructions">
-                             <h4 class="instructions-title">How to Use the Wheel</h4>
-                             
-                             <div class="function-group">
-                                 <h5 class="function-title">Select Emotions</h5>
-                                 <div class="control-item">
-                                     <span class="control-icon">◉</span>
-                                     <span class="control-text">Click any emotion to select</span>
-                                 </div>
-                             </div>
-                             
-                             <div class="function-group">
-                                 <h5 class="function-title">Rotate the Wheel</h5>
-                                 <div class="control-item">
-                                     <span class="control-icon">⇄</span>
-                                     <span class="control-text">Click & drag, scroll, or use arrow keys to rotate</span>
-                                 </div>
-                             </div>
-                             
-                             <div class="function-group">
-                                 <h5 class="function-title">View Options</h5>
-                                 <div class="control-item">
-                                     <span class="control-icon">⛶</span>
-                                     <span class="control-text">Click icon or press F11 for fullscreen</span>
-                                 </div>
-                                 <div class="control-item">
-                                     <span class="control-icon">↻</span>
-                                     <span class="control-text">Click icon or press R to reset the wheel</span>
-                                 </div>
-                                 <div class="control-item">
-                                     <span class="control-icon">▶</span>
-                                     <span class="control-text">Click arrow tab or press P to expand or collapse panel</span>
-                                 </div>
-                                 <div class="control-item">
-                                     <span class="control-icon">⊚</span>
-                                     <span class="control-text">Click toggle or press S for simplified mode</span>
-                                 </div>
-                             </div>
-                         </div>
+                    <!-- Empty state: one calm, inviting line (no standing manual) -->
+                    <div class="panel-empty" id="panel-instructions">
+                        <div class="empty-mark" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="28" height="28" fill="none"
+                                 stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 3v18M3 12h18"></path>
+                            </svg>
+                        </div>
+                        <p class="empty-title">Name what you feel</p>
+                        <p class="empty-hint">Tap a feeling on the wheel to explore it.</p>
                     </div>
-                    
+
                     <!-- Emotion Tiles Container -->
                     <div class="emotion-tiles" id="emotion-tiles">
                         <!-- Emotion tiles will be dynamically added here -->
                     </div>
                 </div>
                 
-                <!-- Panel Footer with Controls -->
+                <!-- Panel Footer with Controls: labelled + self-explanatory -->
                 <footer class="panel-footer">
-                                         <div class="panel-controls">
-                         <button id="reset-btn-panel" class="control-btn" title="Reset all selections" aria-label="Reset all selections">
-                             <span class="control-icon" aria-hidden="true">↻</span>
-                         </button>
-                         <button id="fullscreen-btn-panel" class="control-btn" title="Toggle fullscreen" aria-label="Toggle fullscreen">
-                             <span class="control-icon" aria-hidden="true">⛶</span>
-                         </button>
-                         <div class="mode-toggle">
-                             <input type="checkbox" id="simplified-mode-panel" class="toggle-input" />
-                             <label for="simplified-mode-panel" class="toggle-switch">
-                                 <span class="toggle-slider"></span>
-                                 <span class="toggle-label">Simplified</span>
-                             </label>
-                         </div>
-                     </div>
+                    <div class="panel-controls">
+                        <button id="reset-btn-panel" class="control-btn" type="button" aria-label="Reset the wheel">
+                            <span class="control-btn__icon" aria-hidden="true">↺</span>
+                            <span class="control-btn__label">Reset</span>
+                        </button>
+                        <button id="fullscreen-btn-panel" class="control-btn" type="button" aria-label="Toggle fullscreen">
+                            <span class="control-btn__icon" aria-hidden="true">⛶</span>
+                            <span class="control-btn__label">Fullscreen</span>
+                        </button>
+
+                        <div class="mode-toggle">
+                            <input type="checkbox" id="simplified-mode-panel" class="toggle-input" />
+                            <label for="simplified-mode-panel" class="toggle-switch">
+                                <span class="toggle-slider" aria-hidden="true"></span>
+                                <span class="toggle-label">Simplified view</span>
+                            </label>
+                        </div>
+
+                        <button id="help-btn-panel" class="control-btn control-btn--help" type="button"
+                                aria-haspopup="dialog" aria-label="How to use the wheel">
+                            <span class="control-btn__icon" aria-hidden="true">?</span>
+                            <span class="control-btn__label">Help</span>
+                        </button>
+                    </div>
                 </footer>
             </aside>
         </main>
@@ -109,6 +87,42 @@
             <p>Concept borrowed from <a href="https://feelingswheel.com" target="_blank">feelingswheel.com</a>, wheel borrowed from <a href="https://www.whitehousechurch.com.au/" target="_blank">Geoffrey Roberts</a>, with appreciation to both.</p>
         </footer>
     </div>
+
+    <!-- On-demand help. Native <dialog> gives focus-trap, Esc-to-close, and
+         focus-return for free via showModal(). The full instructions that used
+         to be an always-on card now live here. -->
+    <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-dialog-title">
+        <div class="help-dialog__head">
+            <h2 id="help-dialog-title" class="help-dialog__title">How to use the wheel</h2>
+            <button class="help-dialog__close" id="help-dialog-close" type="button" aria-label="Close help">
+                <span aria-hidden="true">✕</span>
+            </button>
+        </div>
+        <div class="help-dialog__body">
+            <section class="help-group">
+                <h3 class="help-group__title">Explore feelings</h3>
+                <ul class="help-list">
+                    <li><span class="help-key">Tap / click</span> any emotion to select it and read its meaning.</li>
+                    <li>Select several to compare — tap a tile’s ✕ (or the emotion again) to remove it.</li>
+                </ul>
+            </section>
+            <section class="help-group">
+                <h3 class="help-group__title">Rotate the wheel</h3>
+                <ul class="help-list">
+                    <li>Drag it, scroll over it, or focus a wedge and use the <span class="help-key">arrow keys</span>.</li>
+                </ul>
+            </section>
+            <section class="help-group">
+                <h3 class="help-group__title">View options</h3>
+                <ul class="help-list">
+                    <li><span class="help-key">Reset</span> clears your selections and re-centres the wheel <span class="help-key">R</span></li>
+                    <li><span class="help-key">Fullscreen</span> gives the wheel the whole screen <span class="help-key">F11</span></li>
+                    <li><span class="help-key">Simplified view</span> hides the outer ring for a calmer wheel <span class="help-key">S</span></li>
+                    <li>Collapse this panel any time <span class="help-key">P</span></li>
+                </ul>
+            </section>
+        </div>
+    </dialog>
 
     <script type="module" src="app.js"></script>
 </body>

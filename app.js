@@ -48,22 +48,22 @@ export class FeelingsWheelApp {
             }
             return;
         }
-        
+
         // Listen for fullscreen state changes (including ESC key)
         const fullscreenEvents = [
             'fullscreenchange',
-            'webkitfullscreenchange', 
+            'webkitfullscreenchange',
             'mozfullscreenchange',
-            'MSFullscreenChange'
+            'MSFullscreenChange',
         ];
-        
-        fullscreenEvents.forEach(eventName => {
+
+        fullscreenEvents.forEach((eventName) => {
             document.addEventListener(eventName, () => {
                 // Handle fullscreen changes (includes button update and repositioning)
                 this.handleFullscreenChange();
             });
         });
-        
+
         // Setup keyboard shortcuts
         document.addEventListener('keydown', (event) => {
             if (event.key === 'F11') {
@@ -71,11 +71,11 @@ export class FeelingsWheelApp {
                 this.toggleFullscreen();
             }
         });
-        
+
         // Initial button state
         this.updateFullscreenButton();
     }
-    
+
     isFullscreenSupported() {
         return !!(
             document.fullscreenEnabled ||
@@ -84,7 +84,7 @@ export class FeelingsWheelApp {
             document.msFullscreenEnabled
         );
     }
-    
+
     isCurrentlyFullscreen() {
         return !!(
             document.fullscreenElement ||
@@ -93,7 +93,7 @@ export class FeelingsWheelApp {
             document.msFullscreenElement
         );
     }
-    
+
     async toggleFullscreen() {
         try {
             if (this.isCurrentlyFullscreen()) {
@@ -102,14 +102,14 @@ export class FeelingsWheelApp {
                 await this.requestFullscreen();
             }
         } catch (error) {
-                            // Fullscreen operation failed - handled gracefully
+            // Fullscreen operation failed - handled gracefully
             // Optionally show user feedback here
         }
     }
-    
+
     async requestFullscreen() {
         const element = document.documentElement;
-        
+
         if (element.requestFullscreen) {
             return element.requestFullscreen();
         } else if (element.webkitRequestFullscreen) {
@@ -119,10 +119,10 @@ export class FeelingsWheelApp {
         } else if (element.msRequestFullscreen) {
             return element.msRequestFullscreen();
         }
-        
+
         throw new Error('Fullscreen not supported');
     }
-    
+
     async exitFullscreen() {
         if (document.exitFullscreen) {
             return document.exitFullscreen();
@@ -133,13 +133,13 @@ export class FeelingsWheelApp {
         } else if (document.msExitFullscreen) {
             return document.msExitFullscreen();
         }
-        
+
         throw new Error('Exit fullscreen not supported');
     }
-    
+
     updateFullscreenButton() {
         const fullscreenButton = document.getElementById('fullscreen-btn-panel');
-        
+
         if (fullscreenButton) {
             if (this.isCurrentlyFullscreen()) {
                 fullscreenButton.classList.add('active');
@@ -150,7 +150,7 @@ export class FeelingsWheelApp {
             }
         }
     }
-    
+
     handleFullscreenChange() {
         // Update button state immediately
         this.updateFullscreenButton();
@@ -167,47 +167,47 @@ export class FeelingsWheelApp {
             }
 
             const key = event.key.toLowerCase();
-            
+
             switch (key) {
                 case 's':
                     event.preventDefault();
                     this.toggleSimplifiedMode();
                     break;
-                    
+
                 case 'r':
                     event.preventDefault();
                     this.resetWithAnimation();
                     break;
-                    
+
                 case 'p':
                     event.preventDefault();
                     this.togglePanelMinimization();
                     break;
-                    
+
                 case 'arrowleft':
                     event.preventDefault();
                     this.rotateWheel(-15); // Rotate left 15 degrees
                     break;
-                    
+
                 case 'arrowright':
                     event.preventDefault();
                     this.rotateWheel(15); // Rotate right 15 degrees
                     break;
-                    
+
                 case 'arrowup':
                     event.preventDefault();
                     this.rotateWheel(-15); // Rotate counterclockwise 15 degrees
                     break;
-                    
+
                 case 'arrowdown':
                     event.preventDefault();
                     this.rotateWheel(15); // Rotate clockwise 15 degrees
                     break;
-                    
+
                 case 'f11':
                     // F11 is already handled in setupFullscreenFeature
                     break;
-                    
+
                 default:
                     // No action for other keys
                     break;
@@ -251,7 +251,7 @@ export class FeelingsWheelApp {
         minimizeTab.addEventListener('click', () => {
             this.togglePanelMinimization();
         });
-        
+
         // Initialize arrow direction based on current panel state
         this.updateArrowDirection();
 
@@ -273,16 +273,16 @@ export class FeelingsWheelApp {
         const simplifiedModeToggle = document.getElementById('simplified-mode-panel');
         simplifiedModeToggle.addEventListener('change', (event) => {
             const isSimplified = event.target.checked;
-            
+
             // CRITICAL FIX: Clear app state completely and let wheel engine manage everything
             this.clearAllTilesWithoutInstructions(); // Don't auto-show instructions during mode switch
-            
+
             // Let wheel engine handle mode switching and state restoration
             this.wheelGenerator.setSimplifiedMode(isSimplified);
-            
+
             // Recreate tiles from wheel engine's restored state
             this.recreateTilesFromWheelState();
-            
+
             // Update instruction visibility based on final tile state
             this.updateInstructionsVisibility();
         });
@@ -297,6 +297,34 @@ export class FeelingsWheelApp {
         const fullscreenButton = document.getElementById('fullscreen-btn-panel');
         fullscreenButton.addEventListener('click', () => {
             this.toggleFullscreen();
+        });
+
+        // Setup on-demand help dialog. Native <dialog> gives focus-trap, Esc-to-close,
+        // and focus-return to the trigger for free via showModal().
+        this.setupHelpDialog();
+    }
+
+    setupHelpDialog() {
+        const dialog = document.getElementById('help-dialog');
+        const openBtn = document.getElementById('help-btn-panel');
+        const closeBtn = document.getElementById('help-dialog-close');
+        if (!dialog || !openBtn) return;
+
+        openBtn.addEventListener('click', () => {
+            if (typeof dialog.showModal === 'function') {
+                dialog.showModal();
+            } else {
+                dialog.setAttribute('open', ''); // very old fallback
+            }
+        });
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => dialog.close());
+        }
+
+        // Click on the backdrop (outside the dialog content) closes it.
+        dialog.addEventListener('click', (event) => {
+            if (event.target === dialog) dialog.close();
         });
     }
 
@@ -334,15 +362,15 @@ export class FeelingsWheelApp {
 
         // Create new tile element
         const tile = this.createEmotionTile(wedgeId, emotion, level);
-        
+
         // Add to tracking
         this.emotionTiles.set(wedgeId, tile);
         this.tileOrder.unshift(wedgeId); // Add to beginning (newest first)
-        
+
         // Add to DOM
         const tilesContainer = document.getElementById('emotion-tiles');
         tilesContainer.insertBefore(tile, tilesContainer.firstChild);
-        
+
         // Load and display emotion-specific definition
         this.fetchEmotionDefinition(wedgeId, emotion, level);
     }
@@ -352,9 +380,9 @@ export class FeelingsWheelApp {
         if (tile) {
             tile.remove();
             this.emotionTiles.delete(wedgeId);
-            this.tileOrder = this.tileOrder.filter(id => id !== wedgeId);
+            this.tileOrder = this.tileOrder.filter((id) => id !== wedgeId);
         }
-        
+
         // If we have remaining tiles, expand the most recent one
         if (this.tileOrder.length > 0) {
             const mostRecentId = this.tileOrder[0];
@@ -370,13 +398,13 @@ export class FeelingsWheelApp {
         const tile = document.createElement('div');
         tile.className = 'emotion-tile expanded';
         tile.setAttribute('data-wedge-id', wedgeId);
-        
+
         // Get emotion color from centralized family-aware system
         const emotionColor = this.getEmotionColor(wedgeId);
         tile.style.setProperty('--emotion-color', emotionColor);
-        
+
         // REMOVED: Old duplicate color system that caused conflicts
-        
+
         tile.innerHTML = `
              <div class="tile-header">
                  <div>
@@ -388,7 +416,7 @@ export class FeelingsWheelApp {
                  <div class="tile-definition loading">Loading definition...</div>
              </div>
          `;
-        
+
         // Setup remove button
         const removeBtn = tile.querySelector('.tile-remove');
         removeBtn.addEventListener('click', (e) => {
@@ -396,29 +424,29 @@ export class FeelingsWheelApp {
             // Deselect the emotion in the wheel
             this.wheelGenerator.toggleWedgeSelection(wedgeId);
         });
-        
+
         // Setup tile click to expand collapsed tiles
         tile.addEventListener('click', () => {
             if (tile.classList.contains('collapsed')) {
                 this.expandTile(wedgeId);
             }
         });
-        
+
         return tile;
     }
 
     fetchEmotionDefinition(wedgeId, emotion, level) {
         const tile = this.emotionTiles.get(wedgeId);
         if (!tile) return;
-        
+
         const definitionElement = tile.querySelector('.tile-definition');
-        
+
         // Check if simplified mode is active
         const isSimplified = document.getElementById('simplified-mode-panel').checked;
-        
+
         // Get emotion-specific definition from our comprehensive data
         const definition = this.getEmotionDefinition(emotion, isSimplified);
-        
+
         // Update tile with definition
         definitionElement.classList.remove('loading');
         definitionElement.textContent = definition;
@@ -427,19 +455,19 @@ export class FeelingsWheelApp {
     getEmotionDefinition(emotion, isSimplified) {
         // Get emotion-specific definition from our comprehensive database
         const emotionData = FEELINGS_DATA.definitions[emotion];
-        
+
         if (emotionData) {
             return isSimplified ? emotionData.simplified : emotionData.standard;
         }
-        
+
         // Fallback for missing definitions
-        return isSimplified 
+        return isSimplified
             ? `${emotion} is a feeling that people experience.`
             : `${emotion} is an emotion that represents a specific aspect of human emotional experience.`;
     }
 
     collapseAllTiles() {
-        this.emotionTiles.forEach(tile => {
+        this.emotionTiles.forEach((tile) => {
             tile.classList.remove('expanded');
             tile.classList.add('collapsed');
         });
@@ -448,21 +476,21 @@ export class FeelingsWheelApp {
     expandTile(wedgeId) {
         // Collapse all tiles first
         this.collapseAllTiles();
-        
+
         // Expand the selected tile
         const tile = this.emotionTiles.get(wedgeId);
         if (tile) {
             tile.classList.remove('collapsed');
             tile.classList.add('expanded');
         }
-        
+
         // Update tile order (move to front)
-        this.tileOrder = this.tileOrder.filter(id => id !== wedgeId);
+        this.tileOrder = this.tileOrder.filter((id) => id !== wedgeId);
         this.tileOrder.unshift(wedgeId);
     }
 
     clearAllTiles() {
-        this.emotionTiles.forEach(tile => tile.remove());
+        this.emotionTiles.forEach((tile) => tile.remove());
         this.emotionTiles.clear();
         this.tileOrder = [];
         this.showInstructions();
@@ -470,7 +498,7 @@ export class FeelingsWheelApp {
 
     clearAllTilesWithoutInstructions() {
         // Clear tiles without automatically showing instructions (for mode switching)
-        this.emotionTiles.forEach(tile => tile.remove());
+        this.emotionTiles.forEach((tile) => tile.remove());
         this.emotionTiles.clear();
         this.tileOrder = [];
         // Don't call showInstructions() - let caller manage instruction visibility
@@ -480,7 +508,7 @@ export class FeelingsWheelApp {
 
     resetWithAnimation() {
         // CRITICAL FIX: Only reset current mode, prevent cross-mode contamination
-        
+
         // If no selections, just do instant reset
         if (this.emotionTiles.size === 0 && this.wheelGenerator.currentRotation === 0) {
             this.wheelGenerator.reset();
@@ -517,7 +545,7 @@ export class FeelingsWheelApp {
 
         // FIXED: Always 1s total duration regardless of tile count
         const totalDuration = 1000; // Always 1 second
-        const tileAnimationDuration = Math.max(150, totalDuration * 0.6 / tileArray.length); // 60% of time for individual tiles
+        const tileAnimationDuration = Math.max(150, (totalDuration * 0.6) / tileArray.length); // 60% of time for individual tiles
         const staggerDelay = Math.max(50, (totalDuration * 0.4) / tileArray.length); // 40% of time for stagger
 
         // FIXED: Start wheel animation concurrently (not sequentially)
@@ -545,7 +573,7 @@ export class FeelingsWheelApp {
             tile.style.transition = `all ${tileAnimationDuration}ms cubic-bezier(0.4, 0, 1, 1)`;
             tile.style.transform = 'translateX(100%) scale(0.8)';
             tile.style.opacity = '0';
-            
+
             // Remove tile after animation
             setTimeout(() => {
                 if (tile.parentNode) {
@@ -553,7 +581,7 @@ export class FeelingsWheelApp {
                 }
                 this.emotionTiles.delete(wedgeId);
             }, tileAnimationDuration);
-            
+
             // Continue to next tile with dynamic stagger timing
             currentTileIndex++;
             setTimeout(animateTileOut, staggerDelay);
@@ -583,12 +611,12 @@ export class FeelingsWheelApp {
         this.emotionTiles.forEach((tile, wedgeId) => {
             const emotionName = tile.querySelector('.tile-emotion-name').textContent;
             const level = this.extractLevelFromWedgeId(wedgeId);
-            
+
             // Reset to loading state
             const definitionElement = tile.querySelector('.tile-definition');
             definitionElement.classList.add('loading');
             definitionElement.textContent = 'Loading definition...';
-            
+
             // Reload definition for new mode
             this.fetchEmotionDefinition(wedgeId, emotionName, level);
         });
@@ -596,7 +624,7 @@ export class FeelingsWheelApp {
 
     showInstructions() {
         const instructionsSection = document.getElementById('panel-instructions');
-        instructionsSection.style.display = 'block';
+        instructionsSection.hidden = false;
     }
 
     getEmotionColor(wedgeId) {
@@ -609,9 +637,9 @@ export class FeelingsWheelApp {
     updateArrowDirection() {
         const panel = document.querySelector('.info-panel');
         const arrow = document.querySelector('.minimize-arrow');
-        
+
         if (!panel || !arrow) return;
-        
+
         // Update arrow direction - points toward action (collapse/expand)
         if (panel.classList.contains('minimized')) {
             arrow.textContent = '◀'; // Left arrow when minimized (points toward collapsed panel)
@@ -623,13 +651,13 @@ export class FeelingsWheelApp {
     togglePanelMinimization() {
         const panel = document.querySelector('.info-panel');
         const mainLayout = document.querySelector('.main-layout');
-        
+
         panel.classList.toggle('minimized');
         mainLayout.classList.toggle('panel-minimized'); // For wheel centering
-        
+
         // Update arrow direction
         this.updateArrowDirection();
-        
+
         // MOBILE FIX: Trigger wheel resize after panel state change
         // This ensures the wheel recalculates its size based on new available space
         if (this.wheelGenerator && window.innerWidth <= 767) {
@@ -645,22 +673,22 @@ export class FeelingsWheelApp {
     // All color resolution now uses centralized family-aware system in feelings-data.js
 
     // ===== PROPER STATE SYNCHRONIZATION =====
-    
+
     recreateTilesFromWheelState() {
         // Recreate tiles based on wheel engine's current selectedWedges state
-        this.wheelGenerator.selectedWedges.forEach(wedgeId => {
+        this.wheelGenerator.selectedWedges.forEach((wedgeId) => {
             // Find the actual wedge element to get emotion info
             const wedge = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
             if (wedge) {
                 const emotion = wedge.getAttribute('data-emotion');
                 const level = wedge.getAttribute('data-level');
-                
+
                 // Use the same tile creation flow as normal selection
                 this.addEmotionTile(wedgeId, emotion, level);
             }
         });
     }
-    
+
     updateInstructionsVisibility() {
         // Show instructions only when no tiles exist
         if (this.emotionTiles.size === 0) {
@@ -669,14 +697,14 @@ export class FeelingsWheelApp {
             this.hideInstructions();
         }
     }
-    
+
     hideInstructions() {
         const instructionsSection = document.getElementById('panel-instructions');
         if (instructionsSection) {
-            instructionsSection.style.display = 'none';
+            instructionsSection.hidden = true;
         }
     }
-    
+
     extractLevelFromWedgeId(wedgeId) {
         // Resolve level via the engine's structured registry rather than string parsing.
         return this.wheelGenerator.parseUniqueWedgeId(wedgeId).level;

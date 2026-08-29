@@ -107,7 +107,7 @@ export function text({ x, y, content, fontSize, className, dataset = {} }) {
 export const WHEEL_TOKEN_FALLBACKS = {
     '--wheel-line': '#4a453d',
     '--wheel-line-primary': '0.0028',
-    '--wheel-line-secondary': '0.0018',
+    '--wheel-line-secondary': '0.0012',
     '--wheel-line-dyad': '0.0008',
     '--wheel-ring': '#4a453d',
     '--wheel-ring-weight': '0.0022',

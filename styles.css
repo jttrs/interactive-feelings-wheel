@@ -51,7 +51,7 @@
        to suit the calm palette. Weights are ratios of wheel size (JS applies floors). */
     --wheel-line: #4a453d;
     --wheel-line-primary: 0.0028; /* between core families (thickest) */
-    --wheel-line-secondary: 0.0018; /* between secondaries within a family */
+    --wheel-line-secondary: 0.0012; /* between secondaries within a family */
     --wheel-line-dyad: 0.0008; /* dyad split in the outer ring (dashed, thinnest) */
     --wheel-ring: #4a453d; /* concentric ring circles */
     --wheel-ring-weight: 0.0022;

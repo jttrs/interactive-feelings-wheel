@@ -963,8 +963,9 @@ export const RenderingMixin = (Base) =>
             const width = s.tertiaryDivisionStroke || Math.max(0.1, this.containerSize * 0.001);
             // Dyad splits are the lightest hint of division — dashed so they read as a
             // subtle inner subdivision rather than a hard border. Now that wedges are
-            // fill-only, no solid path edge sits beneath the dashes.
-            const dash = Math.max(1.5, this.containerSize * 0.006);
+            // fill-only, no solid path edge sits beneath the dashes. Tight dash for a
+            // finer, more delicate stitch.
+            const dash = Math.max(1, this.containerSize * 0.003);
 
             coreAngles.forEach((core) => {
                 const secondaryEmotions = this.data.secondary[core.name];

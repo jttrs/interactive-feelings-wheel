@@ -13,7 +13,7 @@ describe('calculateResponsiveScaling', () => {
         // size). In bare jsdom the tokens fall back to their constants: primary 0.28%,
         // secondary 0.18%, dyad 0.08%, ring 0.22%. Wedges are fill-only (no wedgeStroke).
         expect(scaling.primaryDivisionStroke).toBeCloseTo(1.68, 10); // 600 * 0.0028
-        expect(scaling.secondaryDivisionStroke).toBeCloseTo(1.08, 10); // 600 * 0.0018
+        expect(scaling.secondaryDivisionStroke).toBeCloseTo(0.72, 10); // 600 * 0.0012
         expect(scaling.tertiaryDivisionStroke).toBeCloseTo(0.48, 10); // 600 * 0.0008
         expect(scaling.ringStroke).toBeCloseTo(1.32, 10); // 600 * 0.0022
         expect(scaling.wedgeStroke).toBeUndefined(); // fill-only wedges

@@ -9,10 +9,11 @@ describe('calculateResponsiveScaling', () => {
     it('returns the exact desktop scaling profile at size 600', () => {
         const gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
         const scaling = gen.calculateResponsiveScaling(600);
-        expect(scaling.primaryDivisionStroke).toBe(2.4);
-        expect(scaling.secondaryDivisionStroke).toBe(1.8);
-        // 600 * 0.0008 lands on a value with a float-precision tail (0.48000000000000004).
-        expect(scaling.tertiaryDivisionStroke).toBeCloseTo(0.48, 10);
+        // Division strokes are deliberately light: primary 0.28%, secondary 0.18%,
+        // dyad/tertiary 0.08% of wheel size.
+        expect(scaling.primaryDivisionStroke).toBeCloseTo(1.68, 10); // 600 * 0.0028
+        expect(scaling.secondaryDivisionStroke).toBeCloseTo(1.08, 10); // 600 * 0.0018
+        expect(scaling.tertiaryDivisionStroke).toBeCloseTo(0.48, 10); // 600 * 0.0008
         expect(scaling.wedgeStroke).toBe(0.9);
         expect(scaling.fontScale).toBe(0.0075);
         expect(scaling.touchTargetScale).toBe(1.5);
@@ -22,9 +23,9 @@ describe('calculateResponsiveScaling', () => {
     it('floors stroke widths at a tiny wheel size instead of going to zero', () => {
         const gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
         const scaling = gen.calculateResponsiveScaling(50);
-        // 50 * 0.004 = 0.2, below the 0.4 floor, so the floor wins.
-        expect(scaling.primaryDivisionStroke).toBe(Math.max(0.4, 50 * 0.004));
-        expect(scaling.primaryDivisionStroke).toBe(0.4);
+        // 50 * 0.0028 = 0.14, below the 0.3 floor, so the floor wins.
+        expect(scaling.primaryDivisionStroke).toBe(Math.max(0.3, 50 * 0.0028));
+        expect(scaling.primaryDivisionStroke).toBe(0.3);
     });
 });
 

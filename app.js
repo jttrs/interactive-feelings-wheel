@@ -299,13 +299,77 @@ export class FeelingsWheelApp {
             this.toggleFullscreen();
         });
 
-        // Help + References are native popovers driven declaratively via
-        // popovertarget/popovertargetaction — no JS wiring needed (the API
-        // provides light-dismiss, Esc-to-close, and focus-return for free).
+        // Setup in-panel view switching (Help / About / Support fill the sidebar).
+        this.setupPanelViews();
+    }
+
+    // ===== IN-PANEL VIEWS =====
+    // The panel body hosts one visible "view" at a time. The default is EXPLORE
+    // (empty state + emotion tiles); the footer's ?, i, and coffee icons swap in
+    // Help / About / Support views that fill the same space, each with a back
+    // button. Selecting an emotion returns to Explore.
+    setupPanelViews() {
+        this.currentView = 'explore';
+        this.views = {
+            explore: document.getElementById('view-explore'),
+            help: document.getElementById('view-help'),
+            about: document.getElementById('view-about'),
+            support: document.getElementById('view-support'),
+        };
+
+        // Footer icons that open a secondary view.
+        document.querySelectorAll('.hero-btn[data-view]').forEach((btn) => {
+            btn.addEventListener('click', () => this.showView(btn.dataset.view));
+        });
+
+        // Back buttons return to Explore.
+        document.querySelectorAll('[data-view-back]').forEach((btn) => {
+            btn.addEventListener('click', () => this.showView('explore'));
+        });
+
+        // Esc closes a secondary view back to Explore.
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && this.currentView !== 'explore') {
+                this.showView('explore');
+            }
+        });
+    }
+
+    showView(name) {
+        const target = this.views[name] || this.views.explore;
+
+        Object.entries(this.views).forEach(([key, el]) => {
+            if (!el) return;
+            el.hidden = el !== target;
+            // Reflect active state on the footer icon that owns this view.
+            const owner = document.querySelector(`.hero-btn[data-view="${key}"]`);
+            if (owner) owner.classList.toggle('active', el === target && key !== 'explore');
+        });
+
+        // Lazily load the Ko-fi iframe the first time Support opens (and only then).
+        if (name === 'support') {
+            const frame = document.getElementById('kofi-frame');
+            if (frame && !frame.src && frame.dataset.src) {
+                frame.src = frame.dataset.src;
+            }
+        }
+
+        this.currentView = name;
+
+        // Move focus to the opened view's back button for keyboard users.
+        if (name !== 'explore') {
+            const back = target.querySelector('[data-view-back]');
+            if (back) back.focus();
+        }
     }
 
     handleEmotionSelection(detail) {
         const { emotion, level, selected, wedgeId } = detail;
+
+        // Selecting an emotion always brings the Explore view forward.
+        if (this.currentView && this.currentView !== 'explore') {
+            this.showView('explore');
+        }
 
         if (selected) {
             // Add new emotion tile
@@ -613,15 +677,14 @@ export class FeelingsWheelApp {
     updateArrowDirection() {
         const panel = document.querySelector('.info-panel');
         const arrow = document.querySelector('.minimize-arrow');
+        const tab = document.getElementById('panel-minimize-tab');
 
         if (!panel || !arrow) return;
 
-        // Update arrow direction - points toward action (collapse/expand)
-        if (panel.classList.contains('minimized')) {
-            arrow.textContent = '◀'; // Left arrow when minimized (points toward collapsed panel)
-        } else {
-            arrow.textContent = '▶'; // Right arrow when expanded (points away to collapse)
-        }
+        const minimized = panel.classList.contains('minimized');
+        // Arrow points toward the action: ◀ reveals (when hidden), ▶ collapses.
+        arrow.textContent = minimized ? '◀' : '▶';
+        if (tab) tab.setAttribute('aria-expanded', String(!minimized));
     }
 
     togglePanelMinimization() {

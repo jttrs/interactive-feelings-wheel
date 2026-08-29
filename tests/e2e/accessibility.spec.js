@@ -76,58 +76,93 @@ test('control buttons have accessible names', async ({ page }) => {
         'aria-label',
         'How to use the wheel'
     );
-    await expect(page.locator('#refs-btn-panel')).toHaveAttribute(
-        'aria-label',
-        'About and credits'
-    );
+    await expect(page.locator('#about-btn-panel')).toHaveAttribute('aria-label', 'About');
     await expect(page.locator('#kofi-btn-panel')).toHaveAttribute(
         'aria-label',
-        'Support this project on Ko-fi (opens in a new tab)'
+        'Support this project'
     );
 });
 
-test('help is on demand: popover opens, is labelled, and Escape closes it', async ({ page }) => {
-    const popover = page.locator('#help-popover');
-    // No standing instruction manual — help lives behind the ? control.
-    await expect(popover).toBeHidden();
-    await page.locator('#help-btn-panel').click();
-    await expect(popover).toBeVisible();
-    // Labelled by its title for assistive tech.
-    await expect(popover).toHaveAttribute('aria-labelledby', 'help-popover-title');
-    await expect(page.locator('#help-popover-title')).toHaveText('How to use the wheel');
-    // Escape closes (native Popover API light-dismiss).
-    await page.keyboard.press('Escape');
-    await expect(popover).toBeHidden();
-});
-
-test('closing the help popover returns focus to the trigger', async ({ page }) => {
-    const openBtn = page.locator('#help-btn-panel');
-    await openBtn.click();
-    await expect(page.locator('#help-popover')).toBeVisible();
-    await page.locator('#help-popover .popover__close').click();
-    await expect(page.locator('#help-popover')).toBeHidden();
-    // Popover API restores focus to the invoking element.
-    await expect(openBtn).toBeFocused();
-});
-
-test('about & credits live in an on-demand popover (attribution not full-time)', async ({
+test('help opens as an in-panel view that fills the sidebar and Escape returns to explore', async ({
     page,
 }) => {
-    const refs = page.locator('#refs-popover');
-    await expect(refs).toBeHidden();
-    await page.locator('#refs-btn-panel').click();
-    await expect(refs).toBeVisible();
-    await expect(refs).toContainText('Geoffrey Roberts');
-    await expect(refs).toContainText('feelingswheel.com');
+    const helpView = page.locator('#view-help');
+    const exploreView = page.locator('#view-explore');
+    // Default is the explore view; help is hidden until asked.
+    await expect(exploreView).toBeVisible();
+    await expect(helpView).toBeHidden();
+
+    await page.locator('#help-btn-panel').click();
+    await expect(helpView).toBeVisible();
+    await expect(exploreView).toBeHidden(); // it replaces, not floats over
+    await expect(helpView).toContainText('How to use the wheel');
+
+    // Escape closes the secondary view back to explore.
     await page.keyboard.press('Escape');
-    await expect(refs).toBeHidden();
+    await expect(helpView).toBeHidden();
+    await expect(exploreView).toBeVisible();
 });
 
-test('Ko-fi support link points to the tip jar and opens safely in a new tab', async ({ page }) => {
-    const kofi = page.locator('#kofi-btn-panel');
-    await expect(kofi).toHaveAttribute('href', 'https://ko-fi.com/jttrs');
-    await expect(kofi).toHaveAttribute('target', '_blank');
-    await expect(kofi).toHaveAttribute('rel', /noopener/);
+test('the back button returns an in-panel view to explore and it owns focus', async ({ page }) => {
+    await page.locator('#help-btn-panel').click();
+    const back = page.locator('#view-help [data-view-back]');
+    await expect(back).toBeFocused(); // focus moves into the opened view
+    await back.click();
+    await expect(page.locator('#view-help')).toBeHidden();
+    await expect(page.locator('#view-explore')).toBeVisible();
+});
+
+test('about opens in-panel (attribution not full-time) with the credits', async ({ page }) => {
+    const about = page.locator('#view-about');
+    await expect(about).toBeHidden();
+    await page.locator('#about-btn-panel').click();
+    await expect(about).toBeVisible();
+    await expect(about).toContainText('Geoffrey Roberts');
+    await expect(about).toContainText('feelingswheel.com');
+});
+
+test('support view embeds the Ko-fi tip jar in-page with a safe fallback link', async ({
+    page,
+}) => {
+    const support = page.locator('#view-support');
+    await expect(support).toBeHidden();
+    await page.locator('#kofi-btn-panel').click();
+    await expect(support).toBeVisible();
+
+    // The iframe is lazily pointed at Ko-fi's documented embed endpoint.
+    const frame = page.locator('#kofi-frame');
+    await expect(frame).toHaveAttribute(
+        'src',
+        'https://ko-fi.com/jttrs/?hidefeed=true&widget=true&embed=true'
+    );
+    // A fallback link always works even if the frame can't load.
+    const fallback = page.locator('.kofi-fallback a');
+    await expect(fallback).toHaveAttribute('href', 'https://ko-fi.com/jttrs');
+    await expect(fallback).toHaveAttribute('target', '_blank');
+    await expect(fallback).toHaveAttribute('rel', /noopener/);
+});
+
+test('selecting an emotion returns from a secondary view to explore', async ({ page }) => {
+    await page.locator('#help-btn-panel').click();
+    await expect(page.locator('#view-help')).toBeVisible();
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await expect(page.locator('#view-help')).toBeHidden();
+    await expect(page.locator('#view-explore')).toBeVisible();
+    await expect(page.locator('.emotion-tile')).toHaveCount(1);
+});
+
+test('collapsing the panel keeps the expand tab reachable on screen', async ({ page }) => {
+    const tab = page.locator('#panel-minimize-tab');
+    await tab.click(); // collapse
+    await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
+    // The tab must remain within the viewport (regression: it was pushed off-screen
+    // by the panel's transform when it was a descendant).
+    const box = await tab.boundingBox();
+    const width = page.viewportSize().width;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    await tab.click(); // expand again
+    await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
 });
 
 test('the empty-state invitation shows when empty and hides once a tile exists', async ({

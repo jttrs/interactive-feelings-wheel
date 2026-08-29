@@ -170,7 +170,7 @@ test('the empty-state invitation shows when empty and hides once a tile exists',
 }) => {
     const empty = page.locator('#panel-instructions');
     await expect(empty).toBeVisible();
-    await expect(empty).toContainText('Tap a feeling');
+    await expect(empty).toContainText('Tap or spin');
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(empty).toBeHidden();
 });

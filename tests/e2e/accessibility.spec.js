@@ -76,30 +76,58 @@ test('control buttons have accessible names', async ({ page }) => {
         'aria-label',
         'How to use the wheel'
     );
+    await expect(page.locator('#refs-btn-panel')).toHaveAttribute(
+        'aria-label',
+        'About and credits'
+    );
+    await expect(page.locator('#kofi-btn-panel')).toHaveAttribute(
+        'aria-label',
+        'Support this project on Ko-fi (opens in a new tab)'
+    );
 });
 
-test('help is on demand: dialog opens, is labelled, and Escape closes it', async ({ page }) => {
-    const dialog = page.locator('#help-dialog');
+test('help is on demand: popover opens, is labelled, and Escape closes it', async ({ page }) => {
+    const popover = page.locator('#help-popover');
     // No standing instruction manual — help lives behind the ? control.
-    await expect(dialog).toBeHidden();
+    await expect(popover).toBeHidden();
     await page.locator('#help-btn-panel').click();
-    await expect(dialog).toBeVisible();
-    // Modal dialog is labelled by its title for assistive tech.
-    await expect(dialog).toHaveAttribute('aria-labelledby', 'help-dialog-title');
-    await expect(page.locator('#help-dialog-title')).toHaveText('How to use the wheel');
-    // Escape closes (native <dialog> behavior we rely on).
+    await expect(popover).toBeVisible();
+    // Labelled by its title for assistive tech.
+    await expect(popover).toHaveAttribute('aria-labelledby', 'help-popover-title');
+    await expect(page.locator('#help-popover-title')).toHaveText('How to use the wheel');
+    // Escape closes (native Popover API light-dismiss).
     await page.keyboard.press('Escape');
-    await expect(dialog).toBeHidden();
+    await expect(popover).toBeHidden();
 });
 
-test('closing the help dialog returns focus to the trigger', async ({ page }) => {
+test('closing the help popover returns focus to the trigger', async ({ page }) => {
     const openBtn = page.locator('#help-btn-panel');
     await openBtn.click();
-    await expect(page.locator('#help-dialog')).toBeVisible();
-    await page.locator('#help-dialog-close').click();
-    await expect(page.locator('#help-dialog')).toBeHidden();
-    // Native showModal()/close() restores focus to the invoking element.
+    await expect(page.locator('#help-popover')).toBeVisible();
+    await page.locator('#help-popover .popover__close').click();
+    await expect(page.locator('#help-popover')).toBeHidden();
+    // Popover API restores focus to the invoking element.
     await expect(openBtn).toBeFocused();
+});
+
+test('about & credits live in an on-demand popover (attribution not full-time)', async ({
+    page,
+}) => {
+    const refs = page.locator('#refs-popover');
+    await expect(refs).toBeHidden();
+    await page.locator('#refs-btn-panel').click();
+    await expect(refs).toBeVisible();
+    await expect(refs).toContainText('Geoffrey Roberts');
+    await expect(refs).toContainText('feelingswheel.com');
+    await page.keyboard.press('Escape');
+    await expect(refs).toBeHidden();
+});
+
+test('Ko-fi support link points to the tip jar and opens safely in a new tab', async ({ page }) => {
+    const kofi = page.locator('#kofi-btn-panel');
+    await expect(kofi).toHaveAttribute('href', 'https://ko-fi.com/jttrs');
+    await expect(kofi).toHaveAttribute('target', '_blank');
+    await expect(kofi).toHaveAttribute('rel', /noopener/);
 });
 
 test('the empty-state invitation shows when empty and hides once a tile exists', async ({

@@ -299,33 +299,9 @@ export class FeelingsWheelApp {
             this.toggleFullscreen();
         });
 
-        // Setup on-demand help dialog. Native <dialog> gives focus-trap, Esc-to-close,
-        // and focus-return to the trigger for free via showModal().
-        this.setupHelpDialog();
-    }
-
-    setupHelpDialog() {
-        const dialog = document.getElementById('help-dialog');
-        const openBtn = document.getElementById('help-btn-panel');
-        const closeBtn = document.getElementById('help-dialog-close');
-        if (!dialog || !openBtn) return;
-
-        openBtn.addEventListener('click', () => {
-            if (typeof dialog.showModal === 'function') {
-                dialog.showModal();
-            } else {
-                dialog.setAttribute('open', ''); // very old fallback
-            }
-        });
-
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => dialog.close());
-        }
-
-        // Click on the backdrop (outside the dialog content) closes it.
-        dialog.addEventListener('click', (event) => {
-            if (event.target === dialog) dialog.close();
-        });
+        // Help + References are native popovers driven declaratively via
+        // popovertarget/popovertargetaction — no JS wiring needed (the API
+        // provides light-dismiss, Esc-to-close, and focus-return for free).
     }
 
     handleEmotionSelection(detail) {

@@ -53,52 +53,83 @@
                     </div>
                 </div>
                 
-                <!-- Panel Footer with Controls: labelled + self-explanatory -->
+                <!-- Panel Footer: a row of hero-icon actions. Each is icon-only with a
+                     tooltip label + aria-label; the checkbox toggle keeps its accessible
+                     semantics but renders as an icon button. -->
                 <footer class="panel-footer">
-                    <div class="panel-controls">
-                        <button id="reset-btn-panel" class="control-btn" type="button" aria-label="Reset the wheel">
-                            <span class="control-btn__icon" aria-hidden="true">↺</span>
-                            <span class="control-btn__label">Reset</span>
-                        </button>
-                        <button id="fullscreen-btn-panel" class="control-btn" type="button" aria-label="Toggle fullscreen">
-                            <span class="control-btn__icon" aria-hidden="true">⛶</span>
-                            <span class="control-btn__label">Fullscreen</span>
+                    <div class="hero-actions" role="toolbar" aria-label="Wheel actions">
+                        <button id="reset-btn-panel" class="hero-btn" type="button"
+                                data-tip="Reset" aria-label="Reset the wheel">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
+                            </svg>
                         </button>
 
-                        <div class="mode-toggle">
-                            <input type="checkbox" id="simplified-mode-panel" class="toggle-input" />
-                            <label for="simplified-mode-panel" class="toggle-switch">
-                                <span class="toggle-slider" aria-hidden="true"></span>
-                                <span class="toggle-label">Simplified view</span>
-                            </label>
-                        </div>
-
-                        <button id="help-btn-panel" class="control-btn control-btn--help" type="button"
-                                aria-haspopup="dialog" aria-label="How to use the wheel">
-                            <span class="control-btn__icon" aria-hidden="true">?</span>
-                            <span class="control-btn__label">Help</span>
+                        <button id="fullscreen-btn-panel" class="hero-btn" type="button"
+                                data-tip="Fullscreen" aria-label="Toggle fullscreen">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                            </svg>
                         </button>
+
+                        <!-- Simplified view: accessible checkbox styled as an icon toggle -->
+                        <input type="checkbox" id="simplified-mode-panel" class="hero-toggle-input" />
+                        <label for="simplified-mode-panel" class="hero-btn hero-toggle"
+                               data-tip="Simplified view" aria-label="Simplified view">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle>
+                            </svg>
+                        </label>
+
+                        <span class="hero-sep" aria-hidden="true"></span>
+
+                        <button id="help-btn-panel" class="hero-btn" type="button"
+                                popovertarget="help-popover" data-tip="How to use" aria-label="How to use the wheel">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M9.3 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.7 2.4-2.7 4"></path>
+                                <path d="M12 17.4h.01"></path>
+                            </svg>
+                        </button>
+
+                        <button id="refs-btn-panel" class="hero-btn" type="button"
+                                popovertarget="refs-popover" data-tip="About & credits" aria-label="About and credits">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 11v5"></path><path d="M12 8h.01"></path>
+                            </svg>
+                        </button>
+
+                        <a id="kofi-btn-panel" class="hero-btn hero-btn--kofi" href="https://ko-fi.com/jttrs"
+                           target="_blank" rel="noopener noreferrer" data-tip="Buy me a coffee"
+                           aria-label="Support this project on Ko-fi (opens in a new tab)">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8z"></path>
+                                <path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"></path>
+                                <path d="M8 3.5c-.5.7-.5 1.3 0 2M11 3.5c-.5.7-.5 1.3 0 2"></path>
+                            </svg>
+                        </a>
                     </div>
                 </footer>
             </aside>
         </main>
-        
-        <footer>
-            <p>Concept borrowed from <a href="https://feelingswheel.com" target="_blank">feelingswheel.com</a>, wheel borrowed from <a href="https://www.whitehousechurch.com.au/" target="_blank">Geoffrey Roberts</a>, with appreciation to both.</p>
-        </footer>
     </div>
 
-    <!-- On-demand help. Native <dialog> gives focus-trap, Esc-to-close, and
-         focus-return for free via showModal(). The full instructions that used
-         to be an always-on card now live here. -->
-    <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-dialog-title">
-        <div class="help-dialog__head">
-            <h2 id="help-dialog-title" class="help-dialog__title">How to use the wheel</h2>
-            <button class="help-dialog__close" id="help-dialog-close" type="button" aria-label="Close help">
-                <span aria-hidden="true">✕</span>
+    <!-- On-demand HELP popover. Native Popover API (popover="auto") gives
+         light-dismiss (click outside), Esc-to-close, top-layer stacking, and
+         focus-return to the invoker — no backdrop dimming, no focus-trap code.
+         Anchored to the bottom-right near the hero action row. -->
+    <div id="help-popover" class="popover" popover="auto" aria-labelledby="help-popover-title">
+        <div class="popover__head">
+            <h2 id="help-popover-title" class="popover__title">How to use the wheel</h2>
+            <button class="popover__close" type="button" popovertarget="help-popover"
+                    popovertargetaction="hide" aria-label="Close">
+                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"></path>
+                </svg>
             </button>
         </div>
-        <div class="help-dialog__body">
+        <div class="popover__body">
             <section class="help-group">
                 <h3 class="help-group__title">Explore feelings</h3>
                 <ul class="help-list">
@@ -122,7 +153,37 @@
                 </ul>
             </section>
         </div>
-    </dialog>
+    </div>
+
+    <!-- ABOUT & CREDITS popover — the attribution that used to sit full-time in a
+         footer eyesore now lives here, on demand. -->
+    <div id="refs-popover" class="popover" popover="auto" aria-labelledby="refs-popover-title">
+        <div class="popover__head">
+            <h2 id="refs-popover-title" class="popover__title">About &amp; credits</h2>
+            <button class="popover__close" type="button" popovertarget="refs-popover"
+                    popovertargetaction="hide" aria-label="Close">
+                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="popover__body">
+            <p class="refs-text">
+                An interactive take on the feelings wheel — a gentle way to find words
+                for what you feel.
+            </p>
+            <ul class="refs-list">
+                <li>Concept from
+                    <a href="https://feelingswheel.com" target="_blank" rel="noopener noreferrer">feelingswheel.com</a>.</li>
+                <li>Wheel design by
+                    <a href="https://www.whitehousechurch.com.au/" target="_blank" rel="noopener noreferrer">Geoffrey Roberts</a>,
+                    with appreciation.</li>
+            </ul>
+            <p class="refs-text refs-text--muted">
+                Type set in Atkinson Hyperlegible (Braille Institute).
+            </p>
+        </div>
+    </div>
 
     <script type="module" src="app.js"></script>
 </body>

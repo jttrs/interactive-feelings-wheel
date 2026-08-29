@@ -2,6 +2,7 @@
 // Architecture: feelings-wheel-engine.js handles wheel rendering/interaction, app.js handles panel/coordination
 import { FeelingsWheelGenerator } from './feelings-wheel-engine.js';
 import { FEELINGS_DATA } from './feelings-data.js';
+import { createCard } from './src/ui/emotion-card.js';
 
 export class FeelingsWheelApp {
     constructor() {
@@ -243,7 +244,7 @@ export class FeelingsWheelApp {
 
     setupInformationPanel() {
         // Initialize emotion tiles tracking
-        this.emotionTiles = new Map(); // Maps wedgeId -> tile element
+        this.emotionTiles = new Map(); // Maps wedgeId -> EmotionCard handle
         this.tileOrder = []; // Track order of tiles (newest first)
 
         // Setup panel minimization (desktop)
@@ -392,104 +393,40 @@ export class FeelingsWheelApp {
     }
 
     addEmotionTile(wedgeId, emotion, level) {
-        // Remove if already exists (shouldn't happen, but safety check)
+        // Replace any existing card for this wedge (safety).
         if (this.emotionTiles.has(wedgeId)) {
             this.removeEmotionTile(wedgeId);
         }
 
-        // Collapse all existing tiles
-        this.collapseAllTiles();
+        // Build a guarded EmotionCard. Every card KEEPS its definition — no accordion.
+        const { element, handle } = createCard({
+            wedgeId,
+            emotion,
+            level,
+            color: this.getEmotionColor(wedgeId),
+            definition: this.getEmotionDefinition(emotion, this.isSimplifiedActive()),
+            onRemove: (id) => this.wheelGenerator.toggleWedgeSelection(id),
+        });
 
-        // Create new tile element
-        const tile = this.createEmotionTile(wedgeId, emotion, level);
+        this.emotionTiles.set(wedgeId, handle);
+        this.tileOrder.unshift(wedgeId); // newest first
 
-        // Add to tracking
-        this.emotionTiles.set(wedgeId, tile);
-        this.tileOrder.unshift(wedgeId); // Add to beginning (newest first)
-
-        // Add to DOM
         const tilesContainer = document.getElementById('emotion-tiles');
-        tilesContainer.insertBefore(tile, tilesContainer.firstChild);
-
-        // Load and display emotion-specific definition
-        this.fetchEmotionDefinition(wedgeId, emotion, level);
+        tilesContainer.insertBefore(element, tilesContainer.firstChild);
     }
 
     removeEmotionTile(wedgeId) {
-        const tile = this.emotionTiles.get(wedgeId);
-        if (tile) {
-            tile.remove();
+        const handle = this.emotionTiles.get(wedgeId);
+        if (handle) {
+            handle.remove();
             this.emotionTiles.delete(wedgeId);
             this.tileOrder = this.tileOrder.filter((id) => id !== wedgeId);
         }
-
-        // If we have remaining tiles, expand the most recent one
-        if (this.tileOrder.length > 0) {
-            const mostRecentId = this.tileOrder[0];
-            const mostRecentTile = this.emotionTiles.get(mostRecentId);
-            if (mostRecentTile) {
-                mostRecentTile.classList.remove('collapsed');
-                mostRecentTile.classList.add('expanded');
-            }
-        }
     }
 
-    createEmotionTile(wedgeId, emotion, level) {
-        const tile = document.createElement('div');
-        tile.className = 'emotion-tile expanded';
-        tile.setAttribute('data-wedge-id', wedgeId);
-
-        // Get emotion color from centralized family-aware system
-        const emotionColor = this.getEmotionColor(wedgeId);
-        tile.style.setProperty('--emotion-color', emotionColor);
-
-        // REMOVED: Old duplicate color system that caused conflicts
-
-        tile.innerHTML = `
-             <div class="tile-header">
-                 <div>
-                     <h4 class="tile-emotion-name">${emotion}</h4>
-                 </div>
-                 <button class="tile-remove" title="Remove ${emotion}">×</button>
-             </div>
-             <div class="tile-content">
-                 <div class="tile-definition loading">Loading definition...</div>
-             </div>
-         `;
-
-        // Setup remove button
-        const removeBtn = tile.querySelector('.tile-remove');
-        removeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            // Deselect the emotion in the wheel
-            this.wheelGenerator.toggleWedgeSelection(wedgeId);
-        });
-
-        // Setup tile click to expand collapsed tiles
-        tile.addEventListener('click', () => {
-            if (tile.classList.contains('collapsed')) {
-                this.expandTile(wedgeId);
-            }
-        });
-
-        return tile;
-    }
-
-    fetchEmotionDefinition(wedgeId, emotion, level) {
-        const tile = this.emotionTiles.get(wedgeId);
-        if (!tile) return;
-
-        const definitionElement = tile.querySelector('.tile-definition');
-
-        // Check if simplified mode is active
-        const isSimplified = document.getElementById('simplified-mode-panel').checked;
-
-        // Get emotion-specific definition from our comprehensive data
-        const definition = this.getEmotionDefinition(emotion, isSimplified);
-
-        // Update tile with definition
-        definitionElement.classList.remove('loading');
-        definitionElement.textContent = definition;
+    isSimplifiedActive() {
+        const toggle = document.getElementById('simplified-mode-panel');
+        return !!(toggle && toggle.checked);
     }
 
     getEmotionDefinition(emotion, isSimplified) {
@@ -506,31 +443,8 @@ export class FeelingsWheelApp {
             : `${emotion} is an emotion that represents a specific aspect of human emotional experience.`;
     }
 
-    collapseAllTiles() {
-        this.emotionTiles.forEach((tile) => {
-            tile.classList.remove('expanded');
-            tile.classList.add('collapsed');
-        });
-    }
-
-    expandTile(wedgeId) {
-        // Collapse all tiles first
-        this.collapseAllTiles();
-
-        // Expand the selected tile
-        const tile = this.emotionTiles.get(wedgeId);
-        if (tile) {
-            tile.classList.remove('collapsed');
-            tile.classList.add('expanded');
-        }
-
-        // Update tile order (move to front)
-        this.tileOrder = this.tileOrder.filter((id) => id !== wedgeId);
-        this.tileOrder.unshift(wedgeId);
-    }
-
     clearAllTiles() {
-        this.emotionTiles.forEach((tile) => tile.remove());
+        this.emotionTiles.forEach((handle) => handle.remove());
         this.emotionTiles.clear();
         this.tileOrder = [];
         this.showInstructions();
@@ -538,7 +452,7 @@ export class FeelingsWheelApp {
 
     clearAllTilesWithoutInstructions() {
         // Clear tiles without automatically showing instructions (for mode switching)
-        this.emotionTiles.forEach((tile) => tile.remove());
+        this.emotionTiles.forEach((handle) => handle.remove());
         this.emotionTiles.clear();
         this.tileOrder = [];
         // Don't call showInstructions() - let caller manage instruction visibility
@@ -570,65 +484,43 @@ export class FeelingsWheelApp {
     }
 
     animateUnwindTiles() {
-        // Get tiles in current order (newest first - this is correct)
-        const tileArray = Array.from(this.emotionTiles.values());
-        if (tileArray.length === 0) {
-            // No tiles to animate, but still animate wheel rotation
-            this.wheelGenerator.clearSelections(); // Clear selections without snapping rotation
-            this.animateUnwindRotation(); // Animate wheel back to 0°
+        // Cards in current order (newest first). Map values are EmotionCard handles.
+        const handles = Array.from(this.emotionTiles.values());
+        if (handles.length === 0) {
+            // No cards to animate, but still animate wheel rotation.
+            this.wheelGenerator.clearSelections();
+            this.animateUnwindRotation();
             return;
         }
 
-        // FIXED: Prevent horizontal scrollbar during animation
+        // Prevent a horizontal scrollbar while cards slide out.
         const tilesContainer = document.getElementById('emotion-tiles');
         tilesContainer.style.overflowX = 'hidden';
 
-        // FIXED: Always 1s total duration regardless of tile count
-        const totalDuration = 1000; // Always 1 second
-        const tileAnimationDuration = Math.max(150, (totalDuration * 0.6) / tileArray.length); // 60% of time for individual tiles
-        const staggerDelay = Math.max(50, (totalDuration * 0.4) / tileArray.length); // 40% of time for stagger
+        // Always ~1s total regardless of count.
+        const totalDuration = 1000;
+        const cardDuration = Math.max(150, (totalDuration * 0.6) / handles.length);
+        const staggerDelay = Math.max(50, (totalDuration * 0.4) / handles.length);
 
-        // FIXED: Start wheel animation concurrently (not sequentially)
-        // Clear selections but DON'T reset rotation yet (let animation handle it)
+        // Start the wheel unwind concurrently.
         this.wheelGenerator.clearSelections();
-        this.animateUnwindRotation(); // Start wheel animation NOW
+        this.animateUnwindRotation();
 
-        let currentTileIndex = 0;
-
-        const animateTileOut = () => {
-            if (currentTileIndex >= tileArray.length) {
-                // All tiles animated out - clean up and restore container
+        let i = 0;
+        const animateNext = () => {
+            if (i >= handles.length) {
                 this.clearAllTiles();
-                tilesContainer.style.overflowX = ''; // Restore normal overflow
+                tilesContainer.style.overflowX = '';
                 return;
             }
-
-            const tile = tileArray[currentTileIndex];
-            const wedgeId = tile.getAttribute('data-wedge-id');
-
-            // Deselect in wheel (visual cleanup) via the engine's public API.
-            this.wheelGenerator.clearSelection(wedgeId);
-
-            // Animate tile out with scale and fade (prevent scrollbar)
-            tile.style.transition = `all ${tileAnimationDuration}ms cubic-bezier(0.4, 0, 1, 1)`;
-            tile.style.transform = 'translateX(100%) scale(0.8)';
-            tile.style.opacity = '0';
-
-            // Remove tile after animation
-            setTimeout(() => {
-                if (tile.parentNode) {
-                    tile.remove();
-                }
-                this.emotionTiles.delete(wedgeId);
-            }, tileAnimationDuration);
-
-            // Continue to next tile with dynamic stagger timing
-            currentTileIndex++;
-            setTimeout(animateTileOut, staggerDelay);
+            const handle = handles[i];
+            // Deselect in the wheel + slide the card out via its own guarded API.
+            this.wheelGenerator.clearSelection(handle.wedgeId);
+            handle.animateOut(cardDuration).then(() => this.emotionTiles.delete(handle.wedgeId));
+            i++;
+            setTimeout(animateNext, staggerDelay);
         };
-
-        // Start the tile animation sequence
-        animateTileOut();
+        animateNext();
     }
 
     animateUnwindRotation() {
@@ -644,22 +536,6 @@ export class FeelingsWheelApp {
         // Re-enable interactions
         this.wheelGenerator.isAnimating = false;
         this.isResetting = false;
-    }
-
-    refreshAllTileDefinitions() {
-        // Re-fetch definitions for all tiles when mode changes
-        this.emotionTiles.forEach((tile, wedgeId) => {
-            const emotionName = tile.querySelector('.tile-emotion-name').textContent;
-            const level = this.extractLevelFromWedgeId(wedgeId);
-
-            // Reset to loading state
-            const definitionElement = tile.querySelector('.tile-definition');
-            definitionElement.classList.add('loading');
-            definitionElement.textContent = 'Loading definition...';
-
-            // Reload definition for new mode
-            this.fetchEmotionDefinition(wedgeId, emotionName, level);
-        });
     }
 
     showInstructions() {
@@ -742,11 +618,6 @@ export class FeelingsWheelApp {
         if (instructionsSection) {
             instructionsSection.hidden = true;
         }
-    }
-
-    extractLevelFromWedgeId(wedgeId) {
-        // Resolve level via the engine's structured registry rather than string parsing.
-        return this.wheelGenerator.parseUniqueWedgeId(wedgeId).level;
     }
 }
 

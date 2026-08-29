@@ -647,115 +647,168 @@ body {
 }
 
 /* Emotion Tiles */
+/* ===== EMOTION CARDS =====
+   One card per selected emotion. EVERY card keeps its definition (no accordion);
+   each is independently collapsible via its chevron. Tokenized, calm elevation,
+   family-color accent bar. */
 .emotion-tiles {
-    padding: 1.25rem; /* Add proper top padding so first tile isn't flush with panel top */
+    padding: var(--space-5);
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-3);
 }
 
-.emotion-tile {
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
+.emotion-card {
+    position: relative;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--emotion-color, var(--color-accent));
+    border-radius: var(--radius-md);
+    box-shadow: var(--elev-1);
     overflow: hidden;
+    animation: fadeIn var(--motion-base) var(--ease-soft);
 }
 
-.emotion-tile.expanded {
-    border-left: 5px solid var(--emotion-color, #4a90e2);
-    background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-}
-
-.emotion-tile.collapsed {
-    border-left: 4px solid var(--emotion-color, #cbd5e0);
-    cursor: pointer;
-    background: #fafbfc;
-}
-
-.emotion-tile.collapsed:hover {
-    background: #f8fafc;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.tile-header {
-    padding: 1rem;
+.card-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
 }
 
-.tile-emotion-name {
+.card-heading {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex: 1;
+    min-width: 0;
+}
+
+.card-name {
     font-size: 1rem;
-    font-weight: 600;
-    color: #2d3748;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Small level chip tinted with the family color. */
+.card-chip {
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-ink-muted);
+    background: var(--color-surface-alt);
+    border-radius: var(--radius-pill);
+    padding: 0.1em 0.6em;
+}
+
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}
+
+.card-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: max(32px, var(--touch-target-min));
+    height: max(32px, var(--touch-target-min));
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-ink-muted);
+    cursor: pointer;
+    transition:
+        background-color var(--motion-fast) var(--ease-soft),
+        color var(--motion-fast) var(--ease-soft),
+        transform var(--motion-fast) var(--ease-soft);
+}
+.card-btn:hover {
+    background: var(--color-surface-alt);
+    color: var(--color-ink);
+}
+.card-remove:hover {
+    background: #fbecea;
+    color: #b3402f;
+}
+
+.card-ic {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Chevron points up when expanded; rotates when the card is collapsed. */
+.card-toggle .card-ic {
+    transition: transform var(--motion-base) var(--ease-soft);
+}
+.emotion-card.is-collapsed .card-toggle .card-ic {
+    transform: rotate(-90deg);
+}
+
+.card-body {
+    padding: 0 var(--space-4) var(--space-4);
+    /* Collapse animates via max-height; expanded is generous enough for long defs. */
+    max-height: 20rem;
+    overflow: hidden;
+    transition:
+        max-height var(--motion-base) var(--ease-soft),
+        opacity var(--motion-fast) var(--ease-soft),
+        padding var(--motion-base) var(--ease-soft);
+}
+.emotion-card.is-collapsed .card-body {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+}
+
+.card-definition {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-ink-muted);
     margin: 0;
 }
 
-/* Badge styles removed - using family colors instead */
-
-.tile-content {
-    padding: 0 1rem 1rem 1rem;
-    border-top: 1px solid #f1f5f9;
-}
-
-.tile-definition {
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: #4a5568;
-    margin: 0.75rem 0 0 0;
-}
-
-.tile-remove {
-    background: none;
-    border: none;
-    color: #a0aec0;
-    cursor: pointer;
-    font-size: calc(1.2rem * var(--font-scale));
-    padding: var(--spacing-unit);
-    border-radius: var(--border-radius-base);
-    transition: all calc(0.2s * var(--interaction-scale)) ease;
-    min-width: var(--touch-target-min);
-    min-height: var(--touch-target-min);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tile-remove:hover {
-    background: #fed7d7;
-    color: #e53e3e;
-}
-
-/* Collapsed tile styles */
-.emotion-tile.collapsed .tile-content {
-    display: none;
-}
-
-.emotion-tile.collapsed .tile-header {
-    padding: 0.75rem 1rem;
-}
-
-.emotion-tile.collapsed .tile-emotion-name {
-    font-size: 0.9rem;
-}
-
-/* Loading state for definitions */
-.tile-definition.loading {
-    background: linear-gradient(90deg, #f0f2f5 25%, #e4e6ea 50%, #f0f2f5 75%);
+/* Loading shimmer while a definition resolves. */
+.card-definition.loading {
+    color: transparent;
+    background: linear-gradient(
+        90deg,
+        var(--color-surface-alt) 25%,
+        var(--color-border) 50%,
+        var(--color-surface-alt) 75%
+    );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
-    border-radius: 4px;
-    height: 3rem;
-    margin: 0.75rem 0;
+    border-radius: var(--radius-sm);
+    min-height: 3rem;
 }
 
 @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .emotion-card,
+    .card-body,
+    .card-toggle .card-ic,
+    .card-definition.loading {
+        animation: none;
+        transition: none;
+    }
 }
 
 /* ===== PANEL FOOTER + CONTROLS =====
@@ -1028,20 +1081,20 @@ body {
         gap: 0.5rem;
     }
 
-    .tile-header {
-        padding: 0.75rem;
+    .card-header {
+        padding: 0.6rem 0.6rem 0.6rem 0.9rem;
     }
 
-    .tile-emotion-name {
+    .card-name {
         font-size: 0.9rem;
     }
 
-    .tile-content {
-        padding: 0 0.75rem 0.75rem 0.75rem;
+    .card-body {
+        padding: 0 0.9rem 0.9rem;
     }
 
-    .tile-definition {
-        font-size: 0.8rem;
+    .card-definition {
+        font-size: 0.85rem;
     }
 }
 
@@ -1075,10 +1128,9 @@ body {
 /* Device-capability based responsive design (not pixel-based) */
 @media (hover: none) and (pointer: coarse) {
     /* Touch devices - ensure proper touch targets */
-    .tile-remove {
+    .card-btn {
         min-width: var(--touch-target-min);
         min-height: var(--touch-target-min);
-        font-size: calc(1.2rem * var(--font-scale));
     }
 }
 

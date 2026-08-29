@@ -69,7 +69,7 @@
     --motion-fast: 0.15s;
     --motion-base: 0.25s;
     --motion-slow: 0.4s;
-    --motion-panel: 0.55s; /* slower, deliberate slide for the whole sidebar */
+    --motion-panel: 0.35s; /* deliberate slide for the whole sidebar */
     --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Fonts */
@@ -395,16 +395,13 @@ body {
     font-size: 0.9rem;
 }
 
-/* Desktop Minimized state — panel slides out; the tab rides to the screen edge
-   and stays reachable (it lives outside the transformed panel). */
+/* Desktop Minimized state — the whole populated panel slides off-screen as one
+   surface (content stays rendered so it travels with it, rather than vanishing
+   before the slide). The tab rides to the screen edge and stays reachable
+   (it lives outside the transformed panel). */
 .info-panel.minimized {
     transform: translateX(100%);
     box-shadow: none;
-}
-
-.info-panel.minimized .panel-content,
-.info-panel.minimized .panel-footer {
-    display: none;
 }
 
 .main-layout.panel-minimized .panel-minimize-tab {

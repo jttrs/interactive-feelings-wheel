@@ -808,6 +808,12 @@ body {
     stroke-linejoin: round;
 }
 
+/* Solid-filled glyph variant (e.g. the ▶ collapse triangle, to match the tab). */
+.hero-ic--fill {
+    fill: currentColor;
+    stroke: none;
+}
+
 /* Ko-fi coffee: a warm invitation, tinted to stand out gently. */
 .hero-btn--kofi {
     color: var(--color-accent);

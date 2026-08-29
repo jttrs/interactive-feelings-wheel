@@ -56,6 +56,12 @@
     --wheel-ring: #4a453d; /* concentric ring circles */
     --wheel-ring-weight: 0.0022;
 
+    /* Selected-wedge emphasis: a soft accent glow (real drop-shadow filter) that lifts
+       the chosen emotion off the wheel, and a warm shadow for the raised copy. */
+    --wheel-selected-glow: drop-shadow(0 0 6px rgba(47, 111, 110, 0.55));
+    --wheel-shadow-color: rgba(61, 52, 40, 0.28); /* warm, not cold black */
+    --wheel-shadow-blur: 4px;
+
     /* Spacing scale (8px rhythm) */
     --space-1: 0.25rem;
     --space-2: 0.5rem;
@@ -1176,14 +1182,13 @@ svg text {
     filter: saturate(1.2) brightness(1.1);
 }
 
-/* Enhanced selection styling with smooth transitions */
+/* Enhanced selection styling with smooth transitions. The glow is a REAL
+   drop-shadow() filter (the old `drop-shadow:` property was invalid and did
+   nothing) chained after the saturate/brightness lift, tinted with the accent. */
 .selected {
     stroke: var(--wheel-line) !important;
-    /* RESPONSIVE SELECTION STROKE: Removed hardcoded stroke-width, JavaScript will set responsive value */
-    filter: saturate(1.4) brightness(1.15);
-    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    /* Subtle glow effect for selected state */
-    drop-shadow: 0 0 8px rgba(74, 144, 226, 0.3);
+    filter: saturate(1.4) brightness(1.12) var(--wheel-selected-glow);
+    transition: filter 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 /* Selection animation enhancement */
@@ -1193,9 +1198,9 @@ svg text {
 }
 
 @keyframes selectionPop {
-    0% { filter: saturate(1.4) brightness(1.15); }
-    50% { filter: saturate(1.6) brightness(1.25); }
-    100% { filter: saturate(1.4) brightness(1.15); }
+    0% { filter: saturate(1.4) brightness(1.12) var(--wheel-selected-glow); }
+    50% { filter: saturate(1.6) brightness(1.22) var(--wheel-selected-glow); }
+    100% { filter: saturate(1.4) brightness(1.12) var(--wheel-selected-glow); }
 }
 
 /* Smooth deselection animation */
@@ -1217,6 +1222,12 @@ svg text {
 /* Text smooth transitions */
 text {
     transition: opacity 0.1s ease;
+}
+
+/* Selected wedge's label: bump to bold so the choice reads in the text too, not
+   just the fill. Atkinson Hyperlegible's 700 weight is loaded and legible small. */
+.label-selected {
+    font-weight: 700;
 }
 
 /* SVG cursor changes during interactions */

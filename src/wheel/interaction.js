@@ -332,6 +332,8 @@ export const InteractionMixin = (Base) =>
             // Move wedge and its text to top layer - pass the existing wedge ID
             this.topGroup.appendChild(wedge);
             this.moveTextForWedge(emotion, level, parent, this.topGroup, wedgeId);
+            // Emphasize the label too (weight bump) so selection reads in the text.
+            this.setLabelSelected(wedgeId, true);
 
             // Create shadow copy
             this.createShadowCopy(wedge, wedgeId);
@@ -359,6 +361,13 @@ export const InteractionMixin = (Base) =>
             // Move wedge and text back to base layer
             this.baseGroup.appendChild(wedge);
             this.moveTextForWedge(emotion, level, parent, this.baseGroup, wedgeId);
+            this.setLabelSelected(wedgeId, false);
+        }
+
+        // Toggle the emphasis class on a wedge's paired label (weight bump on select).
+        setLabelSelected(wedgeId, on) {
+            const label = this.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
+            if (label) label.classList.toggle('label-selected', on);
         }
 
         updateRotation() {

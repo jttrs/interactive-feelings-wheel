@@ -675,10 +675,11 @@ export const RenderingMixin = (Base) =>
             shadowWedge.setAttribute('class', 'shadow-wedge'); // Remove 'wedge' class to prevent selection
             shadowWedge.setAttribute('data-shadow-for', wedgeId); // Mark what it's a shadow for
 
-            // Make shadow copy visible with proper shadow styling
-            shadowWedge.setAttribute('fill', 'rgba(0, 0, 0, 0.3)');
+            // Make shadow copy visible with a WARM, soft shadow (matches the palette
+            // rather than a cold black blob). Values mirror the --wheel-shadow-* tokens.
+            shadowWedge.setAttribute('fill', 'rgba(61, 52, 40, 0.28)');
             shadowWedge.setAttribute('stroke', 'none');
-            shadowWedge.style.filter = 'blur(3px)';
+            shadowWedge.style.filter = 'blur(4px)';
             shadowWedge.style.pointerEvents = 'none';
 
             shadowGroup.appendChild(shadowWedge);

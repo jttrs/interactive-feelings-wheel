@@ -46,6 +46,16 @@
     /* Focus ring (>=3:1 vs both bg and surface) */
     --color-focus: #1b4d4c;
 
+    /* Wheel separators — the division lines + concentric ring circles own ALL of the
+       wheel's boundaries (wedges are fill-only). Warm charcoal, softer than pure #333
+       to suit the calm palette. Weights are ratios of wheel size (JS applies floors). */
+    --wheel-line: #4a453d;
+    --wheel-line-primary: 0.0028; /* between core families (thickest) */
+    --wheel-line-secondary: 0.0018; /* between secondaries within a family */
+    --wheel-line-dyad: 0.0008; /* dyad split in the outer ring (dashed, thinnest) */
+    --wheel-ring: #4a453d; /* concentric ring circles */
+    --wheel-ring-weight: 0.0022;
+
     /* Spacing scale (8px rhythm) */
     --space-1: 0.25rem;
     --space-2: 0.5rem;
@@ -1168,7 +1178,7 @@ svg text {
 
 /* Enhanced selection styling with smooth transitions */
 .selected {
-    stroke: #333 !important;
+    stroke: var(--wheel-line) !important;
     /* RESPONSIVE SELECTION STROKE: Removed hardcoded stroke-width, JavaScript will set responsive value */
     filter: saturate(1.4) brightness(1.15);
     transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);

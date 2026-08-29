@@ -9,12 +9,17 @@ describe('calculateResponsiveScaling', () => {
     it('returns the exact desktop scaling profile at size 600', () => {
         const gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
         const scaling = gen.calculateResponsiveScaling(600);
-        // Division strokes are deliberately light: primary 0.28%, secondary 0.18%,
-        // dyad/tertiary 0.08% of wheel size.
+        // Separator strokes derive from the wheel line/ring tokens (ratios of wheel
+        // size). In bare jsdom the tokens fall back to their constants: primary 0.28%,
+        // secondary 0.18%, dyad 0.08%, ring 0.22%. Wedges are fill-only (no wedgeStroke).
         expect(scaling.primaryDivisionStroke).toBeCloseTo(1.68, 10); // 600 * 0.0028
         expect(scaling.secondaryDivisionStroke).toBeCloseTo(1.08, 10); // 600 * 0.0018
         expect(scaling.tertiaryDivisionStroke).toBeCloseTo(0.48, 10); // 600 * 0.0008
-        expect(scaling.wedgeStroke).toBe(0.9);
+        expect(scaling.ringStroke).toBeCloseTo(1.32, 10); // 600 * 0.0022
+        expect(scaling.wedgeStroke).toBeUndefined(); // fill-only wedges
+        // Separator colors come from the tokens (fallbacks in jsdom).
+        expect(scaling.lineColor).toBe('#4a453d');
+        expect(scaling.ringColor).toBe('#4a453d');
         expect(scaling.fontScale).toBe(0.0075);
         expect(scaling.touchTargetScale).toBe(1.5);
         expect(scaling.generalScale).toBe(1.5);

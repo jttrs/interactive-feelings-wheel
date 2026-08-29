@@ -1,23 +1,34 @@
 import { FEELINGS_DATA } from '../../feelings-data.js';
+import {
+    line as makeLine,
+    circle as makeCircle,
+    wedgePath as makeWedgePath,
+    text as makeText,
+    readWheelTokens,
+} from './svg.js';
 
 export const RenderingMixin = (Base) =>
     class extends Base {
         // ===== CENTRALIZED RESPONSIVE SCALING SYSTEM =====
 
         calculateResponsiveScaling(wheelSize) {
-            // Create a unified scaling system for ALL visual parameters
-            // This ensures consistent proportional scaling across the entire wheel
-
+            // Unified scaling for ALL visual parameters. Separator stroke widths derive
+            // from the wheel line/ring TOKENS (ratios of wheel size) so the design-token
+            // layer is the single source of truth; JS applies size + a minimum floor.
             const baseScale = wheelSize / 400; // Reference size: 400px wheel
             const isMobile = window.innerWidth <= 767;
+            const tokens = readWheelTokens();
 
             return {
-                // Stroke widths (all scale proportionally) - reduced for lighter appearance
-                primaryDivisionStroke: Math.max(0.3, wheelSize * 0.0028), // 0.28% of wheel size (was 0.4%)
-                secondaryDivisionStroke: Math.max(0.15, wheelSize * 0.0018), // 0.18% of wheel size (was 0.3%)
-                tertiaryDivisionStroke: Math.max(0.1, wheelSize * 0.0008), // 0.08% of wheel size (dyad, dashed)
-                wedgeStroke: Math.max(0.2, wheelSize * 0.0015), // 0.15% of wheel size (was 0.2%)
-                // REMOVED selectedStroke: CSS handles selection emphasis with filters, not thick borders
+                // Separator stroke widths (wedges are fill-only; they carry no stroke).
+                primaryDivisionStroke: Math.max(0.3, wheelSize * tokens.primaryRatio),
+                secondaryDivisionStroke: Math.max(0.15, wheelSize * tokens.secondaryRatio),
+                tertiaryDivisionStroke: Math.max(0.1, wheelSize * tokens.dyadRatio), // dyad, dashed
+                ringStroke: Math.max(0.2, wheelSize * tokens.ringRatio),
+
+                // Separator colors (palette-aligned, from tokens).
+                lineColor: tokens.lineColor,
+                ringColor: tokens.ringColor,
 
                 // Font scaling factors (use small percentages, not raw baseScale)
                 fontScale: isMobile
@@ -33,42 +44,20 @@ export const RenderingMixin = (Base) =>
         }
 
         updateAllResponsiveScaling() {
-            // Update stroke widths for all existing elements after wheel resize
-            // This ensures consistent scaling when wheel size changes
+            // Re-apply separator stroke widths after a resize. Wedges are fill-only, so
+            // only the lines + ring circles need updating.
+            if (!this.responsiveScaling) return;
+            const s = this.responsiveScaling;
 
-            if (!this.responsiveScaling) return; // Safety check
-
-            // Update all regular wedges (selected and unselected use same stroke width)
-            const allWedges = this.container.querySelectorAll('.wedge:not(.shadow-wedge)');
-            allWedges.forEach((wedge) => {
-                // All wedges use standard stroke width - CSS handles selection emphasis
-                wedge.setAttribute('stroke-width', this.responsiveScaling.wedgeStroke.toString());
-            });
-
-            // Update all division lines
-            const primaryLines = this.container.querySelectorAll('.primary-division-line');
-            primaryLines.forEach((line) => {
-                line.setAttribute(
-                    'stroke-width',
-                    this.responsiveScaling.primaryDivisionStroke.toString()
-                );
-            });
-
-            const secondaryLines = this.container.querySelectorAll('.secondary-division-line');
-            secondaryLines.forEach((line) => {
-                line.setAttribute(
-                    'stroke-width',
-                    this.responsiveScaling.secondaryDivisionStroke.toString()
-                );
-            });
-
-            const tertiaryLines = this.container.querySelectorAll('.dyad-division-line');
-            tertiaryLines.forEach((line) => {
-                line.setAttribute(
-                    'stroke-width',
-                    this.responsiveScaling.tertiaryDivisionStroke.toString()
-                );
-            });
+            const setWidth = (selector, width) => {
+                this.container.querySelectorAll(selector).forEach((el) => {
+                    el.setAttribute('stroke-width', width.toString());
+                });
+            };
+            setWidth('.primary-division-line', s.primaryDivisionStroke);
+            setWidth('.secondary-division-line', s.secondaryDivisionStroke);
+            setWidth('.dyad-division-line', s.tertiaryDivisionStroke);
+            setWidth('.wheel-ring', s.ringStroke);
         }
 
         updateRadii() {
@@ -434,6 +423,9 @@ export const RenderingMixin = (Base) =>
             this.svg.setAttribute('height', '100%');
             this.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
             this.svg.style.cursor = 'grab';
+            // Emotion labels use fill:currentColor; set the wheel's ink here (warm charcoal)
+            // so text resolves to the palette. Kept as an inline style so file:// works.
+            this.svg.style.color = '#2b2a28';
             // Expose the wheel as a labelled group of emotion buttons for assistive tech.
             this.svg.setAttribute('role', 'group');
             this.svg.setAttribute(
@@ -471,80 +463,30 @@ export const RenderingMixin = (Base) =>
             // Calculate core angles
             const coreAngles = this.calculateCoreAngles();
 
-            // Create core wedges
+            // Create core wedges + labels (fill-only wedges; separators own strokes)
             coreAngles.forEach((core) => {
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute(
-                    'd',
-                    this.createWedgePath(
-                        this.centerX,
-                        this.centerY,
-                        0,
-                        this.coreRadius,
-                        core.start,
-                        core.end
-                    )
-                );
-                path.setAttribute('fill', core.color);
-                path.setAttribute('stroke', '#333');
-                // RESPONSIVE WEDGE STROKE: Use centralized scaling system with safety check
-                const strokeWidth =
-                    this.responsiveScaling && this.responsiveScaling.wedgeStroke
-                        ? this.responsiveScaling.wedgeStroke
-                        : Math.max(0.3, this.containerSize * 0.002);
-                path.setAttribute('stroke-width', strokeWidth.toString());
-                path.setAttribute('class', 'wedge core-wedge');
-                path.setAttribute('data-emotion', core.name);
-                path.setAttribute('data-level', 'core');
-                // Add unique wedge ID for proper identification
-                const coreWedgeId = this.createUniqueWedgeId('core', core.name, null);
-                path.setAttribute('data-wedge-id', coreWedgeId);
-                this.applyWedgeAccessibility(path, 'core', core.name, null);
-                path.style.cursor = 'pointer';
-
-                this.wheelGroup.appendChild(path);
-
-                // Add core text
-                const textPos = this.positionText(
-                    this.centerX,
-                    this.centerY,
-                    this.coreRadius * 0.6,
-                    core.start,
-                    core.end
-                );
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', textPos.x);
-                text.setAttribute('y', textPos.y);
-                text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('dominant-baseline', 'middle');
-
-                // SMART TEXT SIZING: Start with calculated size but allow adaptive sizing for small wheels
-                let fontSize = this.calculateFontSize('core');
-                if (this.containerSize < 300) {
-                    // For very small wheels, prioritize fitting over minimum size
-                    fontSize = Math.max(this.containerSize * 0.02, fontSize * 0.7);
-                }
-
-                text.setAttribute('font-size', `${fontSize}px`);
-                text.setAttribute('font-weight', 'normal');
-                text.setAttribute('fill', '#333');
-                text.setAttribute('pointer-events', 'none');
-                // Add data attributes for unique identification
-                text.setAttribute('data-emotion', core.name);
-                text.setAttribute('data-level', 'core');
-                // Add unique wedge ID to text as well for proper text-wedge association
-                text.setAttribute('data-wedge-id', coreWedgeId);
-                text.textContent = core.name;
-
-                // Store text element for dynamic rotation
-                this.textElements.push({
-                    element: text,
-                    baseAngle: textPos.baseAngle,
-                    x: textPos.x,
-                    y: textPos.y,
+                const wedgeId = this.buildWedge({
+                    level: 'core',
+                    className: 'wedge core-wedge',
+                    fill: core.color,
+                    innerR: 0,
+                    outerR: this.coreRadius,
+                    start: core.start,
+                    end: core.end,
+                    emotion: core.name,
+                    parent: null,
                 });
-
-                this.wheelGroup.appendChild(text);
+                this.buildLabel({
+                    level: 'core',
+                    wedgeId,
+                    emotion: core.name,
+                    parent: null,
+                    radius: this.coreRadius * 0.6,
+                    start: core.start,
+                    end: core.end,
+                    smallMinFactor: 0.02,
+                    smallScale: 0.7,
+                });
             });
 
             // Create middle ring (secondary emotions)
@@ -556,83 +498,28 @@ export const RenderingMixin = (Base) =>
                     const startAngle = core.start + index * anglePerSecondary;
                     const endAngle = startAngle + anglePerSecondary;
 
-                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    path.setAttribute(
-                        'd',
-                        this.createWedgePath(
-                            this.centerX,
-                            this.centerY,
-                            this.coreRadius,
-                            this.middleRadius,
-                            startAngle,
-                            endAngle
-                        )
-                    );
-                    path.setAttribute('fill', this.lightenColor(core.color, 40));
-                    path.setAttribute('stroke', '#333');
-                    // RESPONSIVE WEDGE STROKE: Use centralized scaling system with safety check
-                    const strokeWidth =
-                        this.responsiveScaling && this.responsiveScaling.wedgeStroke
-                            ? this.responsiveScaling.wedgeStroke
-                            : Math.max(0.3, this.containerSize * 0.002);
-                    path.setAttribute('stroke-width', strokeWidth.toString());
-                    path.setAttribute('class', 'wedge secondary-wedge');
-                    path.setAttribute('data-emotion', emotion);
-                    path.setAttribute('data-level', 'secondary');
-                    path.setAttribute('data-parent', core.name);
-                    // Add unique wedge ID for proper identification
-                    const secondaryWedgeId = this.createUniqueWedgeId(
-                        'secondary',
+                    const wedgeId = this.buildWedge({
+                        level: 'secondary',
+                        className: 'wedge secondary-wedge',
+                        fill: this.lightenColor(core.color, 40),
+                        innerR: this.coreRadius,
+                        outerR: this.middleRadius,
+                        start: startAngle,
+                        end: endAngle,
                         emotion,
-                        core.name
-                    );
-                    path.setAttribute('data-wedge-id', secondaryWedgeId);
-                    this.applyWedgeAccessibility(path, 'secondary', emotion, core.name);
-                    path.style.cursor = 'pointer';
-
-                    this.wheelGroup.appendChild(path);
-
-                    // Add secondary text
-                    const textPos = this.positionText(
-                        this.centerX,
-                        this.centerY,
-                        (this.coreRadius + this.middleRadius) / 2,
-                        startAngle,
-                        endAngle
-                    );
-                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    text.setAttribute('x', textPos.x);
-                    text.setAttribute('y', textPos.y);
-                    text.setAttribute('text-anchor', 'middle');
-                    text.setAttribute('dominant-baseline', 'middle');
-
-                    // SMART TEXT SIZING: Adaptive sizing for small wheels
-                    let fontSize = this.calculateFontSize('secondary');
-                    if (this.containerSize < 300) {
-                        fontSize = Math.max(this.containerSize * 0.015, fontSize * 0.7);
-                    }
-
-                    text.setAttribute('font-size', `${fontSize}px`);
-                    text.setAttribute('font-weight', 'normal');
-                    text.setAttribute('fill', '#333');
-                    text.setAttribute('pointer-events', 'none');
-                    // Add data attributes for unique identification
-                    text.setAttribute('data-emotion', emotion);
-                    text.setAttribute('data-level', 'secondary');
-                    text.setAttribute('data-parent', core.name);
-                    // Add unique wedge ID to text as well for proper text-wedge association
-                    text.setAttribute('data-wedge-id', secondaryWedgeId);
-                    text.textContent = emotion;
-
-                    // Store text element for dynamic rotation
-                    this.textElements.push({
-                        element: text,
-                        baseAngle: textPos.baseAngle,
-                        x: textPos.x,
-                        y: textPos.y,
+                        parent: core.name,
                     });
-
-                    this.wheelGroup.appendChild(text);
+                    this.buildLabel({
+                        level: 'secondary',
+                        wedgeId,
+                        emotion,
+                        parent: core.name,
+                        radius: (this.coreRadius + this.middleRadius) / 2,
+                        start: startAngle,
+                        end: endAngle,
+                        smallMinFactor: 0.015,
+                        smallScale: 0.7,
+                    });
                 });
             });
 
@@ -652,91 +539,30 @@ export const RenderingMixin = (Base) =>
                                 secondaryStartAngle + tertiaryIndex * anglePerTertiary;
                             const endAngle = startAngle + anglePerTertiary;
 
-                            const path = document.createElementNS(
-                                'http://www.w3.org/2000/svg',
-                                'path'
-                            );
-                            path.setAttribute(
-                                'd',
-                                this.createWedgePath(
-                                    this.centerX,
-                                    this.centerY,
-                                    this.middleRadius,
-                                    this.outerRadius,
-                                    startAngle,
-                                    endAngle
-                                )
-                            );
-                            path.setAttribute('fill', this.lightenColor(core.color, 70));
-                            path.setAttribute('stroke', '#333');
-                            // RESPONSIVE WEDGE STROKE: Use centralized scaling system with safety check
-                            const strokeWidth =
-                                this.responsiveScaling && this.responsiveScaling.wedgeStroke
-                                    ? this.responsiveScaling.wedgeStroke
-                                    : Math.max(0.3, this.containerSize * 0.002);
-                            path.setAttribute('stroke-width', strokeWidth.toString());
-                            path.setAttribute('class', 'wedge tertiary-wedge');
-                            path.setAttribute('data-emotion', tertiary);
-                            path.setAttribute('data-level', 'tertiary');
-                            path.setAttribute('data-parent', emotion);
-                            path.setAttribute('data-grandparent', core.name);
-                            // Add unique wedge ID for proper identification
-                            const tertiaryWedgeId = this.createUniqueWedgeId(
-                                'tertiary',
-                                tertiary,
-                                emotion
-                            );
-                            path.setAttribute('data-wedge-id', tertiaryWedgeId);
-                            this.applyWedgeAccessibility(path, 'tertiary', tertiary, emotion);
-                            path.style.cursor = 'pointer';
-
-                            this.wheelGroup.appendChild(path);
-
-                            // Add tertiary text
-                            const textPos = this.positionText(
-                                this.centerX,
-                                this.centerY,
-                                (this.middleRadius + this.outerRadius) / 2,
-                                startAngle,
-                                endAngle
-                            );
-                            const text = document.createElementNS(
-                                'http://www.w3.org/2000/svg',
-                                'text'
-                            );
-                            text.setAttribute('x', textPos.x);
-                            text.setAttribute('y', textPos.y);
-                            text.setAttribute('text-anchor', 'middle');
-                            text.setAttribute('dominant-baseline', 'middle');
-
-                            // SMART TEXT SIZING: Adaptive sizing for small wheels
-                            let fontSize = this.calculateFontSize('tertiary');
-                            if (this.containerSize < 300) {
-                                fontSize = Math.max(this.containerSize * 0.01, fontSize * 0.6);
-                            }
-
-                            text.setAttribute('font-size', `${fontSize}px`);
-                            text.setAttribute('font-weight', 'normal');
-                            text.setAttribute('fill', '#333');
-                            text.setAttribute('pointer-events', 'none');
-                            // Add data attributes for unique identification
-                            text.setAttribute('data-emotion', tertiary);
-                            text.setAttribute('data-level', 'tertiary');
-                            text.setAttribute('data-parent', emotion);
-                            text.setAttribute('data-grandparent', core.name);
-                            // Add unique wedge ID to text as well for proper text-wedge association
-                            text.setAttribute('data-wedge-id', tertiaryWedgeId);
-                            text.textContent = tertiary;
-
-                            // Store text element for dynamic rotation
-                            this.textElements.push({
-                                element: text,
-                                baseAngle: textPos.baseAngle,
-                                x: textPos.x,
-                                y: textPos.y,
+                            const wedgeId = this.buildWedge({
+                                level: 'tertiary',
+                                className: 'wedge tertiary-wedge',
+                                fill: this.lightenColor(core.color, 70),
+                                innerR: this.middleRadius,
+                                outerR: this.outerRadius,
+                                start: startAngle,
+                                end: endAngle,
+                                emotion: tertiary,
+                                parent: emotion,
+                                grandparent: core.name,
                             });
-
-                            this.wheelGroup.appendChild(text);
+                            this.buildLabel({
+                                level: 'tertiary',
+                                wedgeId,
+                                emotion: tertiary,
+                                parent: emotion,
+                                grandparent: core.name,
+                                radius: (this.middleRadius + this.outerRadius) / 2,
+                                start: startAngle,
+                                end: endAngle,
+                                smallMinFactor: 0.01,
+                                smallScale: 0.6,
+                            });
                         });
                     });
                 });
@@ -757,6 +583,83 @@ export const RenderingMixin = (Base) =>
             currentState.hasBeenInitialized = true;
 
             this.setupEventListeners();
+        }
+
+        // ===== WEDGE LAYER (fill-only) =====
+        // Build one fill-only wedge path via the guarded factory, register its id,
+        // attach accessibility + data attrs, append to the wheel group, and return
+        // the wedge id (so the caller can pair a label to it). No stroke — the
+        // separator layer owns every boundary.
+        buildWedge({
+            level,
+            className,
+            fill,
+            innerR,
+            outerR,
+            start,
+            end,
+            emotion,
+            parent,
+            grandparent,
+        }) {
+            const wedgeId = this.createUniqueWedgeId(level, emotion, parent);
+            const dataset = { emotion, level, 'wedge-id': wedgeId };
+            if (parent !== null && parent !== undefined) dataset.parent = parent;
+            if (grandparent !== undefined) dataset.grandparent = grandparent;
+
+            const path = makeWedgePath({
+                d: this.createWedgePath(this.centerX, this.centerY, innerR, outerR, start, end),
+                fill,
+                className,
+                dataset,
+            });
+            if (!path) return wedgeId;
+            this.applyWedgeAccessibility(path, level, emotion, parent);
+            this.wheelGroup.appendChild(path);
+            return wedgeId;
+        }
+
+        // ===== LABEL LAYER =====
+        // Build one radial text label paired to a wedge id, store it for rotation, and
+        // append it. Keeps the prior adaptive small-wheel sizing per ring level.
+        buildLabel({
+            level,
+            wedgeId,
+            emotion,
+            parent,
+            grandparent,
+            radius,
+            start,
+            end,
+            smallMinFactor,
+            smallScale,
+        }) {
+            const textPos = this.positionText(this.centerX, this.centerY, radius, start, end);
+
+            let fontSize = this.calculateFontSize(level);
+            if (this.containerSize < 300) {
+                fontSize = Math.max(this.containerSize * smallMinFactor, fontSize * smallScale);
+            }
+
+            const dataset = { emotion, level, 'wedge-id': wedgeId };
+            if (parent !== null && parent !== undefined) dataset.parent = parent;
+            if (grandparent !== undefined) dataset.grandparent = grandparent;
+
+            const textEl = makeText({
+                x: textPos.x,
+                y: textPos.y,
+                content: emotion,
+                fontSize,
+                dataset,
+            });
+            if (!textEl) return;
+            this.textElements.push({
+                element: textEl,
+                baseAngle: textPos.baseAngle,
+                x: textPos.x,
+                y: textPos.y,
+            });
+            this.wheelGroup.appendChild(textEl);
         }
 
         createShadowCopy(originalWedge, wedgeId) {
@@ -965,149 +868,124 @@ export const RenderingMixin = (Base) =>
             });
         }
 
+        // ===== SEPARATOR LAYER =====
+        // The division lines + concentric ring circles own ALL of the wheel's
+        // boundaries (wedges are fill-only), so every edge is drawn exactly once.
         createAllDivisionLines(coreAngles) {
-            // Create division lines with gradient thickness based on hierarchy
+            // Rings first (concentric arcs), then the radial hierarchy on top.
+            this.buildRingCircles();
 
-            // 1. Primary divisions (thickest, 2.5px): Between core emotions
+            // 1. Primary divisions (thickest): between core emotion families.
             this.createPrimaryDivisions(coreAngles);
-
-            // 2. Secondary divisions (medium, 1.5px): Between secondary emotions within each core group
+            // 2. Secondary divisions (medium): between secondaries within a family.
             this.createSecondaryDivisions(coreAngles);
-
-            // 3. Dyad divisions (thinnest, 1px): Between emotions within each dyad pair
+            // 3. Dyad divisions (thinnest, dashed): the split within each pair. Full mode only.
             if (!this.isSimplifiedMode) {
                 this.createDyadDivisions(coreAngles);
             }
         }
 
+        // Concentric ring circles at each ring boundary (core, middle, and — in full
+        // mode — outer). These replace the arc edges the wedge outlines used to draw.
+        buildRingCircles() {
+            const s = this.responsiveScaling || {};
+            const color = s.ringColor || '#4a453d';
+            const width = s.ringStroke || Math.max(0.2, this.containerSize * 0.0022);
+            const radii = this.isSimplifiedMode
+                ? [this.coreRadius, this.middleRadius]
+                : [this.coreRadius, this.middleRadius, this.outerRadius];
+
+            radii.forEach((r) => {
+                const ring = makeCircle({
+                    cx: this.centerX,
+                    cy: this.centerY,
+                    r,
+                    stroke: color,
+                    width,
+                    fill: 'none',
+                    className: 'wheel-ring',
+                });
+                if (ring) this.divisionLinesGroup.appendChild(ring);
+            });
+        }
+
         createPrimaryDivisions(coreAngles) {
-            // Create thickest division lines between primary emotion families
-            coreAngles.forEach((core, index) => {
-                const divisionAngle = core.end; // End of current core = start of next core
+            const s = this.responsiveScaling || {};
+            const color = s.lineColor || '#4a453d';
+            const width = s.primaryDivisionStroke || Math.max(0.5, this.containerSize * 0.006);
+            const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
 
-                // Create division line from center to outer edge (like radii)
-                const divisionAngleRad = (divisionAngle * Math.PI) / 180;
-                const x1 = this.centerX; // Start from center
-                const y1 = this.centerY; // Start from center
-
-                // Use middle radius in simplified mode, outer radius in full mode
-                const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
-                const x2 = this.centerX + endRadius * Math.cos(divisionAngleRad);
-                const y2 = this.centerY + endRadius * Math.sin(divisionAngleRad);
-
-                const divisionLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                divisionLine.setAttribute('x1', x1);
-                divisionLine.setAttribute('y1', y1);
-                divisionLine.setAttribute('x2', x2);
-                divisionLine.setAttribute('y2', y2);
-                divisionLine.setAttribute('stroke', '#333');
-                // RESPONSIVE STROKE WIDTH: Use centralized scaling system with safety check
-                const strokeWidth =
-                    this.responsiveScaling && this.responsiveScaling.primaryDivisionStroke
-                        ? this.responsiveScaling.primaryDivisionStroke
-                        : Math.max(0.5, this.containerSize * 0.006);
-                divisionLine.setAttribute('stroke-width', strokeWidth.toString());
-                divisionLine.setAttribute('class', 'primary-division-line');
-                divisionLine.style.pointerEvents = 'none';
-
-                this.divisionLinesGroup.appendChild(divisionLine);
+            coreAngles.forEach((core) => {
+                const rad = (core.end * Math.PI) / 180; // family boundary = end of this core
+                const el = makeLine({
+                    x1: this.centerX,
+                    y1: this.centerY,
+                    x2: this.centerX + endRadius * Math.cos(rad),
+                    y2: this.centerY + endRadius * Math.sin(rad),
+                    stroke: color,
+                    width,
+                    className: 'primary-division-line',
+                });
+                if (el) this.divisionLinesGroup.appendChild(el);
             });
         }
 
         createSecondaryDivisions(coreAngles) {
-            // Create medium thickness division lines between secondary emotions
+            const s = this.responsiveScaling || {};
+            const color = s.lineColor || '#4a453d';
+            const width = s.secondaryDivisionStroke || Math.max(0.3, this.containerSize * 0.004);
+            const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
+
             coreAngles.forEach((core) => {
                 const secondaryEmotions = this.data.secondary[core.name];
                 const anglePerSecondary = core.size / secondaryEmotions.length;
 
                 secondaryEmotions.forEach((emotion, index) => {
-                    if (index > 0) {
-                        // Skip first emotion (no line before it)
-                        const divisionAngle = core.start + index * anglePerSecondary;
-                        const divisionAngleRad = (divisionAngle * Math.PI) / 180;
-
-                        // Line from core radius to outer edge
-                        const x1 = this.centerX + this.coreRadius * Math.cos(divisionAngleRad);
-                        const y1 = this.centerY + this.coreRadius * Math.sin(divisionAngleRad);
-
-                        const endRadius = this.isSimplifiedMode
-                            ? this.middleRadius
-                            : this.outerRadius;
-                        const x2 = this.centerX + endRadius * Math.cos(divisionAngleRad);
-                        const y2 = this.centerY + endRadius * Math.sin(divisionAngleRad);
-
-                        const divisionLine = document.createElementNS(
-                            'http://www.w3.org/2000/svg',
-                            'line'
-                        );
-                        divisionLine.setAttribute('x1', x1);
-                        divisionLine.setAttribute('y1', y1);
-                        divisionLine.setAttribute('x2', x2);
-                        divisionLine.setAttribute('y2', y2);
-                        divisionLine.setAttribute('stroke', '#333');
-                        // RESPONSIVE STROKE WIDTH: Use centralized scaling system with safety check
-                        const strokeWidth =
-                            this.responsiveScaling && this.responsiveScaling.secondaryDivisionStroke
-                                ? this.responsiveScaling.secondaryDivisionStroke
-                                : Math.max(0.3, this.containerSize * 0.004);
-                        divisionLine.setAttribute('stroke-width', strokeWidth.toString());
-                        divisionLine.setAttribute('class', 'secondary-division-line');
-                        divisionLine.style.pointerEvents = 'none';
-
-                        this.divisionLinesGroup.appendChild(divisionLine);
-                    }
+                    if (index === 0) return; // first boundary is the primary line
+                    const rad = ((core.start + index * anglePerSecondary) * Math.PI) / 180;
+                    const el = makeLine({
+                        x1: this.centerX + this.coreRadius * Math.cos(rad),
+                        y1: this.centerY + this.coreRadius * Math.sin(rad),
+                        x2: this.centerX + endRadius * Math.cos(rad),
+                        y2: this.centerY + endRadius * Math.sin(rad),
+                        stroke: color,
+                        width,
+                        className: 'secondary-division-line',
+                    });
+                    if (el) this.divisionLinesGroup.appendChild(el);
                 });
             });
         }
 
         createDyadDivisions(coreAngles) {
-            // Create thinnest division lines between emotions within each dyad pair
+            const s = this.responsiveScaling || {};
+            const color = s.lineColor || '#4a453d';
+            const width = s.tertiaryDivisionStroke || Math.max(0.1, this.containerSize * 0.001);
+            // Dyad splits are the lightest hint of division — dashed so they read as a
+            // subtle inner subdivision rather than a hard border. Now that wedges are
+            // fill-only, no solid path edge sits beneath the dashes.
+            const dash = Math.max(1.5, this.containerSize * 0.006);
+
             coreAngles.forEach((core) => {
                 const secondaryEmotions = this.data.secondary[core.name];
                 const anglePerSecondary = core.size / secondaryEmotions.length;
 
                 secondaryEmotions.forEach((emotion, index) => {
                     const tertiaryEmotions = this.data.tertiary[emotion] || [];
-                    if (tertiaryEmotions.length === 2) {
-                        // Should always be 2 for dyad pairs
-                        const secondaryStartAngle = core.start + index * anglePerSecondary;
-                        const anglePerTertiary = anglePerSecondary / tertiaryEmotions.length;
-
-                        // Create division line between the two emotions in the dyad
-                        const divisionAngle = secondaryStartAngle + anglePerTertiary;
-                        const divisionAngleRad = (divisionAngle * Math.PI) / 180;
-
-                        // Line from middle radius to outer radius
-                        const x1 = this.centerX + this.middleRadius * Math.cos(divisionAngleRad);
-                        const y1 = this.centerY + this.middleRadius * Math.sin(divisionAngleRad);
-                        const x2 = this.centerX + this.outerRadius * Math.cos(divisionAngleRad);
-                        const y2 = this.centerY + this.outerRadius * Math.sin(divisionAngleRad);
-
-                        const divisionLine = document.createElementNS(
-                            'http://www.w3.org/2000/svg',
-                            'line'
-                        );
-                        divisionLine.setAttribute('x1', x1);
-                        divisionLine.setAttribute('y1', y1);
-                        divisionLine.setAttribute('x2', x2);
-                        divisionLine.setAttribute('y2', y2);
-                        divisionLine.setAttribute('stroke', '#333');
-                        // RESPONSIVE STROKE WIDTH: Use centralized scaling system with safety check
-                        const strokeWidth =
-                            this.responsiveScaling && this.responsiveScaling.tertiaryDivisionStroke
-                                ? this.responsiveScaling.tertiaryDivisionStroke
-                                : Math.max(0.1, this.containerSize * 0.001);
-                        divisionLine.setAttribute('stroke-width', strokeWidth.toString());
-                        // Dyad splits are the lightest hint of division — render them
-                        // dashed so they read as a subtle inner subdivision rather than
-                        // a hard border. Dash length scales with wheel size.
-                        const dash = Math.max(1.5, this.containerSize * 0.006);
-                        divisionLine.setAttribute('stroke-dasharray', `${dash} ${dash}`);
-                        divisionLine.setAttribute('class', 'dyad-division-line');
-                        divisionLine.style.pointerEvents = 'none';
-
-                        this.divisionLinesGroup.appendChild(divisionLine);
-                    }
+                    if (tertiaryEmotions.length !== 2) return; // dyad = exactly 2
+                    const secondaryStartAngle = core.start + index * anglePerSecondary;
+                    const rad = ((secondaryStartAngle + anglePerSecondary / 2) * Math.PI) / 180;
+                    const el = makeLine({
+                        x1: this.centerX + this.middleRadius * Math.cos(rad),
+                        y1: this.centerY + this.middleRadius * Math.sin(rad),
+                        x2: this.centerX + this.outerRadius * Math.cos(rad),
+                        y2: this.centerY + this.outerRadius * Math.sin(rad),
+                        stroke: color,
+                        width,
+                        dash: `${dash} ${dash}`,
+                        className: 'dyad-division-line',
+                    });
+                    if (el) this.divisionLinesGroup.appendChild(el);
                 });
             });
         }

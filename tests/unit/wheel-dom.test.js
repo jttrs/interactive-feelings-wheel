@@ -14,6 +14,20 @@ describe('full mode DOM', () => {
         expect(countWedges(container)).toBe(FULL_WEDGE_COUNT);
         expect(container.querySelectorAll('text')).toHaveLength(FULL_WEDGE_COUNT);
     });
+
+    it('wedges are fill-only; the separator layer owns all boundaries', () => {
+        const { container } = createTestWheel();
+        // No wedge carries a stroke — separators (lines + rings) draw every edge once.
+        container.querySelectorAll('.wedge:not(.shadow-wedge)').forEach((w) => {
+            const s = w.getAttribute('stroke');
+            expect(s === null || s === 'none').toBe(true);
+        });
+        // Separator layer present: 3 rings + 7 primary + 34 secondary + 41 dyad lines.
+        expect(container.querySelectorAll('.wheel-ring')).toHaveLength(3);
+        expect(container.querySelectorAll('.primary-division-line')).toHaveLength(7);
+        expect(container.querySelectorAll('.secondary-division-line')).toHaveLength(34);
+        expect(container.querySelectorAll('.dyad-division-line')).toHaveLength(41);
+    });
 });
 
 describe('simplified mode DOM', () => {

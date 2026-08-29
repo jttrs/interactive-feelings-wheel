@@ -75,6 +75,30 @@ describe('calculateTextRotation', () => {
     it('does not flip at 270deg (boundary is exclusive)', () => {
         expect(gen.calculateTextRotation(270)).toBe(270);
     });
+
+    // The flip decision uses flipAngle (2nd arg), not baseAngle, so both labels in a
+    // dyad — which share their secondary parent's flipAngle — flip together even when
+    // the pair straddles the 90/270 boundary. Each label still rotates along its OWN
+    // baseAngle (so it stays centered in its half-slice).
+    it('flips both dyad labels together when their shared flipAngle is upside-down', () => {
+        // Two half-slices at 88deg and 92deg straddle the 90 boundary; without a shared
+        // flipAngle they would disagree. Shared parent midangle = 90.0001 (just past).
+        const flip = 90.0001;
+        const a = gen.calculateTextRotation(88, flip);
+        const b = gen.calculateTextRotation(92, flip);
+        expect(a).toBe(88 + 180); // both flipped
+        expect(b).toBe(92 + 180);
+    });
+
+    it('keeps both dyad labels unflipped when their shared flipAngle is upright', () => {
+        const flip = 45; // upright half
+        expect(gen.calculateTextRotation(43, flip)).toBe(43);
+        expect(gen.calculateTextRotation(47, flip)).toBe(47);
+    });
+
+    it('defaults flipAngle to baseAngle when omitted (core/secondary labels)', () => {
+        expect(gen.calculateTextRotation(200)).toBe(200 + 180);
+    });
 });
 
 describe('calculateCoreAngles', () => {

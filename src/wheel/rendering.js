@@ -293,26 +293,30 @@ export const RenderingMixin = (Base) =>
             return { x, y, baseAngle: midAngle };
         }
 
-        // Calculate dynamic text rotation based on wheel rotation
-        calculateTextRotation(baseAngle) {
-            const totalRotation = (baseAngle + this.currentRotation) % 360;
+        // Calculate dynamic text rotation based on wheel rotation.
+        // The label is drawn along its OWN radius (baseAngle), but the up/down flip
+        // decision uses flipAngle. For tertiary labels flipAngle is the SECONDARY
+        // parent's midangle, so both words in a dyad flip together instead of
+        // splitting when the pair straddles the 90/270 boundary. For core/secondary
+        // labels flipAngle === baseAngle (no change from before).
+        calculateTextRotation(baseAngle, flipAngle = baseAngle) {
+            const totalRotation = (flipAngle + this.currentRotation) % 360;
             const normalizedAngle = totalRotation < 0 ? totalRotation + 360 : totalRotation;
 
-            // Text runs along radius - use base angle for radial orientation
-            let textRotation = baseAngle;
-
-            // Flip text if it would be upside down (between 90 and 270 degrees)
+            // Flip if the pair's orientation would be upside down (90–270 degrees).
             if (normalizedAngle > 90 && normalizedAngle < 270) {
-                textRotation = baseAngle + 180;
+                return baseAngle + 180;
             }
-
-            return textRotation;
+            return baseAngle;
         }
 
         // Update all text rotations based on current wheel rotation
         updateTextRotations() {
             this.textElements.forEach((textData) => {
-                const newRotation = this.calculateTextRotation(textData.baseAngle);
+                const newRotation = this.calculateTextRotation(
+                    textData.baseAngle,
+                    textData.flipAngle
+                );
                 textData.element.setAttribute(
                     'transform',
                     `rotate(${newRotation} ${textData.x} ${textData.y})`
@@ -560,6 +564,10 @@ export const RenderingMixin = (Base) =>
                                 radius: (this.middleRadius + this.outerRadius) / 2,
                                 start: startAngle,
                                 end: endAngle,
+                                // Both dyad labels flip together, governed by the
+                                // secondary parent's full span (not each half-slice).
+                                flipStart: secondaryStartAngle,
+                                flipEnd: secondaryStartAngle + anglePerSecondary,
                                 smallMinFactor: 0.01,
                                 smallScale: 0.6,
                             });
@@ -631,10 +639,19 @@ export const RenderingMixin = (Base) =>
             radius,
             start,
             end,
+            flipStart,
+            flipEnd,
             smallMinFactor,
             smallScale,
         }) {
             const textPos = this.positionText(this.centerX, this.centerY, radius, start, end);
+
+            // The flip is governed by flipStart/flipEnd's midangle when provided (dyad
+            // labels share their secondary parent's span), else the label's own span.
+            const flipAngle =
+                flipStart !== undefined && flipEnd !== undefined
+                    ? (flipStart + flipEnd) / 2
+                    : textPos.baseAngle;
 
             let fontSize = this.calculateFontSize(level);
             if (this.containerSize < 300) {
@@ -656,6 +673,7 @@ export const RenderingMixin = (Base) =>
             this.textElements.push({
                 element: textEl,
                 baseAngle: textPos.baseAngle,
+                flipAngle,
                 x: textPos.x,
                 y: textPos.y,
             });

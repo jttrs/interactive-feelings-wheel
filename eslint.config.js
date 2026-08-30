@@ -19,6 +19,7 @@ export default [
                 setTimeout: 'readonly',
                 clearTimeout: 'readonly',
                 ResizeObserver: 'readonly',
+                Event: 'readonly',
                 CustomEvent: 'readonly',
                 MouseEvent: 'readonly',
                 WheelEvent: 'readonly',

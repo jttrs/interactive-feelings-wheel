@@ -1172,9 +1172,11 @@ svg {
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
     /* REMOVED: vector-effect: non-scaling-stroke; - conflicts with responsive stroke widths */
-    /* Enable hardware acceleration for smooth transforms */
-    will-change: transform;
-    transform: translateZ(0);
+    /* NOTE: do NOT permanently promote the root <svg> to its own GPU layer here
+       (was `will-change: transform; transform: translateZ(0)`). A persistent
+       promoted layer can lose its backing texture across a fullscreen enter/exit
+       and render blank until an unrelated repaint (e.g. refocusing the window).
+       The rotating groups (.wheel-main-group) carry their own acceleration. */
 }
 
 /* SVG Path elements - optimize shape rendering (excluding shadows) */

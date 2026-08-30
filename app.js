@@ -155,6 +155,16 @@ export class FeelingsWheelApp {
     handleFullscreenChange() {
         // Update button state immediately
         this.updateFullscreenButton();
+
+        // Force the wheel to re-render after a fullscreen transition. Chrome can
+        // discard the backing texture of a GPU-promoted layer across enter/exit and
+        // leave it blank until an unrelated repaint (the "comes back when you click
+        // the app" symptom). handleResize alone won't help — exiting returns to the
+        // same window size, and its guard skips regeneration on a ~0 size delta.
+        // Wait for the browser to settle the layout, then hard re-render.
+        if (this.wheelGenerator) {
+            setTimeout(() => this.wheelGenerator.forceRerender(), 100);
+        }
     }
 
     // ===== KEYBOARD SHORTCUTS FUNCTIONALITY =====

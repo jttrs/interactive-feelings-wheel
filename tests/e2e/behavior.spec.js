@@ -83,6 +83,23 @@ test('a card collapses/expands independently without affecting others', async ({
     await expect(first).not.toHaveClass(/is-collapsed/);
 });
 
+test('a fullscreen change re-renders the wheel and preserves selection', async ({ page }) => {
+    // Regression: exiting fullscreen left the GPU-promoted SVG layer blank until an
+    // unrelated repaint. handleFullscreenChange now forces a re-render (bypassing the
+    // resize size-delta guard) that rebuilds the SVG and restores state.
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await expect(page.locator('.wedge.selected')).toHaveCount(1);
+
+    await page.evaluate(() => document.dispatchEvent(new Event('fullscreenchange')));
+    // Wait out the 100ms handler delay + regeneration.
+    await page.waitForTimeout(300);
+
+    // Wheel fully rebuilt and the selection survived.
+    await expect(page.locator('.wedge:not(.shadow-wedge)')).toHaveCount(130);
+    await expect(page.locator('.wedge.selected')).toHaveCount(1);
+    await expect(page.locator('.emotion-card')).toHaveCount(1);
+});
+
 test('reset clears all selections and tiles', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await page.locator('.core-wedge[data-emotion="Fearful"]').click();

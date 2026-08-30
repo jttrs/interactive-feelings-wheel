@@ -263,6 +263,13 @@ export const InteractionMixin = (Base) =>
             }, 150);
         }
 
+        // Unconditional re-render (no size-delta guard). Used after a fullscreen
+        // transition to rebuild the SVG and refresh any stale GPU layer, even when
+        // the window size is unchanged. Preserves rotation + selection state.
+        forceRerender() {
+            this.regenerateWheel();
+        }
+
         handleWedgeClick(event) {
             const wedge = event.target;
             const emotion = wedge.getAttribute('data-emotion');

@@ -590,6 +590,14 @@ body {
     gap: 0;
 }
 
+/* Explore body owns no padding/gap itself — the empty state centres, and the
+   emotion-cards list brings its own padding. Keeps the empty invitation vertically
+   centred beneath the tab title. */
+.view-body--explore {
+    padding: 0;
+    gap: 0;
+}
+
 .kofi-frame {
     flex: 1;
     width: 100%;

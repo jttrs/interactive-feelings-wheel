@@ -28,14 +28,21 @@
                 </div>
 
                 <div class="panel-content">
-                    <!-- EXPLORE view (default): empty-state invitation + emotion tiles -->
-                    <div class="panel-view panel-view--explore" id="view-explore">
-                        <div class="panel-empty" id="panel-instructions">
-                            <p class="empty-title">Name what you feel</p>
-                            <p class="empty-hint">Tap or spin the wheel to explore a feeling.</p>
+                    <!-- EXPLORE view (default): same tabbed head + body as the other
+                         views (no back button — this is the home tab). -->
+                    <div class="panel-view panel-view--explore" id="view-explore" role="region"
+                         aria-label="Your feelings">
+                        <div class="view-head">
+                            <h2 class="view-title">Your feelings</h2>
                         </div>
-                        <div class="emotion-tiles" id="emotion-tiles">
-                            <!-- Emotion tiles will be dynamically added here -->
+                        <div class="view-body view-body--explore">
+                            <div class="panel-empty" id="panel-instructions">
+                                <p class="empty-title">Name what you feel</p>
+                                <p class="empty-hint">Tap or spin the wheel to explore a feeling.</p>
+                            </div>
+                            <div class="emotion-tiles" id="emotion-tiles">
+                                <!-- Emotion cards are added here dynamically -->
+                            </div>
                         </div>
                     </div>
 

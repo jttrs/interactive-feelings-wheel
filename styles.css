@@ -639,13 +639,6 @@ body {
     display: none;
 }
 
-.empty-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--color-ink);
-    margin: 0;
-}
-
 .empty-hint {
     font-size: 0.95rem;
     color: var(--color-ink-muted);

@@ -56,7 +56,8 @@ export const RenderingMixin = (Base) =>
             };
             setWidth('.primary-division-line', s.primaryDivisionStroke);
             setWidth('.secondary-division-line', s.secondaryDivisionStroke);
-            setWidth('.dyad-division-line', s.tertiaryDivisionStroke);
+            // Dyad dots are drawn slightly thicker than the hairline so they read.
+            setWidth('.dyad-division-line', Math.max(0.6, s.tertiaryDivisionStroke * 1.6));
             setWidth('.wheel-ring', s.ringStroke);
         }
 
@@ -979,12 +980,15 @@ export const RenderingMixin = (Base) =>
         createDyadDivisions(coreAngles) {
             const s = this.responsiveScaling || {};
             const color = s.lineColor || '#4a453d';
-            const width = s.tertiaryDivisionStroke || Math.max(0.1, this.containerSize * 0.001);
-            // Dyad splits are the lightest hint of division — dashed so they read as a
-            // subtle inner subdivision rather than a hard border. Now that wedges are
-            // fill-only, no solid path edge sits beneath the dashes. Tight dash for a
-            // finer, more delicate stitch.
-            const dash = Math.max(1, this.containerSize * 0.003);
+            // Dyad splits are the lightest hint of division — rendered as a row of
+            // round DOTS (dasharray 0 + round linecap makes each dash a dot whose
+            // diameter is the stroke width). Slightly thicker than the hairline dash
+            // so the dots read, with a gap that scales with wheel size.
+            const width = Math.max(
+                0.6,
+                (s.tertiaryDivisionStroke || this.containerSize * 0.001) * 1.6
+            );
+            const gap = Math.max(2, this.containerSize * 0.004);
 
             coreAngles.forEach((core) => {
                 const secondaryEmotions = this.data.secondary[core.name];
@@ -1002,9 +1006,10 @@ export const RenderingMixin = (Base) =>
                         y2: this.centerY + this.outerRadius * Math.sin(rad),
                         stroke: color,
                         width,
-                        dash: `${dash} ${dash}`,
+                        dash: `0 ${gap}`,
                         className: 'dyad-division-line',
                     });
+                    if (el) el.setAttribute('stroke-linecap', 'round');
                     if (el) this.divisionLinesGroup.appendChild(el);
                 });
             });

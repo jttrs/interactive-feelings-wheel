@@ -330,6 +330,10 @@ export const RenderingMixin = (Base) =>
             this.container.innerHTML = '';
             this.textElements = [];
             this.wedgeRegistry.clear();
+            // Sequential nav index stamped on each wedge (see buildWedge) so keyboard
+            // focus order follows generation order, not live DOM order (which shifts
+            // when a selected wedge's <path> moves to the top layer).
+            this._navCounter = 0;
 
             // Get container dimensions with DPI awareness
             if (!this.container) {
@@ -615,6 +619,8 @@ export const RenderingMixin = (Base) =>
             const dataset = { emotion, level, 'wedge-id': wedgeId };
             if (parent !== null && parent !== undefined) dataset.parent = parent;
             if (grandparent !== undefined) dataset.grandparent = grandparent;
+            // Stable keyboard-navigation order (independent of later DOM layer moves).
+            dataset['nav-index'] = this._navCounter++;
 
             const path = makeWedgePath({
                 d: this.createWedgePath(this.centerX, this.centerY, innerR, outerR, start, end),

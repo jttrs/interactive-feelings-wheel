@@ -210,9 +210,15 @@ export const InteractionMixin = (Base) =>
             window.addEventListener('orientationchange', this._onOrientationChange);
         }
 
-        // Ordered list of focusable wedges (document order == core, then secondary, then tertiary).
+        // Focusable wedges in STABLE generation order (data-nav-index), not live DOM
+        // order — a selected wedge's <path> is moved to the top layer, which would
+        // otherwise reshuffle arrow-key navigation after any selection.
         getFocusableWedges() {
-            return Array.from(this.container.querySelectorAll('.wedge:not(.shadow-wedge)'));
+            return Array.from(this.container.querySelectorAll('.wedge:not(.shadow-wedge)')).sort(
+                (a, b) =>
+                    Number(a.getAttribute('data-nav-index')) -
+                    Number(b.getAttribute('data-nav-index'))
+            );
         }
 
         // Make exactly one wedge part of the tab order so the wheel is a single tab-stop.

@@ -25,6 +25,15 @@ export function svgEl(name, attrs = {}) {
     return el;
 }
 
+// An SVG <g> layer. Optional class + a transform-origin (the wheel's rotation
+// groups all rotate about the center). Centralizes the namespaced group creation
+// that the layer setup would otherwise hand-roll.
+export function group({ className, transformOrigin } = {}) {
+    const el = svgEl('g', { class: className || undefined });
+    if (transformOrigin) el.style.transformOrigin = transformOrigin;
+    return el;
+}
+
 // A straight stroked line. Returns null (no element) if any endpoint is non-finite,
 // so a bad coordinate can't inject a broken <line>.
 export function line({ x1, y1, x2, y2, stroke, width, dash, className }) {

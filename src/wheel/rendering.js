@@ -4,6 +4,7 @@ import {
     circle as makeCircle,
     wedgePath as makeWedgePath,
     text as makeText,
+    group as makeGroup,
     readWheelTokens,
 } from './svg.js';
 
@@ -447,28 +448,25 @@ export const RenderingMixin = (Base) =>
                 'Feelings wheel. Use arrow keys to move between emotions and Enter or Space to select.'
             );
 
-            // Create four layers for proper rendering
+            // Create four layers for proper rendering (via the guarded group() helper).
+            const origin = `${this.centerX}px ${this.centerY}px`;
             // 1. Base layer for unemphasized wedges
-            this.baseGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.baseGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
-            this.baseGroup.setAttribute('class', 'wheel-main-group');
+            this.baseGroup = makeGroup({ className: 'wheel-main-group', transformOrigin: origin });
             this.svg.appendChild(this.baseGroup);
 
             // 2. Division lines layer (always on top, not affected by wedge movement)
-            this.divisionLinesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.divisionLinesGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
-            this.divisionLinesGroup.setAttribute('class', 'wheel-main-group');
+            this.divisionLinesGroup = makeGroup({
+                className: 'wheel-main-group',
+                transformOrigin: origin,
+            });
             this.svg.appendChild(this.divisionLinesGroup);
 
             // 3. Shadow layer (renders above unemphasized, below emphasized) - NO CSS transforms
-            this.shadowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.shadowGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
+            this.shadowGroup = makeGroup({ transformOrigin: origin });
             this.svg.appendChild(this.shadowGroup);
 
             // 4. Top layer for emphasized wedges
-            this.topGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.topGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
-            this.topGroup.setAttribute('class', 'wheel-main-group');
+            this.topGroup = makeGroup({ className: 'wheel-main-group', transformOrigin: origin });
             this.svg.appendChild(this.topGroup);
 
             // Keep wheelGroup as alias for baseGroup for compatibility
@@ -694,7 +692,7 @@ export const RenderingMixin = (Base) =>
 
         createShadowCopy(originalWedge, wedgeId) {
             // Create a group to hold the shadow with offset
-            const shadowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const shadowGroup = makeGroup();
             shadowGroup.setAttribute('data-shadow-id', wedgeId);
 
             // Create a copy of the wedge for shadow layer
@@ -943,30 +941,47 @@ export const RenderingMixin = (Base) =>
             });
         }
 
+        // Shared radial-separator drawer. All three division tiers are a stroked line
+        // from innerRadius to endRadius at a given angle; only the radii, weight, dash,
+        // linecap, and class differ. Centralizes the trig + makeLine + append + the
+        // '#4a453d' color fallback that was copy-pasted across the three methods.
+        drawRadialLine({ angleDeg, innerRadius, endRadius, width, className, dash, round }) {
+            const color = (this.responsiveScaling && this.responsiveScaling.lineColor) || '#4a453d';
+            const rad = (angleDeg * Math.PI) / 180;
+            const el = makeLine({
+                x1: this.centerX + innerRadius * Math.cos(rad),
+                y1: this.centerY + innerRadius * Math.sin(rad),
+                x2: this.centerX + endRadius * Math.cos(rad),
+                y2: this.centerY + endRadius * Math.sin(rad),
+                stroke: color,
+                width,
+                dash,
+                className,
+            });
+            if (!el) return;
+            if (round) el.setAttribute('stroke-linecap', 'round');
+            this.divisionLinesGroup.appendChild(el);
+        }
+
         createPrimaryDivisions(coreAngles) {
             const s = this.responsiveScaling || {};
-            const color = s.lineColor || '#4a453d';
             const width = s.primaryDivisionStroke || Math.max(0.5, this.containerSize * 0.006);
             const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
 
             coreAngles.forEach((core) => {
-                const rad = (core.end * Math.PI) / 180; // family boundary = end of this core
-                const el = makeLine({
-                    x1: this.centerX,
-                    y1: this.centerY,
-                    x2: this.centerX + endRadius * Math.cos(rad),
-                    y2: this.centerY + endRadius * Math.sin(rad),
-                    stroke: color,
+                // Family boundary = end of this core; line runs from the center out.
+                this.drawRadialLine({
+                    angleDeg: core.end,
+                    innerRadius: 0,
+                    endRadius,
                     width,
                     className: 'primary-division-line',
                 });
-                if (el) this.divisionLinesGroup.appendChild(el);
             });
         }
 
         createSecondaryDivisions(coreAngles) {
             const s = this.responsiveScaling || {};
-            const color = s.lineColor || '#4a453d';
             const width = s.secondaryDivisionStroke || Math.max(0.3, this.containerSize * 0.004);
             const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
 
@@ -976,24 +991,19 @@ export const RenderingMixin = (Base) =>
 
                 secondaryEmotions.forEach((emotion, index) => {
                     if (index === 0) return; // first boundary is the primary line
-                    const rad = ((core.start + index * anglePerSecondary) * Math.PI) / 180;
-                    const el = makeLine({
-                        x1: this.centerX + this.coreRadius * Math.cos(rad),
-                        y1: this.centerY + this.coreRadius * Math.sin(rad),
-                        x2: this.centerX + endRadius * Math.cos(rad),
-                        y2: this.centerY + endRadius * Math.sin(rad),
-                        stroke: color,
+                    this.drawRadialLine({
+                        angleDeg: core.start + index * anglePerSecondary,
+                        innerRadius: this.coreRadius,
+                        endRadius,
                         width,
                         className: 'secondary-division-line',
                     });
-                    if (el) this.divisionLinesGroup.appendChild(el);
                 });
             });
         }
 
         createDyadDivisions(coreAngles) {
             const s = this.responsiveScaling || {};
-            const color = s.lineColor || '#4a453d';
             // Dyad splits are the lightest hint of division — rendered as a row of
             // round DOTS (dasharray 0 + round linecap makes each dash a dot whose
             // diameter is the stroke width). Slightly thicker than the hairline dash
@@ -1012,19 +1022,15 @@ export const RenderingMixin = (Base) =>
                     const tertiaryEmotions = this.data.tertiary[emotion] || [];
                     if (tertiaryEmotions.length !== 2) return; // dyad = exactly 2
                     const secondaryStartAngle = core.start + index * anglePerSecondary;
-                    const rad = ((secondaryStartAngle + anglePerSecondary / 2) * Math.PI) / 180;
-                    const el = makeLine({
-                        x1: this.centerX + this.middleRadius * Math.cos(rad),
-                        y1: this.centerY + this.middleRadius * Math.sin(rad),
-                        x2: this.centerX + this.outerRadius * Math.cos(rad),
-                        y2: this.centerY + this.outerRadius * Math.sin(rad),
-                        stroke: color,
+                    this.drawRadialLine({
+                        angleDeg: secondaryStartAngle + anglePerSecondary / 2,
+                        innerRadius: this.middleRadius,
+                        endRadius: this.outerRadius,
                         width,
                         dash: `0 ${gap}`,
+                        round: true,
                         className: 'dyad-division-line',
                     });
-                    if (el) el.setAttribute('stroke-linecap', 'round');
-                    if (el) this.divisionLinesGroup.appendChild(el);
                 });
             });
         }

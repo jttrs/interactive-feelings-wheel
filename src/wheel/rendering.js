@@ -311,13 +311,18 @@ export const RenderingMixin = (Base) =>
             return baseAngle;
         }
 
-        // Update all text rotations based on current wheel rotation
+        // Update all text rotations based on current wheel rotation. calculateTextRotation
+        // only yields baseAngle or baseAngle+180 (flip flips only at the 90/270 boundary),
+        // so on almost every frame the value is unchanged — write only when it actually
+        // changes to avoid ~140 no-op attribute writes per drag/scroll frame.
         updateTextRotations() {
             this.textElements.forEach((textData) => {
                 const newRotation = this.calculateTextRotation(
                     textData.baseAngle,
                     textData.flipAngle
                 );
+                if (newRotation === textData.lastRotation) return;
+                textData.lastRotation = newRotation;
                 textData.element.setAttribute(
                     'transform',
                     `rotate(${newRotation} ${textData.x} ${textData.y})`
@@ -888,10 +893,13 @@ export const RenderingMixin = (Base) =>
         }
 
         updateAllShadowTransforms() {
-            const shadowGroups = this.shadowGroup.querySelectorAll('[data-shadow-id]');
-            shadowGroups.forEach((shadowGroup) => {
-                this.updateShadowTransform(shadowGroup);
-            });
+            // shadowGroup contains only shadow <g> children (one per selected wedge), so
+            // iterate them directly instead of re-running an attribute-selector tree scan
+            // every rotation frame.
+            const groups = this.shadowGroup.children;
+            for (let i = 0; i < groups.length; i++) {
+                this.updateShadowTransform(groups[i]);
+            }
         }
 
         // ===== SEPARATOR LAYER =====

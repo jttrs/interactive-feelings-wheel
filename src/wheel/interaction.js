@@ -91,10 +91,14 @@ export const InteractionMixin = (Base) =>
             });
         }
 
+        // Called on every generate(): the <svg> is recreated each time, so its scoped
+        // listeners are attached fresh (the old svg is discarded with its listeners — no
+        // leak). Global document/window listeners are bound ONCE via setupGlobalListeners()
+        // (from the constructor), never here, to avoid stacking a duplicate set on every
+        // regenerate (mode switch / resize / fullscreen).
         setupEventListeners() {
-            // Mouse events for rotation
+            // Mouse down to begin a drag-rotation.
             this.svg.addEventListener('mousedown', (e) => {
-                // Prevent interaction during animations
                 if (this.isAnimating) return;
 
                 // Grabbing the wheel arrests any in-flight scroll glide.
@@ -111,27 +115,6 @@ export const InteractionMixin = (Base) =>
                 e.preventDefault();
             });
 
-            document.addEventListener('mousemove', (e) => {
-                if (!this.isDragging || this.isAnimating) return;
-
-                const rect = this.svg.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left - rect.width / 2;
-                const mouseY = e.clientY - rect.top - rect.height / 2;
-
-                const currentMouseAngle = Math.atan2(mouseY, mouseX);
-                const deltaAngle = (currentMouseAngle - this.lastMouseAngle) * (180 / Math.PI);
-
-                this.currentRotation += deltaAngle;
-                this.lastMouseAngle = currentMouseAngle;
-
-                this.updateRotation();
-            });
-
-            document.addEventListener('mouseup', () => {
-                this.isDragging = false;
-                this.svg.style.cursor = 'grab';
-            });
-
             // Mouse wheel for rotation. Scale by the scroll MAGNITUDE (not just its
             // sign) and feed a decaying-velocity model so the wheel has weight and
             // does not flicker on the tiny sign-alternating deltas a slow trackpad
@@ -146,10 +129,11 @@ export const InteractionMixin = (Base) =>
                 { passive: false }
             );
 
-            // Click events for emotions
+            // Click events for emotions. Blocked during a drag AND during an animation
+            // (e.g. the reset unwind) — a mid-reset click would otherwise select a wedge
+            // the in-flight reset won't clean up, leaving it stuck-selected.
             this.svg.addEventListener('click', (e) => {
-                if (this.isDragging) return;
-                // Remove animation blocking for clicks - only block drag/wheel during animations
+                if (this.isDragging || this.isAnimating) return;
 
                 const emotion = e.target.getAttribute('data-emotion');
                 if (emotion && e.target.classList.contains('wedge')) {
@@ -184,13 +168,46 @@ export const InteractionMixin = (Base) =>
 
             // Establish the single tab-stop into the wheel.
             this.initRovingTabindex();
+        }
 
-            // DPI-aware resize handling
-            window.addEventListener('resize', () => this.handleResize());
-            window.addEventListener('orientationchange', () => {
+        // Bind document/window listeners ONCE (from the constructor). These outlive any
+        // single <svg>, so re-binding per generate() would stack duplicate handlers — a
+        // steadily worsening memory + CPU leak. Bound refs are stored so they can be
+        // removed on teardown. Each handler no-ops until the wheel is generated (svg set).
+        setupGlobalListeners() {
+            if (this._globalListenersBound) return;
+            this._globalListenersBound = true;
+
+            this._onMouseMove = (e) => {
+                if (!this.isDragging || this.isAnimating || !this.svg) return;
+
+                const rect = this.svg.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left - rect.width / 2;
+                const mouseY = e.clientY - rect.top - rect.height / 2;
+
+                const currentMouseAngle = Math.atan2(mouseY, mouseX);
+                const deltaAngle = (currentMouseAngle - this.lastMouseAngle) * (180 / Math.PI);
+
+                this.currentRotation += deltaAngle;
+                this.lastMouseAngle = currentMouseAngle;
+
+                this.updateRotation();
+            };
+            this._onMouseUp = () => {
+                if (!this.svg) return;
+                this.isDragging = false;
+                this.svg.style.cursor = 'grab';
+            };
+            this._onResize = () => this.handleResize();
+            this._onOrientationChange = () => {
                 // Mobile orientation change - allow time for layout to settle
                 setTimeout(() => this.handleResize(), 200);
-            });
+            };
+
+            document.addEventListener('mousemove', this._onMouseMove);
+            document.addEventListener('mouseup', this._onMouseUp);
+            window.addEventListener('resize', this._onResize);
+            window.addEventListener('orientationchange', this._onOrientationChange);
         }
 
         // Ordered list of focusable wedges (document order == core, then secondary, then tertiary).

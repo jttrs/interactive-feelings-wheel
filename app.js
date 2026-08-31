@@ -243,11 +243,13 @@ export class FeelingsWheelApp {
     }
 
     rotateWheel(degrees) {
-        // Use wheel generator's rotation functionality
-        if (this.wheelGenerator) {
-            const targetRotation = this.wheelGenerator.currentRotation + degrees;
-            this.wheelGenerator.animateRotation(targetRotation, 200); // Quick 200ms animation
-        }
+        // Ignore rotate requests while an animation (e.g. the reset unwind) owns the
+        // wheel — a second concurrent rAF would fight it for currentRotation and could
+        // leave the wheel at an angle that disagrees with the committed reset state.
+        if (!this.wheelGenerator || this.wheelGenerator.isAnimating) return;
+
+        const targetRotation = this.wheelGenerator.currentRotation + degrees;
+        this.wheelGenerator.animateRotation(targetRotation, 200); // Quick 200ms animation
     }
 
     // ===== INFORMATION PANEL FUNCTIONALITY =====

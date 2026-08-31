@@ -161,9 +161,12 @@ export class FeelingsWheelApp {
         // leave it blank until an unrelated repaint (the "comes back when you click
         // the app" symptom). handleResize alone won't help — exiting returns to the
         // same window size, and its guard skips regeneration on a ~0 size delta.
-        // Wait for the browser to settle the layout, then hard re-render.
+        // Re-render after the post-transition paint via double-rAF (reacts to the
+        // real layout/paint settle rather than guessing a fixed delay).
         if (this.wheelGenerator) {
-            setTimeout(() => this.wheelGenerator.forceRerender(), 100);
+            requestAnimationFrame(() =>
+                requestAnimationFrame(() => this.wheelGenerator.forceRerender())
+            );
         }
     }
 

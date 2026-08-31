@@ -248,36 +248,14 @@ export const InteractionMixin = (Base) =>
             target.focus();
         }
 
-        // DPI-aware resize handler
+        // DPI-aware resize handler. Uses the SAME computeAvailableWheelSize() as
+        // generate(), so a resize computes an identical size to the initial render for
+        // the same viewport/panel state (no more 150-vs-200 floor divergence).
         handleResize() {
             clearTimeout(this.resizeTimeout);
             this.resizeTimeout = setTimeout(() => {
                 const oldSize = this.containerSize;
-                const containerRect = this.container.getBoundingClientRect();
-
-                // MOBILE FIX: Use same logic as generate() for consistent sizing
-                let availableWidth = containerRect.width;
-                let availableHeight = containerRect.height;
-
-                // Check if we're on mobile (viewport width <= 767px)
-                const isMobile = window.innerWidth <= 767;
-
-                if (isMobile) {
-                    // On mobile, account for bottom panel
-                    const infoPanel = document.querySelector('.info-panel');
-                    let panelHeight = 320; // Default fallback
-
-                    if (infoPanel && !infoPanel.classList.contains('minimized')) {
-                        const panelRect = infoPanel.getBoundingClientRect();
-                        panelHeight = panelRect.height || 320;
-                    } else if (infoPanel && infoPanel.classList.contains('minimized')) {
-                        panelHeight = 0;
-                    }
-
-                    availableHeight = Math.max(200, availableHeight - panelHeight - 20);
-                }
-
-                const newCssSize = Math.min(availableWidth, availableHeight);
+                const newCssSize = this.computeAvailableWheelSize();
 
                 // Only regenerate if significant change (avoid constant regeneration)
                 if (Math.abs(newCssSize - oldSize) > 10) {

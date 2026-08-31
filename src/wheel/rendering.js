@@ -331,6 +331,31 @@ export const RenderingMixin = (Base) =>
             });
         }
 
+        // Single source of truth for the wheel's css size given the current viewport +
+        // panel state. Used by generate() AND handleResize() so both compute the same
+        // value for the same conditions (they previously duplicated this with divergent
+        // mobile floors — 150 vs 200 — which could size the wheel differently on resize
+        // vs initial render). One floor (150) so very small screens still render.
+        computeAvailableWheelSize() {
+            const rect = this.container.getBoundingClientRect();
+            let availableWidth = rect.width;
+            let availableHeight = rect.height;
+
+            if (window.innerWidth <= 767) {
+                // On mobile the bottom-sheet panel eats vertical space.
+                const infoPanel = document.querySelector('.info-panel');
+                let panelHeight = 320; // fallback
+                if (infoPanel && !infoPanel.classList.contains('minimized')) {
+                    panelHeight = infoPanel.getBoundingClientRect().height || 320;
+                } else if (infoPanel && infoPanel.classList.contains('minimized')) {
+                    panelHeight = 0;
+                }
+                availableHeight = Math.max(150, availableHeight - panelHeight - 20);
+            }
+
+            return Math.min(availableWidth, availableHeight);
+        }
+
         generate() {
             // Clear container and text elements
             this.container.innerHTML = '';
@@ -347,44 +372,14 @@ export const RenderingMixin = (Base) =>
                 return;
             }
 
-            const containerRect = this.container.getBoundingClientRect();
+            const cssSize = this.computeAvailableWheelSize();
 
-            // MOBILE FIX: Account for mobile layout constraints
-            let availableWidth = containerRect.width;
-            let availableHeight = containerRect.height;
-
-            // Check if we're on mobile (viewport width <= 767px)
-            const isMobile = window.innerWidth <= 767;
-
-            if (isMobile) {
-                // On mobile, account for bottom panel that takes 320px-340px
-                // Get the actual info panel height to be precise
-                const infoPanel = document.querySelector('.info-panel');
-                let panelHeight = 320; // Default fallback
-
-                if (infoPanel && !infoPanel.classList.contains('minimized')) {
-                    // Panel is visible, get its actual height
-                    const panelRect = infoPanel.getBoundingClientRect();
-                    panelHeight = panelRect.height || 320;
-                } else if (infoPanel && infoPanel.classList.contains('minimized')) {
-                    // Panel is minimized, no height constraint
-                    panelHeight = 0;
-                }
-
-                // Subtract panel height and some margin from available height
-                availableHeight = Math.max(150, availableHeight - panelHeight - 20); // Lower minimum for very small screens
-
-                // SMART ADAPTATION: If wheel becomes too small, suggest simplified mode
-                const resultingSize = Math.min(availableWidth, availableHeight);
-                if (resultingSize < 250 && !this.isSimplifiedMode) {
-                    // Very small wheel - simplified mode would help but don't force it
-                    console.info(
-                        'ℹ️ Wheel is quite small. Consider using Simplified Mode for better text readability.'
-                    );
-                }
+            // SMART ADAPTATION: If wheel becomes too small, suggest simplified mode
+            if (window.innerWidth <= 767 && cssSize < 250 && !this.isSimplifiedMode) {
+                console.info(
+                    'ℹ️ Wheel is quite small. Consider using Simplified Mode for better text readability.'
+                );
             }
-
-            const cssSize = Math.min(availableWidth, availableHeight);
 
             // Update DPI information
             this.dpr = window.devicePixelRatio || 1;
@@ -394,12 +389,7 @@ export const RenderingMixin = (Base) =>
 
             // CRITICAL VALIDATION: Ensure we have a valid size
             if (!size || size <= 0) {
-                console.error('❌ Invalid wheel size:', {
-                    size,
-                    cssSize,
-                    availableWidth,
-                    availableHeight,
-                });
+                console.error('❌ Invalid wheel size:', { size, cssSize });
                 return; // Don't generate wheel with invalid size
             }
 

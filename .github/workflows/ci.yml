@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  lint-unit:
+    name: Lint + unit + coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:coverage
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # OS-independent specs: behavioral + accessibility. These must pass on every
+      # run (no pixel comparison, so no Linux-vs-macOS baseline issue).
+      - name: Behavioral + accessibility e2e
+        run: npx playwright test tests/e2e/behavior.spec.js tests/e2e/accessibility.spec.js
+
+      # Visual snapshots are OS-specific. The committed baselines are macOS
+      # (*-chromium-darwin.png); Linux CI needs *-chromium-linux.png. Until those
+      # Linux baselines are committed, this step is allowed to fail and simply
+      # publishes the actual images + diff so they can be reviewed and, once
+      # confirmed correct, committed as the Linux baseline. See tests/README.md.
+      - name: Visual snapshots (Linux — informational until baseline committed)
+        id: visual
+        continue-on-error: true
+        run: npx playwright test tests/e2e/visual.spec.js
+
+      - name: Upload Playwright report + diff images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore

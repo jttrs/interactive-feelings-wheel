@@ -10,105 +10,251 @@
     <div class="container">
         <main class="main-layout">
             <!-- Left Column: Wheel Area (70%) -->
-            <section class="wheel-section">
+            <section class="wheel-section" aria-label="Feelings wheel">
                 <div class="wheel-container">
                     <div id="wheel-container"></div>
                 </div>
             </section>
 
+            <!-- Visually-hidden live region: announces selection changes to screen readers -->
+            <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
             <!-- Right Column: Information Panel (30%) -->
-            <aside class="info-panel">
-                <!-- Panel Minimization Tab (Desktop) -->
-                <button class="panel-minimize-tab" id="panel-minimize-tab" aria-label="Toggle information panel">
-                    <span class="minimize-arrow">▶</span>
-                </button>
-                
+            <aside class="info-panel" id="info-panel">
                 <!-- Mobile Collapse Handle -->
                 <div class="mobile-collapse-handle" id="mobile-collapse-handle">
                     <span class="collapse-indicator"></span>
                     <span class="mobile-collapse-arrow">▼</span>
                 </div>
-                
+
                 <div class="panel-content">
-                                         <!-- Welcome Instructions -->
-                     <div class="panel-section" id="panel-instructions">
-                         <h3 class="welcome-title">Welcome to the Interactive Feelings Wheel!</h3>
-                        
-                                                 <div class="wheel-instructions">
-                             <h4 class="instructions-title">How to Use the Wheel</h4>
-                             
-                             <div class="function-group">
-                                 <h5 class="function-title">Select Emotions</h5>
-                                 <div class="control-item">
-                                     <span class="control-icon">◉</span>
-                                     <span class="control-text">Click any emotion to select</span>
-                                 </div>
-                             </div>
-                             
-                             <div class="function-group">
-                                 <h5 class="function-title">Rotate the Wheel</h5>
-                                 <div class="control-item">
-                                     <span class="control-icon">⇄</span>
-                                     <span class="control-text">Click & drag, scroll, or use arrow keys to rotate</span>
-                                 </div>
-                             </div>
-                             
-                             <div class="function-group">
-                                 <h5 class="function-title">View Options</h5>
-                                 <div class="control-item">
-                                     <span class="control-icon">⛶</span>
-                                     <span class="control-text">Click icon or press F11 for fullscreen</span>
-                                 </div>
-                                 <div class="control-item">
-                                     <span class="control-icon">↻</span>
-                                     <span class="control-text">Click icon or press R to reset the wheel</span>
-                                 </div>
-                                 <div class="control-item">
-                                     <span class="control-icon">▶</span>
-                                     <span class="control-text">Click arrow tab or press P to expand or collapse panel</span>
-                                 </div>
-                                 <div class="control-item">
-                                     <span class="control-icon">⊚</span>
-                                     <span class="control-text">Click toggle or press S for simplified mode</span>
-                                 </div>
-                             </div>
-                         </div>
+                    <!-- EXPLORE view (default): same tabbed head + body as the other
+                         views (no back button — this is the home tab). -->
+                    <div class="panel-view panel-view--explore" id="view-explore" role="region"
+                         aria-label="Your feelings">
+                        <div class="view-head">
+                            <h2 class="view-title">Interactive Feelings Wheel</h2>
+                        </div>
+                        <div class="view-body view-body--explore">
+                            <div class="panel-empty" id="panel-instructions">
+                                <p class="empty-hint">Tap or spin the wheel to explore a feeling.</p>
+                            </div>
+                            <div class="emotion-tiles" id="emotion-tiles">
+                                <!-- Emotion cards are added here dynamically -->
+                            </div>
+                        </div>
                     </div>
-                    
-                    <!-- Emotion Tiles Container -->
-                    <div class="emotion-tiles" id="emotion-tiles">
-                        <!-- Emotion tiles will be dynamically added here -->
+
+                    <!-- HELP view (in-panel, fills the space) -->
+                    <div class="panel-view panel-view--secondary" id="view-help" role="region"
+                         aria-label="How to use the wheel" hidden>
+                        <div class="view-head">
+                            <button class="view-back" type="button" data-view-back
+                                    aria-label="Back to feelings">
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M15 18l-6-6 6-6"></path>
+                                </svg>
+                            </button>
+                            <h2 class="view-title">How to use the wheel</h2>
+                        </div>
+                        <div class="view-body">
+                            <section class="help-group">
+                                <h3 class="help-group__title">Explore feelings</h3>
+                                <p class="help-line">Tap or click any emotion to select it and read its meaning.</p>
+                                <p class="help-line">Select several to compare — tap a tile’s ✕ (or the emotion again) to remove it.</p>
+                            </section>
+
+                            <section class="help-group">
+                                <h3 class="help-group__title">Rotate the wheel</h3>
+                                <p class="help-line">
+                                    Drag it, scroll over it, or focus a wedge and use the
+                                    <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> arrow keys.
+                                </p>
+                            </section>
+
+                            <section class="help-group">
+                                <h3 class="help-group__title">View options</h3>
+                                <ul class="help-actions">
+                                    <li class="help-action">
+                                        <span class="help-action__ic" aria-hidden="true">
+                                            <svg class="hero-ic" viewBox="0 0 24 24">
+                                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="help-action__text">
+                                            <span class="help-action__name">Reset</span>
+                                            clears your selections and re-centres the wheel.
+                                        </span>
+                                        <kbd class="kbd">R</kbd>
+                                    </li>
+                                    <li class="help-action">
+                                        <span class="help-action__ic" aria-hidden="true">
+                                            <svg class="hero-ic" viewBox="0 0 24 24">
+                                                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="help-action__text">
+                                            <span class="help-action__name">Fullscreen</span>
+                                            gives the wheel the whole screen.
+                                        </span>
+                                        <kbd class="kbd">F11</kbd>
+                                    </li>
+                                    <li class="help-action">
+                                        <span class="help-action__ic" aria-hidden="true">
+                                            <svg class="hero-ic" viewBox="0 0 24 24">
+                                                <circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle>
+                                            </svg>
+                                        </span>
+                                        <span class="help-action__text">
+                                            <span class="help-action__name">Simplified view</span>
+                                            hides the outer ring for a calmer wheel.
+                                        </span>
+                                        <kbd class="kbd">S</kbd>
+                                    </li>
+                                    <li class="help-action">
+                                        <span class="help-action__ic" aria-hidden="true">
+                                            <svg class="hero-ic hero-ic--fill" viewBox="0 0 24 24">
+                                                <path d="M9 6l6 6-6 6z"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="help-action__text">
+                                            <span class="help-action__name">Collapse panel</span>
+                                            tuck the sidebar away any time.
+                                        </span>
+                                        <kbd class="kbd">P</kbd>
+                                    </li>
+                                </ul>
+                            </section>
+                        </div>
+                    </div>
+
+                    <!-- ABOUT view (in-panel) -->
+                    <div class="panel-view panel-view--secondary" id="view-about" role="region"
+                         aria-label="About" hidden>
+                        <div class="view-head">
+                            <button class="view-back" type="button" data-view-back
+                                    aria-label="Back to feelings">
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M15 18l-6-6 6-6"></path>
+                                </svg>
+                            </button>
+                            <h2 class="view-title">About</h2>
+                        </div>
+                        <div class="view-body">
+                            <p class="refs-text">
+                                An interactive take on the feelings wheel — a gentle way to
+                                find words for what you feel.
+                            </p>
+                            <ul class="refs-list">
+                                <li>Wheel design by
+                                    <a href="https://www.whitehousechurch.com.au/" target="_blank" rel="noopener noreferrer">Geoffrey Roberts</a>,
+                                    with appreciation.</li>
+                                <li>Internet concept by
+                                    <a href="https://feelingswheel.com" target="_blank" rel="noopener noreferrer">feelingswheel.com</a>.</li>
+                            </ul>
+                            <p class="refs-text refs-text--muted">
+                                Type set in Atkinson Hyperlegible (Braille Institute).
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- SUPPORT view (in-panel Ko-fi embed) -->
+                    <div class="panel-view panel-view--support" id="view-support" role="region"
+                         aria-label="Support this project" hidden>
+                        <div class="view-head">
+                            <button class="view-back" type="button" data-view-back
+                                    aria-label="Back to feelings">
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M15 18l-6-6 6-6"></path>
+                                </svg>
+                            </button>
+                            <h2 class="view-title">Support this project</h2>
+                        </div>
+                        <div class="view-body view-body--flush">
+                            <!-- Ko-fi in-page embed. src is set lazily by app.js the first
+                                 time the view opens (so we don't load it until asked). The
+                                 iframe URL is Ko-fi's documented embed endpoint. If it can't
+                                 be framed / is offline, the fallback link below is always a
+                                 working way to give. -->
+                            <iframe id="kofi-frame" class="kofi-frame" title="Support on Ko-fi"
+                                    data-src="https://ko-fi.com/jttrs/?hidefeed=true&widget=true&embed=true"
+                                    loading="lazy"></iframe>
+                            <p class="kofi-fallback">
+                                Trouble loading?
+                                <a href="https://ko-fi.com/jttrs" target="_blank" rel="noopener noreferrer">Open Ko-fi in a new tab</a>.
+                            </p>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- Panel Footer with Controls -->
+
+                <!-- Panel Footer: hero-icon action row. Icon-only with tooltip + aria-label. -->
                 <footer class="panel-footer">
-                                         <div class="panel-controls">
-                         <button id="reset-btn-panel" class="control-btn" title="Reset all selections">
-                             <span class="control-icon">↻</span>
-                         </button>
-                         <button id="fullscreen-btn-panel" class="control-btn" title="Toggle fullscreen">
-                             <span class="control-icon">⛶</span>
-                         </button>
-                         <div class="mode-toggle">
-                             <input type="checkbox" id="simplified-mode-panel" class="toggle-input" />
-                             <label for="simplified-mode-panel" class="toggle-switch">
-                                 <span class="toggle-slider"></span>
-                                 <span class="toggle-label">Simplified</span>
-                             </label>
-                         </div>
-                     </div>
+                    <div class="hero-actions" role="toolbar" aria-label="Wheel actions">
+                        <button id="reset-btn-panel" class="hero-btn" type="button"
+                                data-tip="Reset" aria-label="Reset the wheel">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
+                            </svg>
+                        </button>
+
+                        <button id="fullscreen-btn-panel" class="hero-btn" type="button"
+                                data-tip="Fullscreen" aria-label="Toggle fullscreen">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Simplified view: accessible checkbox styled as an icon toggle -->
+                        <input type="checkbox" id="simplified-mode-panel" class="hero-toggle-input" />
+                        <label for="simplified-mode-panel" class="hero-btn hero-toggle"
+                               data-tip="Simplified view" aria-label="Simplified view">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle>
+                            </svg>
+                        </label>
+
+                        <span class="hero-sep" aria-hidden="true"></span>
+
+                        <button id="help-btn-panel" class="hero-btn" type="button"
+                                data-view="help" aria-label="How to use the wheel">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M9.3 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.7 2.4-2.7 4"></path>
+                                <path d="M12 17.4h.01"></path>
+                            </svg>
+                        </button>
+
+                        <button id="about-btn-panel" class="hero-btn" type="button"
+                                data-view="about" aria-label="About">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 11v5"></path><path d="M12 8h.01"></path>
+                            </svg>
+                        </button>
+
+                        <button id="kofi-btn-panel" class="hero-btn hero-btn--kofi" type="button"
+                                data-view="support" data-tip="Buy me a coffee"
+                                aria-label="Support this project">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8z"></path>
+                                <path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"></path>
+                                <path d="M8 3.5c-.5.7-.5 1.3 0 2M11 3.5c-.5.7-.5 1.3 0 2"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </footer>
             </aside>
+
+            <!-- Panel collapse tab — a SIBLING of the panel (not a child), so the
+                 panel's minimized transform can't capture this fixed element and
+                 push it off-screen. -->
+            <button class="panel-minimize-tab" id="panel-minimize-tab"
+                    aria-label="Toggle information panel" aria-expanded="true">
+                <span class="minimize-arrow">▶</span>
+            </button>
         </main>
-        
-        <footer>
-            <p>Concept borrowed from <a href="https://feelingswheel.com" target="_blank">feelingswheel.com</a>, wheel borrowed from <a href="https://www.whitehousechurch.com.au/" target="_blank">Geoffrey Roberts</a>, with appreciation to both.</p>
-        </footer>
     </div>
 
-    <script src="feelings-data.js"></script>
-    <script src="feelings-wheel-engine.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html> 

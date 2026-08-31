@@ -1,0 +1,4 @@
+dist/
+node_modules/
+COMPREHENSIVE_IMPROVEMENT_PLAN.md
+package-lock.json

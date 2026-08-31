@@ -111,4 +111,27 @@ describe('mode-state preservation', () => {
         gen.setSimplifiedMode(false);
         expect(gen.selectedWedges.has(happyId)).toBe(true);
     });
+
+    it('a tertiary selection does NOT orphan in the live set while simplified (review #5)', () => {
+        // Review flagged a possible orphaned tertiary in selectedWedges across a mode
+        // round-trip. Verified as by-design: restoreState swaps in the per-mode set, so
+        // the tertiary is absent from the LIVE set while simplified (no orphan), and
+        // returns from the full-mode snapshot on switch-back (intended per-mode memory).
+        const { container, gen } = createTestWheel();
+        const cheeky = getWedge(container, 'Cheeky'); // tertiary under Playful
+        const id = cheeky.getAttribute('data-wedge-id');
+        gen.selectWedge(id, cheeky, 'Cheeky');
+        expect(gen.parseUniqueWedgeId(id).level).toBe('tertiary');
+
+        gen.setSimplifiedMode(true);
+        // No tertiary lingers in the live selection while simplified.
+        const tertiaryLive = [...gen.selectedWedges].filter(
+            (w) => gen.parseUniqueWedgeId(w).level === 'tertiary'
+        );
+        expect(tertiaryLive).toHaveLength(0);
+
+        gen.setSimplifiedMode(false);
+        // Returns exactly once from the full-mode snapshot.
+        expect(gen.selectedWedges.has(id)).toBe(true);
+    });
 });

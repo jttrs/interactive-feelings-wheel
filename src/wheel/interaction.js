@@ -91,10 +91,14 @@ export const InteractionMixin = (Base) =>
             });
         }
 
+        // Called on every generate(): the <svg> is recreated each time, so its scoped
+        // listeners are attached fresh (the old svg is discarded with its listeners — no
+        // leak). Global document/window listeners are bound ONCE via setupGlobalListeners()
+        // (from the constructor), never here, to avoid stacking a duplicate set on every
+        // regenerate (mode switch / resize / fullscreen).
         setupEventListeners() {
-            // Mouse events for rotation
+            // Mouse down to begin a drag-rotation.
             this.svg.addEventListener('mousedown', (e) => {
-                // Prevent interaction during animations
                 if (this.isAnimating) return;
 
                 // Grabbing the wheel arrests any in-flight scroll glide.
@@ -111,27 +115,6 @@ export const InteractionMixin = (Base) =>
                 e.preventDefault();
             });
 
-            document.addEventListener('mousemove', (e) => {
-                if (!this.isDragging || this.isAnimating) return;
-
-                const rect = this.svg.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left - rect.width / 2;
-                const mouseY = e.clientY - rect.top - rect.height / 2;
-
-                const currentMouseAngle = Math.atan2(mouseY, mouseX);
-                const deltaAngle = (currentMouseAngle - this.lastMouseAngle) * (180 / Math.PI);
-
-                this.currentRotation += deltaAngle;
-                this.lastMouseAngle = currentMouseAngle;
-
-                this.updateRotation();
-            });
-
-            document.addEventListener('mouseup', () => {
-                this.isDragging = false;
-                this.svg.style.cursor = 'grab';
-            });
-
             // Mouse wheel for rotation. Scale by the scroll MAGNITUDE (not just its
             // sign) and feed a decaying-velocity model so the wheel has weight and
             // does not flicker on the tiny sign-alternating deltas a slow trackpad
@@ -146,10 +129,11 @@ export const InteractionMixin = (Base) =>
                 { passive: false }
             );
 
-            // Click events for emotions
+            // Click events for emotions. Blocked during a drag AND during an animation
+            // (e.g. the reset unwind) — a mid-reset click would otherwise select a wedge
+            // the in-flight reset won't clean up, leaving it stuck-selected.
             this.svg.addEventListener('click', (e) => {
-                if (this.isDragging) return;
-                // Remove animation blocking for clicks - only block drag/wheel during animations
+                if (this.isDragging || this.isAnimating) return;
 
                 const emotion = e.target.getAttribute('data-emotion');
                 if (emotion && e.target.classList.contains('wedge')) {
@@ -184,18 +168,57 @@ export const InteractionMixin = (Base) =>
 
             // Establish the single tab-stop into the wheel.
             this.initRovingTabindex();
-
-            // DPI-aware resize handling
-            window.addEventListener('resize', () => this.handleResize());
-            window.addEventListener('orientationchange', () => {
-                // Mobile orientation change - allow time for layout to settle
-                setTimeout(() => this.handleResize(), 200);
-            });
         }
 
-        // Ordered list of focusable wedges (document order == core, then secondary, then tertiary).
+        // Bind document/window listeners ONCE (from the constructor). These outlive any
+        // single <svg>, so re-binding per generate() would stack duplicate handlers — a
+        // steadily worsening memory + CPU leak. Bound refs are stored so they can be
+        // removed on teardown. Each handler no-ops until the wheel is generated (svg set).
+        setupGlobalListeners() {
+            if (this._globalListenersBound) return;
+            this._globalListenersBound = true;
+
+            this._onMouseMove = (e) => {
+                if (!this.isDragging || this.isAnimating || !this.svg) return;
+
+                const rect = this.svg.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left - rect.width / 2;
+                const mouseY = e.clientY - rect.top - rect.height / 2;
+
+                const currentMouseAngle = Math.atan2(mouseY, mouseX);
+                const deltaAngle = (currentMouseAngle - this.lastMouseAngle) * (180 / Math.PI);
+
+                this.currentRotation += deltaAngle;
+                this.lastMouseAngle = currentMouseAngle;
+
+                this.updateRotation();
+            };
+            this._onMouseUp = () => {
+                if (!this.svg) return;
+                this.isDragging = false;
+                this.svg.style.cursor = 'grab';
+            };
+            this._onResize = () => this.handleResize();
+            this._onOrientationChange = () => {
+                // Mobile orientation change - allow time for layout to settle
+                setTimeout(() => this.handleResize(), 200);
+            };
+
+            document.addEventListener('mousemove', this._onMouseMove);
+            document.addEventListener('mouseup', this._onMouseUp);
+            window.addEventListener('resize', this._onResize);
+            window.addEventListener('orientationchange', this._onOrientationChange);
+        }
+
+        // Focusable wedges in STABLE generation order (data-nav-index), not live DOM
+        // order — a selected wedge's <path> is moved to the top layer, which would
+        // otherwise reshuffle arrow-key navigation after any selection.
         getFocusableWedges() {
-            return Array.from(this.container.querySelectorAll('.wedge:not(.shadow-wedge)'));
+            return Array.from(this.container.querySelectorAll('.wedge:not(.shadow-wedge)')).sort(
+                (a, b) =>
+                    Number(a.getAttribute('data-nav-index')) -
+                    Number(b.getAttribute('data-nav-index'))
+            );
         }
 
         // Make exactly one wedge part of the tab order so the wheel is a single tab-stop.
@@ -225,36 +248,14 @@ export const InteractionMixin = (Base) =>
             target.focus();
         }
 
-        // DPI-aware resize handler
+        // DPI-aware resize handler. Uses the SAME computeAvailableWheelSize() as
+        // generate(), so a resize computes an identical size to the initial render for
+        // the same viewport/panel state (no more 150-vs-200 floor divergence).
         handleResize() {
             clearTimeout(this.resizeTimeout);
             this.resizeTimeout = setTimeout(() => {
                 const oldSize = this.containerSize;
-                const containerRect = this.container.getBoundingClientRect();
-
-                // MOBILE FIX: Use same logic as generate() for consistent sizing
-                let availableWidth = containerRect.width;
-                let availableHeight = containerRect.height;
-
-                // Check if we're on mobile (viewport width <= 767px)
-                const isMobile = window.innerWidth <= 767;
-
-                if (isMobile) {
-                    // On mobile, account for bottom panel
-                    const infoPanel = document.querySelector('.info-panel');
-                    let panelHeight = 320; // Default fallback
-
-                    if (infoPanel && !infoPanel.classList.contains('minimized')) {
-                        const panelRect = infoPanel.getBoundingClientRect();
-                        panelHeight = panelRect.height || 320;
-                    } else if (infoPanel && infoPanel.classList.contains('minimized')) {
-                        panelHeight = 0;
-                    }
-
-                    availableHeight = Math.max(200, availableHeight - panelHeight - 20);
-                }
-
-                const newCssSize = Math.min(availableWidth, availableHeight);
+                const newCssSize = this.computeAvailableWheelSize();
 
                 // Only regenerate if significant change (avoid constant regeneration)
                 if (Math.abs(newCssSize - oldSize) > 10) {

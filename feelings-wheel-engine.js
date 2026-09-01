@@ -62,5 +62,9 @@ export class FeelingsWheelGenerator extends InteractionMixin(
 
         // Set dynamic radii based on mode
         this.updateRadii();
+
+        // Bind document/window listeners once here (not in generate(), which re-runs
+        // on every mode switch / resize / fullscreen and would otherwise stack copies).
+        this.setupGlobalListeners();
     }
 }

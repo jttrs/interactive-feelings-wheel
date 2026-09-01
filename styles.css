@@ -222,6 +222,17 @@
     }
 }
 
+/* Lock the document to the viewport: the app is a fixed 100vh shell whose only
+   scrollable surface is the sidebar. Pinning html/body height + hidden overflow
+   removes the document as a scroll target, and overscroll-behavior: none stops
+   the whole-page rubber-band bounce on trackpads/touch. */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
 body {
     font-family: var(--font-body);
     font-size: calc(var(--base-font-size) * var(--font-scale));
@@ -527,6 +538,8 @@ body {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    /* Keep scroll momentum inside the sidebar — never chain to the document. */
+    overscroll-behavior: contain;
     animation: fadeIn var(--motion-base) var(--ease-soft);
 }
 
@@ -578,6 +591,7 @@ body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: var(--space-5);
     display: flex;
     flex-direction: column;

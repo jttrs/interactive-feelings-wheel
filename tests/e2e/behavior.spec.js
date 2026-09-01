@@ -109,6 +109,42 @@ test('reset clears all selections and tiles', async ({ page }) => {
     await expect(page.locator('.wedge.selected')).toHaveCount(0);
 });
 
+test('clicking a wedge mid-reset does not select it (isAnimating gate)', async ({ page }) => {
+    // Regression: the click listener lacked an isAnimating guard, so a wedge clicked
+    // during the ~1s reset unwind got selected + moved to topGroup but was never
+    // cleaned up by the in-flight reset — leaving it stuck-selected.
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.mouse.wheel(0, 200); // rotate so the unwind takes ~1s
+    await page.locator('#reset-btn-panel').click();
+    // Immediately click another wedge while the reset animation owns the wheel.
+    await page.locator('.core-wedge[data-emotion="Angry"]').click({ force: true });
+    // Let the reset finish.
+    await expect(page.locator('.emotion-card')).toHaveCount(0, { timeout: 3000 });
+    // Nothing is stuck-selected, and the wheel is usable again afterward.
+    await expect(page.locator('.wedge.selected')).toHaveCount(0);
+    await page.locator('.core-wedge[data-emotion="Sad"]').click();
+    await expect(page.locator('.wedge.selected')).toHaveCount(1);
+});
+
+test('regenerating (mode switch) does not stack duplicate document listeners', async ({ page }) => {
+    // Regression: setupEventListeners re-ran on every generate() and re-added global
+    // document/window listeners with no removal. They are now bound once in the ctor.
+    const added = await page.evaluate(() => {
+        let mousemoveAdds = 0;
+        const orig = document.addEventListener.bind(document);
+        document.addEventListener = (type, ...rest) => {
+            if (type === 'mousemove') mousemoveAdds++;
+            return orig(type, ...rest);
+        };
+        const toggle = document.getElementById('simplified-mode-panel');
+        for (let i = 0; i < 3; i++) toggle.click();
+        document.dispatchEvent(new Event('fullscreenchange'));
+        return mousemoveAdds;
+    });
+    expect(added).toBe(0);
+});
+
 test('animated reset (rotated + multiple tiles) fully clears state', async ({ page }) => {
     // Runs with real motion so the staggered tile-unwind + rotation animation path
     // (engine.animateResetRotation + clearSelection) actually executes.

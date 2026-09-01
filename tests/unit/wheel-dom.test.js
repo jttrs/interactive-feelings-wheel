@@ -111,4 +111,54 @@ describe('mode-state preservation', () => {
         gen.setSimplifiedMode(false);
         expect(gen.selectedWedges.has(happyId)).toBe(true);
     });
+
+    it('updateTextRotations only writes transforms when the rotation actually changes (review #6)', () => {
+        const { gen } = createTestWheel();
+        const label = gen.textElements[0].element;
+        let writes = 0;
+        const orig = label.setAttribute.bind(label);
+        label.setAttribute = (name, ...rest) => {
+            if (name === 'transform') writes++;
+            return orig(name, ...rest);
+        };
+
+        // First call at the current rotation: value differs from the stored last -> writes.
+        gen.updateTextRotations();
+        const afterFirst = writes;
+        expect(afterFirst).toBeGreaterThanOrEqual(0); // may already match from generate()
+
+        // A repeated call at the SAME currentRotation must write nothing (no-op frame).
+        writes = 0;
+        gen.updateTextRotations();
+        expect(writes).toBe(0);
+
+        // A large rotation that flips this label's orientation must write again.
+        writes = 0;
+        gen.currentRotation = 180;
+        gen.updateTextRotations();
+        expect(writes).toBeGreaterThan(0);
+    });
+
+    it('a tertiary selection does NOT orphan in the live set while simplified (review #5)', () => {
+        // Review flagged a possible orphaned tertiary in selectedWedges across a mode
+        // round-trip. Verified as by-design: restoreState swaps in the per-mode set, so
+        // the tertiary is absent from the LIVE set while simplified (no orphan), and
+        // returns from the full-mode snapshot on switch-back (intended per-mode memory).
+        const { container, gen } = createTestWheel();
+        const cheeky = getWedge(container, 'Cheeky'); // tertiary under Playful
+        const id = cheeky.getAttribute('data-wedge-id');
+        gen.selectWedge(id, cheeky, 'Cheeky');
+        expect(gen.parseUniqueWedgeId(id).level).toBe('tertiary');
+
+        gen.setSimplifiedMode(true);
+        // No tertiary lingers in the live selection while simplified.
+        const tertiaryLive = [...gen.selectedWedges].filter(
+            (w) => gen.parseUniqueWedgeId(w).level === 'tertiary'
+        );
+        expect(tertiaryLive).toHaveLength(0);
+
+        gen.setSimplifiedMode(false);
+        // Returns exactly once from the full-mode snapshot.
+        expect(gen.selectedWedges.has(id)).toBe(true);
+    });
 });

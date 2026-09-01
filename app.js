@@ -161,9 +161,12 @@ export class FeelingsWheelApp {
         // leave it blank until an unrelated repaint (the "comes back when you click
         // the app" symptom). handleResize alone won't help — exiting returns to the
         // same window size, and its guard skips regeneration on a ~0 size delta.
-        // Wait for the browser to settle the layout, then hard re-render.
+        // Re-render after the post-transition paint via double-rAF (reacts to the
+        // real layout/paint settle rather than guessing a fixed delay).
         if (this.wheelGenerator) {
-            setTimeout(() => this.wheelGenerator.forceRerender(), 100);
+            requestAnimationFrame(() =>
+                requestAnimationFrame(() => this.wheelGenerator.forceRerender())
+            );
         }
     }
 
@@ -234,28 +237,21 @@ export class FeelingsWheelApp {
         }
     }
 
-    resetAllSelections() {
-        // Find and trigger the reset button
-        const resetButton = document.getElementById('reset-btn-panel');
-        if (resetButton) {
-            resetButton.click();
-        }
-    }
-
     rotateWheel(degrees) {
-        // Use wheel generator's rotation functionality
-        if (this.wheelGenerator) {
-            const targetRotation = this.wheelGenerator.currentRotation + degrees;
-            this.wheelGenerator.animateRotation(targetRotation, 200); // Quick 200ms animation
-        }
+        // Ignore rotate requests while an animation (e.g. the reset unwind) owns the
+        // wheel — a second concurrent rAF would fight it for currentRotation and could
+        // leave the wheel at an angle that disagrees with the committed reset state.
+        if (!this.wheelGenerator || this.wheelGenerator.isAnimating) return;
+
+        const targetRotation = this.wheelGenerator.currentRotation + degrees;
+        this.wheelGenerator.animateRotation(targetRotation, 200); // Quick 200ms animation
     }
 
     // ===== INFORMATION PANEL FUNCTIONALITY =====
 
     setupInformationPanel() {
         // Initialize emotion tiles tracking
-        this.emotionTiles = new Map(); // Maps wedgeId -> EmotionCard handle
-        this.tileOrder = []; // Track order of tiles (newest first)
+        this.emotionTiles = new Map(); // Maps wedgeId -> EmotionCard handle (insertion order)
 
         // Setup panel minimization (desktop)
         const minimizeTab = document.getElementById('panel-minimize-tab');
@@ -419,7 +415,6 @@ export class FeelingsWheelApp {
         });
 
         this.emotionTiles.set(wedgeId, handle);
-        this.tileOrder.unshift(wedgeId); // newest first
 
         const tilesContainer = document.getElementById('emotion-tiles');
         tilesContainer.insertBefore(element, tilesContainer.firstChild);
@@ -430,7 +425,6 @@ export class FeelingsWheelApp {
         if (handle) {
             handle.remove();
             this.emotionTiles.delete(wedgeId);
-            this.tileOrder = this.tileOrder.filter((id) => id !== wedgeId);
         }
     }
 
@@ -456,7 +450,6 @@ export class FeelingsWheelApp {
     clearAllTiles() {
         this.emotionTiles.forEach((handle) => handle.remove());
         this.emotionTiles.clear();
-        this.tileOrder = [];
         this.showInstructions();
     }
 
@@ -464,7 +457,6 @@ export class FeelingsWheelApp {
         // Clear tiles without automatically showing instructions (for mode switching)
         this.emotionTiles.forEach((handle) => handle.remove());
         this.emotionTiles.clear();
-        this.tileOrder = [];
         // Don't call showInstructions() - let caller manage instruction visibility
     }
 
@@ -473,8 +465,11 @@ export class FeelingsWheelApp {
     resetWithAnimation() {
         // CRITICAL FIX: Only reset current mode, prevent cross-mode contamination
 
-        // If no selections, just do instant reset
-        if (this.emotionTiles.size === 0 && this.wheelGenerator.currentRotation === 0) {
+        // If nothing is selected and the wheel is (near) un-rotated, reset instantly.
+        // currentRotation is a float accumulated from drag/momentum, so it's rarely
+        // exactly 0 after any interaction — use an epsilon so the instant path isn't
+        // effectively dead (a strict === 0 forced the full 1s animation every time).
+        if (this.emotionTiles.size === 0 && Math.abs(this.wheelGenerator.currentRotation) < 0.5) {
             this.wheelGenerator.reset();
             this.clearAllTiles();
             return;

@@ -4,6 +4,7 @@ import {
     circle as makeCircle,
     wedgePath as makeWedgePath,
     text as makeText,
+    group as makeGroup,
     readWheelTokens,
 } from './svg.js';
 
@@ -311,13 +312,18 @@ export const RenderingMixin = (Base) =>
             return baseAngle;
         }
 
-        // Update all text rotations based on current wheel rotation
+        // Update all text rotations based on current wheel rotation. calculateTextRotation
+        // only yields baseAngle or baseAngle+180 (flip flips only at the 90/270 boundary),
+        // so on almost every frame the value is unchanged — write only when it actually
+        // changes to avoid ~140 no-op attribute writes per drag/scroll frame.
         updateTextRotations() {
             this.textElements.forEach((textData) => {
                 const newRotation = this.calculateTextRotation(
                     textData.baseAngle,
                     textData.flipAngle
                 );
+                if (newRotation === textData.lastRotation) return;
+                textData.lastRotation = newRotation;
                 textData.element.setAttribute(
                     'transform',
                     `rotate(${newRotation} ${textData.x} ${textData.y})`
@@ -325,11 +331,40 @@ export const RenderingMixin = (Base) =>
             });
         }
 
+        // Single source of truth for the wheel's css size given the current viewport +
+        // panel state. Used by generate() AND handleResize() so both compute the same
+        // value for the same conditions (they previously duplicated this with divergent
+        // mobile floors — 150 vs 200 — which could size the wheel differently on resize
+        // vs initial render). One floor (150) so very small screens still render.
+        computeAvailableWheelSize() {
+            const rect = this.container.getBoundingClientRect();
+            let availableWidth = rect.width;
+            let availableHeight = rect.height;
+
+            if (window.innerWidth <= 767) {
+                // On mobile the bottom-sheet panel eats vertical space.
+                const infoPanel = document.querySelector('.info-panel');
+                let panelHeight = 320; // fallback
+                if (infoPanel && !infoPanel.classList.contains('minimized')) {
+                    panelHeight = infoPanel.getBoundingClientRect().height || 320;
+                } else if (infoPanel && infoPanel.classList.contains('minimized')) {
+                    panelHeight = 0;
+                }
+                availableHeight = Math.max(150, availableHeight - panelHeight - 20);
+            }
+
+            return Math.min(availableWidth, availableHeight);
+        }
+
         generate() {
             // Clear container and text elements
             this.container.innerHTML = '';
             this.textElements = [];
             this.wedgeRegistry.clear();
+            // Sequential nav index stamped on each wedge (see buildWedge) so keyboard
+            // focus order follows generation order, not live DOM order (which shifts
+            // when a selected wedge's <path> moves to the top layer).
+            this._navCounter = 0;
 
             // Get container dimensions with DPI awareness
             if (!this.container) {
@@ -337,44 +372,14 @@ export const RenderingMixin = (Base) =>
                 return;
             }
 
-            const containerRect = this.container.getBoundingClientRect();
+            const cssSize = this.computeAvailableWheelSize();
 
-            // MOBILE FIX: Account for mobile layout constraints
-            let availableWidth = containerRect.width;
-            let availableHeight = containerRect.height;
-
-            // Check if we're on mobile (viewport width <= 767px)
-            const isMobile = window.innerWidth <= 767;
-
-            if (isMobile) {
-                // On mobile, account for bottom panel that takes 320px-340px
-                // Get the actual info panel height to be precise
-                const infoPanel = document.querySelector('.info-panel');
-                let panelHeight = 320; // Default fallback
-
-                if (infoPanel && !infoPanel.classList.contains('minimized')) {
-                    // Panel is visible, get its actual height
-                    const panelRect = infoPanel.getBoundingClientRect();
-                    panelHeight = panelRect.height || 320;
-                } else if (infoPanel && infoPanel.classList.contains('minimized')) {
-                    // Panel is minimized, no height constraint
-                    panelHeight = 0;
-                }
-
-                // Subtract panel height and some margin from available height
-                availableHeight = Math.max(150, availableHeight - panelHeight - 20); // Lower minimum for very small screens
-
-                // SMART ADAPTATION: If wheel becomes too small, suggest simplified mode
-                const resultingSize = Math.min(availableWidth, availableHeight);
-                if (resultingSize < 250 && !this.isSimplifiedMode) {
-                    // Very small wheel - simplified mode would help but don't force it
-                    console.info(
-                        'ℹ️ Wheel is quite small. Consider using Simplified Mode for better text readability.'
-                    );
-                }
+            // SMART ADAPTATION: If wheel becomes too small, suggest simplified mode
+            if (window.innerWidth <= 767 && cssSize < 250 && !this.isSimplifiedMode) {
+                console.info(
+                    'ℹ️ Wheel is quite small. Consider using Simplified Mode for better text readability.'
+                );
             }
-
-            const cssSize = Math.min(availableWidth, availableHeight);
 
             // Update DPI information
             this.dpr = window.devicePixelRatio || 1;
@@ -384,12 +389,7 @@ export const RenderingMixin = (Base) =>
 
             // CRITICAL VALIDATION: Ensure we have a valid size
             if (!size || size <= 0) {
-                console.error('❌ Invalid wheel size:', {
-                    size,
-                    cssSize,
-                    availableWidth,
-                    availableHeight,
-                });
+                console.error('❌ Invalid wheel size:', { size, cssSize });
                 return; // Don't generate wheel with invalid size
             }
 
@@ -438,28 +438,25 @@ export const RenderingMixin = (Base) =>
                 'Feelings wheel. Use arrow keys to move between emotions and Enter or Space to select.'
             );
 
-            // Create four layers for proper rendering
+            // Create four layers for proper rendering (via the guarded group() helper).
+            const origin = `${this.centerX}px ${this.centerY}px`;
             // 1. Base layer for unemphasized wedges
-            this.baseGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.baseGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
-            this.baseGroup.setAttribute('class', 'wheel-main-group');
+            this.baseGroup = makeGroup({ className: 'wheel-main-group', transformOrigin: origin });
             this.svg.appendChild(this.baseGroup);
 
             // 2. Division lines layer (always on top, not affected by wedge movement)
-            this.divisionLinesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.divisionLinesGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
-            this.divisionLinesGroup.setAttribute('class', 'wheel-main-group');
+            this.divisionLinesGroup = makeGroup({
+                className: 'wheel-main-group',
+                transformOrigin: origin,
+            });
             this.svg.appendChild(this.divisionLinesGroup);
 
             // 3. Shadow layer (renders above unemphasized, below emphasized) - NO CSS transforms
-            this.shadowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.shadowGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
+            this.shadowGroup = makeGroup({ transformOrigin: origin });
             this.svg.appendChild(this.shadowGroup);
 
             // 4. Top layer for emphasized wedges
-            this.topGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.topGroup.style.transformOrigin = `${this.centerX}px ${this.centerY}px`;
-            this.topGroup.setAttribute('class', 'wheel-main-group');
+            this.topGroup = makeGroup({ className: 'wheel-main-group', transformOrigin: origin });
             this.svg.appendChild(this.topGroup);
 
             // Keep wheelGroup as alias for baseGroup for compatibility
@@ -615,6 +612,8 @@ export const RenderingMixin = (Base) =>
             const dataset = { emotion, level, 'wedge-id': wedgeId };
             if (parent !== null && parent !== undefined) dataset.parent = parent;
             if (grandparent !== undefined) dataset.grandparent = grandparent;
+            // Stable keyboard-navigation order (independent of later DOM layer moves).
+            dataset['nav-index'] = this._navCounter++;
 
             const path = makeWedgePath({
                 d: this.createWedgePath(this.centerX, this.centerY, innerR, outerR, start, end),
@@ -683,7 +682,7 @@ export const RenderingMixin = (Base) =>
 
         createShadowCopy(originalWedge, wedgeId) {
             // Create a group to hold the shadow with offset
-            const shadowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const shadowGroup = makeGroup();
             shadowGroup.setAttribute('data-shadow-id', wedgeId);
 
             // Create a copy of the wedge for shadow layer
@@ -882,10 +881,13 @@ export const RenderingMixin = (Base) =>
         }
 
         updateAllShadowTransforms() {
-            const shadowGroups = this.shadowGroup.querySelectorAll('[data-shadow-id]');
-            shadowGroups.forEach((shadowGroup) => {
-                this.updateShadowTransform(shadowGroup);
-            });
+            // shadowGroup contains only shadow <g> children (one per selected wedge), so
+            // iterate them directly instead of re-running an attribute-selector tree scan
+            // every rotation frame.
+            const groups = this.shadowGroup.children;
+            for (let i = 0; i < groups.length; i++) {
+                this.updateShadowTransform(groups[i]);
+            }
         }
 
         // ===== SEPARATOR LAYER =====
@@ -929,30 +931,47 @@ export const RenderingMixin = (Base) =>
             });
         }
 
+        // Shared radial-separator drawer. All three division tiers are a stroked line
+        // from innerRadius to endRadius at a given angle; only the radii, weight, dash,
+        // linecap, and class differ. Centralizes the trig + makeLine + append + the
+        // '#4a453d' color fallback that was copy-pasted across the three methods.
+        drawRadialLine({ angleDeg, innerRadius, endRadius, width, className, dash, round }) {
+            const color = (this.responsiveScaling && this.responsiveScaling.lineColor) || '#4a453d';
+            const rad = (angleDeg * Math.PI) / 180;
+            const el = makeLine({
+                x1: this.centerX + innerRadius * Math.cos(rad),
+                y1: this.centerY + innerRadius * Math.sin(rad),
+                x2: this.centerX + endRadius * Math.cos(rad),
+                y2: this.centerY + endRadius * Math.sin(rad),
+                stroke: color,
+                width,
+                dash,
+                className,
+            });
+            if (!el) return;
+            if (round) el.setAttribute('stroke-linecap', 'round');
+            this.divisionLinesGroup.appendChild(el);
+        }
+
         createPrimaryDivisions(coreAngles) {
             const s = this.responsiveScaling || {};
-            const color = s.lineColor || '#4a453d';
             const width = s.primaryDivisionStroke || Math.max(0.5, this.containerSize * 0.006);
             const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
 
             coreAngles.forEach((core) => {
-                const rad = (core.end * Math.PI) / 180; // family boundary = end of this core
-                const el = makeLine({
-                    x1: this.centerX,
-                    y1: this.centerY,
-                    x2: this.centerX + endRadius * Math.cos(rad),
-                    y2: this.centerY + endRadius * Math.sin(rad),
-                    stroke: color,
+                // Family boundary = end of this core; line runs from the center out.
+                this.drawRadialLine({
+                    angleDeg: core.end,
+                    innerRadius: 0,
+                    endRadius,
                     width,
                     className: 'primary-division-line',
                 });
-                if (el) this.divisionLinesGroup.appendChild(el);
             });
         }
 
         createSecondaryDivisions(coreAngles) {
             const s = this.responsiveScaling || {};
-            const color = s.lineColor || '#4a453d';
             const width = s.secondaryDivisionStroke || Math.max(0.3, this.containerSize * 0.004);
             const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
 
@@ -962,24 +981,19 @@ export const RenderingMixin = (Base) =>
 
                 secondaryEmotions.forEach((emotion, index) => {
                     if (index === 0) return; // first boundary is the primary line
-                    const rad = ((core.start + index * anglePerSecondary) * Math.PI) / 180;
-                    const el = makeLine({
-                        x1: this.centerX + this.coreRadius * Math.cos(rad),
-                        y1: this.centerY + this.coreRadius * Math.sin(rad),
-                        x2: this.centerX + endRadius * Math.cos(rad),
-                        y2: this.centerY + endRadius * Math.sin(rad),
-                        stroke: color,
+                    this.drawRadialLine({
+                        angleDeg: core.start + index * anglePerSecondary,
+                        innerRadius: this.coreRadius,
+                        endRadius,
                         width,
                         className: 'secondary-division-line',
                     });
-                    if (el) this.divisionLinesGroup.appendChild(el);
                 });
             });
         }
 
         createDyadDivisions(coreAngles) {
             const s = this.responsiveScaling || {};
-            const color = s.lineColor || '#4a453d';
             // Dyad splits are the lightest hint of division — rendered as a row of
             // round DOTS (dasharray 0 + round linecap makes each dash a dot whose
             // diameter is the stroke width). Slightly thicker than the hairline dash
@@ -998,19 +1012,15 @@ export const RenderingMixin = (Base) =>
                     const tertiaryEmotions = this.data.tertiary[emotion] || [];
                     if (tertiaryEmotions.length !== 2) return; // dyad = exactly 2
                     const secondaryStartAngle = core.start + index * anglePerSecondary;
-                    const rad = ((secondaryStartAngle + anglePerSecondary / 2) * Math.PI) / 180;
-                    const el = makeLine({
-                        x1: this.centerX + this.middleRadius * Math.cos(rad),
-                        y1: this.centerY + this.middleRadius * Math.sin(rad),
-                        x2: this.centerX + this.outerRadius * Math.cos(rad),
-                        y2: this.centerY + this.outerRadius * Math.sin(rad),
-                        stroke: color,
+                    this.drawRadialLine({
+                        angleDeg: secondaryStartAngle + anglePerSecondary / 2,
+                        innerRadius: this.middleRadius,
+                        endRadius: this.outerRadius,
                         width,
                         dash: `0 ${gap}`,
+                        round: true,
                         className: 'dyad-division-line',
                     });
-                    if (el) el.setAttribute('stroke-linecap', 'round');
-                    if (el) this.divisionLinesGroup.appendChild(el);
                 });
             });
         }

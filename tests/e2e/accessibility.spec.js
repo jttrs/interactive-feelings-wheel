@@ -60,6 +60,33 @@ test('arrow keys move focus between wedges without selecting', async ({ page }) 
     await expect(page.locator('.wedge[tabindex="0"]')).toHaveCount(1);
 });
 
+test('arrow focus order is stable after a selection (nav-index, not DOM order)', async ({
+    page,
+}) => {
+    // Regression: selecting a wedge moves its <path> to the top layer, which used to
+    // reshuffle the live-DOM focus order. Focus now follows a stable data-nav-index.
+    // Record the neighbour arrow-right lands on from the first wedge with nothing
+    // selected, then repeat after selecting that first wedge — it must be identical.
+    const firstSel = '.wedge[tabindex="0"]';
+
+    await page.locator(firstSel).focus();
+    await page.keyboard.press('ArrowRight');
+    const neighbourBefore = await page.evaluate(() =>
+        document.activeElement.getAttribute('data-wedge-id')
+    );
+
+    // Reset focus to the first wedge, select it (moves it to the top layer), arrow again.
+    await page.locator('.wedge[data-nav-index="0"]').focus();
+    await page.keyboard.press('Enter'); // selects the focused wedge
+    await page.locator('.wedge[data-nav-index="0"]').focus();
+    await page.keyboard.press('ArrowRight');
+    const neighbourAfter = await page.evaluate(() =>
+        document.activeElement.getAttribute('data-wedge-id')
+    );
+
+    expect(neighbourAfter).toBe(neighbourBefore);
+});
+
 test('reset is announced to screen readers', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
     await page.locator('#reset-btn-panel').click();

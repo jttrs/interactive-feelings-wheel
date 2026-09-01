@@ -37,6 +37,11 @@ export class FeelingsWheelGenerator extends InteractionMixin(
         this.scrollVelocity = 0; // degrees per frame
         this.momentumRafId = null;
 
+        // Held-arrow rotation feeds the SAME momentum loop as scroll. This is the net
+        // direction of currently-held rotation keys (+1 cw / -1 ccw / 0 none); while
+        // non-zero the loop adds KEY_ACCEL per frame so a held key spins continuously.
+        this.heldRotationDir = 0;
+
         // Animation system
         this.animations = new Map();
         this.animationId = null;

@@ -182,3 +182,70 @@ test('instructions show when empty and hide when a tile exists', async ({ page }
     await page.locator('.emotion-card .card-remove').click();
     await expect(instructions).toBeVisible();
 });
+
+// ===== Keyboard rotation (arrows spin the wheel via the shared momentum model) =====
+
+// Absolute rotation (degrees) off the base group's inline transform: rotate(Ndeg).
+async function readRotation(page) {
+    return page.evaluate(() => {
+        const g = document.querySelector('#wheel-container svg .wheel-main-group');
+        const m = /rotate\(([-\d.]+)deg\)/.exec(g?.style.transform || '');
+        return m ? parseFloat(m[1]) : 0;
+    });
+}
+
+test('a single arrow press nudges the wheel; holding spins it further', async ({ page }) => {
+    // Arrows rotate only when NO wedge is focused (body has focus on load). Blur any
+    // focus to be safe, then confirm no wedge is the active element.
+    await page.evaluate(() => document.activeElement?.blur?.());
+
+    const start = await readRotation(page);
+    await page.keyboard.press('ArrowRight'); // one tap
+    await page.waitForTimeout(400); // let the short glide settle
+    const afterTap = await readRotation(page);
+    const tapDelta = Math.abs(afterTap - start);
+    expect(tapDelta).toBeGreaterThan(0); // it moved
+
+    // Hold the same key: the per-frame acceleration should carry it much further than a tap.
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(600);
+    await page.keyboard.up('ArrowRight');
+    await page.waitForTimeout(500); // decay to rest
+    const afterHold = await readRotation(page);
+    const holdDelta = Math.abs(afterHold - afterTap);
+    expect(holdDelta).toBeGreaterThan(tapDelta);
+});
+
+test('rapid arrow presses accumulate more rotation than a single press', async ({ page }) => {
+    await page.evaluate(() => document.activeElement?.blur?.());
+
+    const start = await readRotation(page);
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(400);
+    const oneDelta = Math.abs((await readRotation(page)) - start);
+
+    // Reset velocity by waiting, then mash the key several times in quick succession.
+    const beforeMash = await readRotation(page);
+    for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(500);
+    const mashDelta = Math.abs((await readRotation(page)) - beforeMash);
+    // Rapid presses are NOT dropped (the old isAnimating gate swallowed them).
+    expect(mashDelta).toBeGreaterThan(oneDelta);
+});
+
+test('arrows move wedge focus (not rotation) when a wedge is focused', async ({ page }) => {
+    // Coexistence: with a wedge focused, the svg keydown handles arrows as roving-tabindex
+    // navigation and stopPropagation()s them, so the wheel must NOT rotate.
+    await page.locator('.wedge[tabindex="0"]').focus();
+    const startRotation = await readRotation(page);
+    const first = await page.evaluate(() => document.activeElement.getAttribute('data-wedge-id'));
+
+    await page.keyboard.press('ArrowRight');
+    const second = await page.evaluate(() => document.activeElement.getAttribute('data-wedge-id'));
+    await page.waitForTimeout(300);
+    const endRotation = await readRotation(page);
+
+    expect(second).not.toBe(first); // focus moved
+    expect(endRotation).toBe(startRotation); // wheel did not spin
+    await expect(page.locator('.wedge.selected')).toHaveCount(0); // and nothing selected
+});

@@ -100,8 +100,11 @@ describe('scroll momentum (anti-flicker)', () => {
     });
 
     it('accumulates velocity scaled by scroll MAGNITUDE, not just its sign', () => {
-        gen.applyScrollInput(100);
-        expect(gen.scrollVelocity).toBeCloseTo(100 * SENSITIVITY, 6);
+        // Use a delta that lands well under MAX_VELOCITY so we test the scaling, not the
+        // clamp (derived from the constants so it survives retuning either one).
+        const subCapDelta = MAX_VELOCITY / SENSITIVITY / 2; // -> velocity = MAX_VELOCITY/2
+        gen.applyScrollInput(subCapDelta);
+        expect(gen.scrollVelocity).toBeCloseTo(subCapDelta * SENSITIVITY, 6);
         // A tiny nudge adds a tiny amount — NOT a full-size step like the old code.
         gen.scrollVelocity = 0;
         gen.applyScrollInput(1.2);
@@ -134,5 +137,76 @@ describe('scroll momentum (anti-flicker)', () => {
         gen.stopMomentum();
         expect(gen.scrollVelocity).toBe(0);
         expect(gen.momentumRafId).toBeNull();
+    });
+});
+
+describe('held-arrow rotation (continuous spin)', () => {
+    const { KEY_IMPULSE, MAX_VELOCITY } = FeelingsWheelGenerator.ScrollPhysics;
+    let gen, rafQueue, origRaf, origCancel;
+
+    // Drive the momentum rAF loop deterministically: capture each scheduled callback and
+    // flush frames manually so the held-key acceleration is testable without wall-clock.
+    beforeEach(() => {
+        gen = createTestWheel().gen; // real SVG groups so updateRotation() works
+        rafQueue = [];
+        origRaf = globalThis.requestAnimationFrame;
+        origCancel = globalThis.cancelAnimationFrame;
+        globalThis.requestAnimationFrame = (cb) => rafQueue.push(cb);
+        globalThis.cancelAnimationFrame = () => {};
+    });
+    afterEach(() => {
+        globalThis.requestAnimationFrame = origRaf;
+        globalThis.cancelAnimationFrame = origCancel;
+        gen.heldRotationDir = 0;
+        gen.scrollVelocity = 0;
+    });
+
+    const frame = () => {
+        const cb = rafQueue.shift();
+        if (cb) cb();
+    };
+
+    it('a single press adds one KEY_IMPULSE (correct sign) and starts the loop', () => {
+        gen.startHeldRotation(1);
+        expect(gen.heldRotationDir).toBe(1);
+        expect(gen.scrollVelocity).toBeCloseTo(KEY_IMPULSE, 6);
+        expect(gen.momentumRafId).not.toBeNull();
+
+        // Opposite direction reverses the held state and applies a negative impulse.
+        gen.stopHeldRotation(1);
+        gen.scrollVelocity = 0;
+        gen.startHeldRotation(-1);
+        expect(gen.heldRotationDir).toBe(-1);
+        expect(gen.scrollVelocity).toBeCloseTo(-KEY_IMPULSE, 6);
+    });
+
+    it('holding accelerates each frame and rides up to (never past) MAX_VELOCITY', () => {
+        gen.startHeldRotation(1);
+        const startRotation = gen.currentRotation;
+        for (let i = 0; i < 60; i++) frame();
+        // Sustained spin: velocity climbed well past the single-tap impulse toward the cap.
+        expect(gen.scrollVelocity).toBeGreaterThan(KEY_IMPULSE);
+        expect(gen.scrollVelocity).toBeLessThanOrEqual(MAX_VELOCITY + 1e-9);
+        // And it actually rotated the wheel.
+        expect(gen.currentRotation).toBeGreaterThan(startRotation);
+    });
+
+    it('releasing clears the held direction and the wheel decays to rest', () => {
+        gen.startHeldRotation(1);
+        for (let i = 0; i < 20; i++) frame(); // spin up
+        gen.stopHeldRotation(1);
+        expect(gen.heldRotationDir).toBe(0);
+        // With nothing held, friction decays velocity below MIN_VELOCITY and the loop settles.
+        for (let i = 0; i < 300 && gen.momentumRafId !== null; i++) frame();
+        expect(gen.scrollVelocity).toBe(0);
+        expect(gen.momentumRafId).toBeNull();
+    });
+
+    it('is a no-op while a programmatic animation owns the wheel (reset-safety)', () => {
+        gen.isAnimating = true;
+        gen.startHeldRotation(1);
+        expect(gen.heldRotationDir).toBe(0);
+        expect(gen.scrollVelocity).toBe(0);
+        gen.isAnimating = false;
     });
 });

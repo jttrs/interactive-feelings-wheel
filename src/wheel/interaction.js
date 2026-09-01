@@ -204,10 +204,46 @@ export const InteractionMixin = (Base) =>
                 setTimeout(() => this.handleResize(), 200);
             };
 
+            // Arrow keys spin the wheel via the shared momentum model. These fire only when
+            // NO wedge is focused: the svg's own keydown (setupEventListeners) handles arrows
+            // as wedge focus-navigation and stopPropagation()s them, so a focused wedge never
+            // reaches document here. Map: Left/Up = ccw (-1), Right/Down = cw (+1).
+            const ARROW_DIR = {
+                ArrowLeft: -1,
+                ArrowUp: -1,
+                ArrowRight: 1,
+                ArrowDown: 1,
+            };
+            this._onKeyDown = (e) => {
+                const dir = ARROW_DIR[e.key];
+                if (dir === undefined || !this.svg) return;
+                // Don't hijack arrows while typing in a field.
+                const tag = e.target && e.target.tagName;
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                e.preventDefault();
+                // OS key-repeat presses are no-ops: the held-accel loop sustains the spin,
+                // so we only kick it on the initial (non-repeat) press.
+                if (e.repeat) return;
+                this.startHeldRotation(dir);
+            };
+            this._onKeyUp = (e) => {
+                const dir = ARROW_DIR[e.key];
+                if (dir === undefined) return;
+                this.stopHeldRotation(dir);
+            };
+            // If focus/visibility leaves mid-hold we never get keyup — clear held spin so it
+            // can't get stuck accelerating.
+            this._onBlur = () => {
+                this.heldRotationDir = 0;
+            };
+
             document.addEventListener('mousemove', this._onMouseMove);
             document.addEventListener('mouseup', this._onMouseUp);
+            document.addEventListener('keydown', this._onKeyDown);
+            document.addEventListener('keyup', this._onKeyUp);
             window.addEventListener('resize', this._onResize);
             window.addEventListener('orientationchange', this._onOrientationChange);
+            window.addEventListener('blur', this._onBlur);
         }
 
         // Focusable wedges in STABLE generation order (data-nav-index), not live DOM
@@ -386,15 +422,21 @@ export const InteractionMixin = (Base) =>
             this.updateAllShadowTransforms();
         }
 
-        // ===== SCROLL MOMENTUM =====
-        // Tunables. SENSITIVITY converts a scroll delta (px) into degrees of velocity;
-        // FRICTION is the per-frame velocity retention (higher = heavier/longer glide);
-        // MAX_VELOCITY caps a fast flick; MIN_VELOCITY is when we snap to rest.
+        // ===== ROTATION MOMENTUM =====
+        // Shared velocity/friction model driving BOTH scroll and held-arrow rotation.
+        // SENSITIVITY converts a scroll delta (px) into degrees of velocity; FRICTION is
+        // the per-frame velocity retention (higher = heavier/longer glide); MAX_VELOCITY
+        // caps a fast flick or a sustained hold; MIN_VELOCITY is when we snap to rest.
+        // KEY_IMPULSE is the one-shot velocity a single arrow tap adds (a tap glides
+        // ~IMPULSE/(1-FRICTION) degrees); KEY_ACCEL is the per-frame velocity added while an
+        // arrow is HELD, ramping up to MAX_VELOCITY for a smooth continuous spin.
         static ScrollPhysics = {
-            SENSITIVITY: 0.12,
+            SENSITIVITY: 0.025,
             FRICTION: 0.9,
-            MAX_VELOCITY: 12,
+            MAX_VELOCITY: 2,
             MIN_VELOCITY: 0.05,
+            KEY_IMPULSE: 0.3,
+            KEY_ACCEL: 0.2,
         };
 
         // Feed one wheel event into the momentum model. Adds magnitude-scaled velocity
@@ -414,18 +456,32 @@ export const InteractionMixin = (Base) =>
         startMomentum() {
             const P = this.constructor.ScrollPhysics;
             const step = () => {
-                // A programmatic animation (e.g. reset) takes over: drop momentum.
+                // A programmatic animation (e.g. reset) takes over: drop momentum and any
+                // held-key spin so a second rAF can't fight the reset for currentRotation.
                 if (this.isAnimating) {
                     this.scrollVelocity = 0;
+                    this.heldRotationDir = 0;
                     this.momentumRafId = null;
                     return;
+                }
+
+                // While an arrow key is held, feed velocity in each frame so the spin is
+                // continuous and rides up to the shared MAX_VELOCITY cap.
+                if (this.heldRotationDir !== 0) {
+                    this.scrollVelocity += this.heldRotationDir * P.KEY_ACCEL;
+                    this.scrollVelocity = Math.max(
+                        -P.MAX_VELOCITY,
+                        Math.min(P.MAX_VELOCITY, this.scrollVelocity)
+                    );
                 }
 
                 this.currentRotation += this.scrollVelocity;
                 this.updateRotation();
                 this.scrollVelocity *= P.FRICTION;
 
-                if (Math.abs(this.scrollVelocity) < P.MIN_VELOCITY) {
+                // Settle only when nothing is held AND the glide has decayed — a held key
+                // keeps the loop alive even as friction pulls velocity toward the cap.
+                if (this.heldRotationDir === 0 && Math.abs(this.scrollVelocity) < P.MIN_VELOCITY) {
                     this.scrollVelocity = 0;
                     this.momentumRafId = null;
                     return; // settled
@@ -435,12 +491,35 @@ export const InteractionMixin = (Base) =>
             this.momentumRafId = requestAnimationFrame(step);
         }
 
+        // Begin (or reverse) a held-arrow spin. dir: +1 clockwise, -1 counter-clockwise.
+        // A single tap lands one KEY_IMPULSE and the friction glide carries it ~15°; holding
+        // the key lets startMomentum()'s per-frame KEY_ACCEL take over for a continuous spin.
+        startHeldRotation(dir) {
+            // A programmatic animation (reset) owns the wheel — ignore, matching scroll/drag.
+            if (this.isAnimating) return;
+            const P = this.constructor.ScrollPhysics;
+            this.heldRotationDir = dir;
+            this.scrollVelocity += dir * P.KEY_IMPULSE;
+            this.scrollVelocity = Math.max(
+                -P.MAX_VELOCITY,
+                Math.min(P.MAX_VELOCITY, this.scrollVelocity)
+            );
+            if (this.momentumRafId === null) this.startMomentum();
+        }
+
+        // Release a held-arrow spin. Clears the held direction (if it still matches) so
+        // friction decays the wheel to rest; the loop settles on its own.
+        stopHeldRotation(dir) {
+            if (this.heldRotationDir === dir) this.heldRotationDir = 0;
+        }
+
         stopMomentum() {
             if (this.momentumRafId !== null) {
                 cancelAnimationFrame(this.momentumRafId);
                 this.momentumRafId = null;
             }
             this.scrollVelocity = 0;
+            this.heldRotationDir = 0;
         }
 
         reset() {

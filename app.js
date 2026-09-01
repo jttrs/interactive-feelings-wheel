@@ -198,25 +198,9 @@ export class FeelingsWheelApp {
                     this.togglePanelMinimization();
                     break;
 
-                case 'arrowleft':
-                    event.preventDefault();
-                    this.rotateWheel(-15); // Rotate left 15 degrees
-                    break;
-
-                case 'arrowright':
-                    event.preventDefault();
-                    this.rotateWheel(15); // Rotate right 15 degrees
-                    break;
-
-                case 'arrowup':
-                    event.preventDefault();
-                    this.rotateWheel(-15); // Rotate counterclockwise 15 degrees
-                    break;
-
-                case 'arrowdown':
-                    event.preventDefault();
-                    this.rotateWheel(15); // Rotate clockwise 15 degrees
-                    break;
+                // Arrow keys spin the wheel via the generator's shared momentum model
+                // (keydown/keyup bound in setupGlobalListeners) so a held key spins
+                // continuously — no discrete per-press handling here.
 
                 case 'f11':
                     // F11 is already handled in setupFullscreenFeature
@@ -235,16 +219,6 @@ export class FeelingsWheelApp {
         if (toggleInput) {
             toggleInput.click();
         }
-    }
-
-    rotateWheel(degrees) {
-        // Ignore rotate requests while an animation (e.g. the reset unwind) owns the
-        // wheel — a second concurrent rAF would fight it for currentRotation and could
-        // leave the wheel at an angle that disagrees with the committed reset state.
-        if (!this.wheelGenerator || this.wheelGenerator.isAnimating) return;
-
-        const targetRotation = this.wheelGenerator.currentRotation + degrees;
-        this.wheelGenerator.animateRotation(targetRotation, 200); // Quick 200ms animation
     }
 
     // ===== INFORMATION PANEL FUNCTIONALITY =====

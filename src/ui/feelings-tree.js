@@ -12,8 +12,6 @@
 // subtree. The app rebuilds it wholesale on every selection change (selectedWedges is
 // the source of truth), so there is no incremental add/remove state to drift.
 
-const LEVEL_ORDER = { core: 0, secondary: 1, tertiary: 2 };
-
 // Small inline × icon (matches the stroke style used elsewhere in the panel).
 function removeIcon() {
     const NS = 'http://www.w3.org/2000/svg';
@@ -93,10 +91,29 @@ export function buildForest(selections, { familyOrder = [] } = {}) {
 
     const forest = [...families.entries()]
         .map(([family, nodesMap]) => {
-            const nodes = [...nodesMap.values()].sort((a, b) => {
-                const dl = LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level];
-                return dl !== 0 ? dl : a.emotion.localeCompare(b.emotion);
-            });
+            // Order depth-first so each tertiary sits under ITS parent secondary,
+            // not after all secondaries. (Sidebar indent is level-based via CSS, so a
+            // flat level-sorted list would drop a tertiary under whatever secondary
+            // printed last — e.g. Violated appearing under Mad instead of Bitter.)
+            const all = [...nodesMap.values()];
+            const byName = (a, b) => a.emotion.localeCompare(b.emotion);
+            const secondaries = all.filter((n) => n.level === 'secondary').sort(byName);
+            const tertiaries = all.filter((n) => n.level === 'tertiary');
+
+            const nodes = all.filter((n) => n.level === 'core');
+            const placed = new Set();
+            for (const sec of secondaries) {
+                nodes.push(sec);
+                const kids = tertiaries.filter((t) => t.parentEmotion === sec.emotion).sort(byName);
+                for (const k of kids) {
+                    nodes.push(k);
+                    placed.add(k);
+                }
+            }
+            // Defensive: never drop a tertiary whose parent secondary node is missing.
+            for (const t of tertiaries.filter((t) => !placed.has(t)).sort(byName)) {
+                nodes.push(t);
+            }
             // A selected node is "terminal" (definition-bearing) iff it has no SELECTED
             // descendant — i.e. it's the end of a chosen path. Per-sub-branch: two selected
             // leaves under the same family each define themselves. We detect a descendant by

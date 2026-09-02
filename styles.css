@@ -765,16 +765,6 @@ body {
     font-weight: 500;
 }
 
-/* Family-color dot beside each core name. */
-.feeling-dot {
-    flex-shrink: 0;
-    width: 0.7em;
-    height: 0.7em;
-    border-radius: 50%;
-    background: var(--family-color, var(--color-accent));
-    box-shadow: 0 0 0 1px rgba(43, 42, 40, 0.12) inset;
-}
-
 /* Remove control: quiet by default, surfaced on hover/focus within the row. */
 .feeling-remove {
     display: inline-flex;

@@ -54,6 +54,24 @@ describe('buildForest — grouping & levels', () => {
         );
         expect(forest.map((f) => f.family)).toEqual(['Angry', 'Happy']);
     });
+
+    it('groups each tertiary under its own parent secondary (not the last one)', () => {
+        // Angry > Bitter > Violated  AND  Angry > Mad > Furious
+        const forest = buildForest(
+            [
+                sel('tertiary', 'Furious', 'Mad', 'Angry'),
+                sel('tertiary', 'Violated', 'Bitter', 'Angry'),
+            ],
+            { familyOrder: FAMILY_ORDER }
+        );
+        expect(forest[0].nodes.map((n) => `${n.level}:${n.emotion}`)).toEqual([
+            'core:Angry',
+            'secondary:Bitter',
+            'tertiary:Violated',
+            'secondary:Mad',
+            'tertiary:Furious',
+        ]);
+    });
 });
 
 describe('buildForest — terminal (definition-bearing) rule', () => {

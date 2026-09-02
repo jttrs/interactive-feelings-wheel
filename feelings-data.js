@@ -123,334 +123,543 @@ export const FEELINGS_DATA = {
     // Sources: APA Dictionary of Psychology, Emotion-Based Therapy literature,
     // Oxford Dictionary of Psychology, Cambridge Dictionary of Psychology
     definitions: {
-        // CORE EMOTIONS - Primary emotional states
-        Happy: {
-            standard:
-                'A positive emotional state characterized by feelings of joy, satisfaction, contentment, and fulfillment. Associated with pleasant thoughts, increased energy, and a general sense of well-being.',
-            simplified: 'Feeling good, joyful, and pleased with things around you.',
-        },
-        Sad: {
-            standard:
-                'An emotional state characterized by feelings of loss, disappointment, grief, helplessness, and reduced mood. Often occurs in response to perceived or actual loss.',
-            simplified: 'Feeling unhappy, down, or hurt about something that happened.',
-        },
+        // Definitions sourced + reconciled from docs/definitions/ (lexical + therapeutic research).
+        // CORE
         Angry: {
             standard:
-                'An emotional response to perceived threats, injustice, or frustration. Characterized by feelings of hostility, irritability, and often accompanied by physiological arousal.',
-            simplified: "Feeling mad or upset when something isn't fair or bothers you.",
-        },
-        Fearful: {
-            standard:
-                'An adaptive emotional response to perceived danger or threat. Involves physiological arousal and motivates protective behaviors such as avoidance or escape.',
-            simplified: 'Feeling scared or worried that something bad might happen.',
-        },
-        Surprised: {
-            standard:
-                'A brief emotional response to unexpected events or information. Characterized by momentary disorientation and heightened attention to the surprising stimulus.',
-            simplified: "Feeling shocked or amazed by something you didn't expect.",
+                'A hot, energizing response that flares when something feels unfair, blocked, or crossed — it flags a boundary or need, and isn\'t "bad."',
+            simplified: 'A strong, heated feeling when something feels unfair or gets in your way.',
         },
         Disgusted: {
             standard:
-                'An emotional response to offensive, revolting, or morally objectionable stimuli. Serves as protection from potentially harmful or contaminating substances or situations.',
-            simplified: 'Feeling sick, yucky, or grossed out by something.',
+                'A recoiling "get this away from me" reaction toward something that feels wrong, tainted, or repellent — physically or morally.',
+            simplified: 'Feeling grossed out or turned off by something that seems wrong or yucky.',
+        },
+        Sad: {
+            standard:
+                'A heavy, slowed-down feeling of loss or lack that asks you to pause, grieve, and often reach for comfort.',
+            simplified: "Feeling heavy and down about a loss or something you're missing.",
+        },
+        Happy: {
+            standard:
+                'A warm, open, expansive good feeling — the whole bright range from quiet contentment to real joy.',
+            simplified: 'Feeling good, light, and glad inside.',
+        },
+        Surprised: {
+            standard:
+                "A sudden jolt when reality doesn't match what you expected — a brief, wide-open pause before you know how to feel.",
+            simplified: "A quick jolt when something happens that you didn't expect.",
         },
         Bad: {
             standard:
-                'A general negative emotional state encompassing discomfort, dissatisfaction, unease, or distress without a specific identifiable cause.',
-            simplified: 'Feeling not good, uncomfortable, or like something is wrong.',
+                'A general "something\'s off" state — low, uneasy, or drained — before you\'ve pinned down exactly what it is.',
+            simplified: 'Feeling off or not good inside, without knowing quite why.',
+        },
+        Fearful: {
+            standard:
+                'An alert, protective response to threat or danger, real or imagined, that readies you to get safe.',
+            simplified: 'Feeling scared that something bad might happen.',
         },
 
-        // SECONDARY EMOTIONS - Angry Family
+        // SECONDARY
         'Let Down': {
             standard:
-                'The emotional experience of disappointment when expectations or hopes are not met, particularly by someone trusted or relied upon.',
-            simplified:
-                "Feeling sad when someone doesn't do what they promised or what you hoped for.",
+                "The sinking feeling when someone or something you counted on didn't come through.",
+            simplified: "Feeling low when someone didn't do what you hoped or promised.",
         },
         Humiliated: {
             standard:
-                'A painful emotional state involving feelings of shame, embarrassment, and loss of dignity, often in the presence of others.',
-            simplified: 'Feeling very embarrassed and hurt when others see you in a bad way.',
+                'A deeply exposed, shrinking pain of being made to feel small in front of others.',
+            simplified: 'Feeling very small and hurt when others saw you put down.',
         },
         Bitter: {
             standard:
-                'A persistent emotional state characterized by resentment, cynicism, and anger, often resulting from perceived unfairness or repeated disappointments.',
-            simplified:
-                'Feeling angry and hurt for a long time about something unfair that happened.',
+                "Anger that has hardened over time into resentment — an old hurt that won't let go.",
+            simplified: 'Staying angry and hurt for a long time about something unfair.',
         },
         Mad: {
             standard:
-                'An intense emotional state of anger characterized by strong feelings of annoyance, fury, or wrath in response to perceived provocation.',
-            simplified: 'Feeling very angry and upset about something.',
+                'The everyday heat of anger — worked up and worked over by something that got to you.',
+            simplified: 'Feeling angry and worked up about something.',
         },
         Aggressive: {
             standard:
-                'An emotional and behavioral state characterized by hostile feelings and actions intended to assert dominance or cause harm.',
-            simplified: 'Feeling like you want to fight or be mean to others.',
+                'Anger turned outward and forceful — the urge to push, confront, or take charge.',
+            simplified: 'Feeling like you want to push back hard or take control.',
         },
         Frustrated: {
-            standard:
-                'The emotional response to being blocked from achieving a goal or desire, characterized by feelings of annoyance and tension.',
-            simplified: "Feeling upset when you can't do what you want or when things don't work.",
+            standard: 'The tense "I\'m blocked" feeling when your effort keeps hitting a wall.',
+            simplified: "Feeling stuck and annoyed when you can't do what you want.",
         },
         Distant: {
             standard:
-                'An emotional state of withdrawal characterized by feelings of disconnection, emotional unavailability, and reduced engagement with others.',
-            simplified: 'Feeling far away from others and not wanting to be close or talk.',
+                'Emotionally pulled back and disconnected — present, but not really *with* others.',
+            simplified: "Feeling far away from people, like you can't connect.",
         },
         Critical: {
-            standard:
-                'An emotional stance characterized by fault-finding, judgment, and the tendency to focus on negative aspects or flaws.',
-            simplified: "Feeling like you want to point out what's wrong with things or people.",
+            standard: "A fault-finding stance — quick to notice and call out what's wrong.",
+            simplified: "Feeling like you keep seeing what's wrong with things or people.",
         },
-
-        // SECONDARY EMOTIONS - Disgusted Family
         Disapproving: {
             standard:
-                "An emotional response involving negative judgment and rejection of someone's actions, choices, or character.",
-            simplified: 'Feeling like someone did something wrong or bad.',
+                'A cool "I don\'t accept this" reaction to something that clashes with your values.',
+            simplified: 'Feeling like something someone did was wrong.',
         },
         Disappointed: {
-            standard:
-                'The emotional experience when outcomes fall short of expectations, hopes, or desires, often involving sadness and regret.',
-            simplified: "Feeling sad when something doesn't turn out the way you wanted.",
+            standard: "The soft ache when hopes or expectations don't get met.",
+            simplified: "Feeling let down when things didn't go how you wanted.",
         },
         Awful: {
-            standard:
-                'An emotional state of extreme discomfort, revulsion, or distress in response to deeply unpleasant experiences or stimuli.',
-            simplified: 'Feeling really, really bad about something terrible.',
+            standard: 'A heavy, dreadful "this is really bad" feeling that weighs on you.',
+            simplified: 'Feeling really bad about something terrible.',
         },
         Repelled: {
             standard:
-                'A strong emotional response of aversion and rejection, often involving physical and emotional withdrawal from disturbing stimuli.',
-            simplified: 'Feeling like you want to get away from something gross or scary.',
+                'A strong pull to back away from something you find off-putting or repugnant.',
+            simplified: 'Wanting to get away from something that feels gross or wrong.',
         },
-
-        // SECONDARY EMOTIONS - Sad Family
         Hurt: {
-            standard:
-                'An emotional response to perceived injury, slight, or rejection, often involving feelings of pain, vulnerability, and wounded feelings.',
-            simplified:
-                'Feeling pain in your heart when someone is mean to you or something bad happens.',
+            standard: 'Emotional pain from feeling wounded, slighted, or uncared-for.',
+            simplified: 'Feeling pain inside when someone was unkind or something wounded you.',
         },
         Depressed: {
-            standard:
-                'A persistent emotional state characterized by sadness, hopelessness, low energy, and diminished interest in activities once found pleasurable.',
-            simplified: 'Feeling very sad and tired for a long time, like nothing is fun anymore.',
+            standard: 'A flattened, heavy, low state with little energy, joy, or hope.',
+            simplified: "Feeling low, heavy, and tired for a long time, like nothing's fun.",
         },
         Guilty: {
             standard:
-                'An emotional response to actual or perceived wrongdoing, characterized by remorse, regret, and the desire to make amends.',
+                'The uncomfortable tug of "I did something wrong" — usually about an action you took.',
             simplified: 'Feeling bad because you think you did something wrong.',
         },
         Despair: {
-            standard:
-                'A profound emotional state of hopelessness and dejection, often involving the belief that suffering will continue indefinitely.',
-            simplified: "Feeling like nothing will ever get better and there's no hope.",
+            standard: "The bleak sense that things can't get better, as if hope has drained away.",
+            simplified: "Feeling like nothing will get better and there's no hope.",
         },
         Vulnerable: {
             standard:
-                'An emotional state of openness combined with uncertainty and emotional risk, often involving feelings of exposure and defenselessness.',
-            simplified: 'Feeling like you could get hurt easily and need protection.',
+                'The tender, unguarded feeling of being open to being hurt — which can also mean openness, not just weakness.',
+            simplified: 'Feeling open and easy to hurt right now.',
         },
         Lonely: {
-            standard:
-                'The subjective emotional experience of isolation and disconnection from others, regardless of the actual amount of social contact.',
-            simplified: 'Feeling alone and sad because you want to be with other people.',
+            standard: 'The ache of feeling unconnected or unseen, even when others are around.',
+            simplified: 'Feeling alone and wishing you felt closer to someone.',
         },
-
-        // SECONDARY EMOTIONS - Happy Family
         Playful: {
             standard:
-                'An emotional state characterized by lightheartedness, spontaneity, and the desire to engage in fun, recreational activities.',
-            simplified: 'Feeling silly, fun, and like you want to play and laugh.',
+                'Light, spontaneous, and ready to have fun without taking things too seriously.',
+            simplified: 'Feeling fun, silly, and ready to play.',
         },
         Content: {
             standard:
-                'A peaceful emotional state of satisfaction and acceptance with current circumstances, without strong desires for change.',
-            simplified: 'Feeling happy and okay with how things are right now.',
+                'A quiet, satisfied ease — a sense of "enough," at peace with how things are.',
+            simplified: 'Feeling calm and okay with how things are right now.',
         },
         Interested: {
             standard:
-                'An emotional state of curiosity and engagement, characterized by focused attention and desire to learn or explore.',
-            simplified: 'Feeling curious and excited to learn about something new.',
+                'Leaning-in curiosity — engaged and drawn toward something that matters to you.',
+            simplified: 'Feeling curious and pulled toward something.',
         },
         Proud: {
             standard:
-                'A positive emotional response to personal achievements or the accomplishments of those with whom one identifies.',
-            simplified: 'Feeling good about something you did well or accomplished.',
+                'Warm satisfaction in something you did, grew through, or are — healthy self-regard, not arrogance.',
+            simplified: 'Feeling good about something you did or who you are.',
         },
         Accepted: {
-            standard:
-                'The emotional experience of being welcomed, valued, and included by others without judgment or conditions.',
-            simplified: 'Feeling like others like you and want you around just as you are.',
+            standard: 'The settled sense of belonging — welcomed just as you are.',
+            simplified: 'Feeling like others want you around, just as you are.',
         },
         Powerful: {
-            standard:
-                'An emotional state characterized by feelings of strength, capability, confidence, and the ability to influence outcomes.',
-            simplified: 'Feeling strong, capable, and like you can do important things.',
+            standard: 'A grounded sense of capability and agency — you can affect what happens.',
+            simplified: 'Feeling strong and able to make things happen.',
         },
         Peaceful: {
-            standard:
-                'A calm emotional state characterized by tranquility, serenity, and the absence of internal conflict or distress.',
-            simplified: 'Feeling calm, quiet, and relaxed inside.',
+            standard: 'Calm, still, and untroubled — nothing pulling at you.',
+            simplified: 'Feeling calm and quiet inside.',
         },
         Trusting: {
-            standard:
-                'An emotional state of confidence and faith in the reliability, integrity, and benevolence of others or situations.',
-            simplified: 'Feeling safe and believing that others will be good to you.',
+            standard: 'Feeling safe enough to rely on and open up to someone.',
+            simplified: 'Feeling safe that someone will be good to you.',
         },
         Optimistic: {
-            standard:
-                'An emotional disposition characterized by hope, positive expectations, and the tendency to expect favorable outcomes.',
-            simplified: 'Feeling hopeful and believing that good things will happen.',
+            standard: 'A hopeful, forward-leaning sense that good things are ahead.',
+            simplified: 'Feeling like good things are coming.',
         },
-
-        // SECONDARY EMOTIONS - Surprised Family
         Startled: {
-            standard:
-                'A sudden emotional and physical response to unexpected stimuli, characterized by brief alarm and heightened alertness.',
-            simplified: 'Feeling suddenly scared or surprised by something that happened quickly.',
+            standard: 'A quick, reflexive jump at something sudden — the flinch of surprise.',
+            simplified: 'Jumping in surprise when something happens fast.',
         },
         Confused: {
             standard:
-                'An emotional state of uncertainty and bewilderment when unable to understand or make sense of information or situations.',
-            simplified: "Feeling mixed up and not understanding what's happening.",
+                "Foggy and uncertain — things don't add up and you're not sure what to think.",
+            simplified: "Feeling mixed up and unsure what's going on.",
         },
         Amazed: {
-            standard:
-                'An emotional response of wonder and admiration to extraordinary, impressive, or unexpected phenomena.',
-            simplified: 'Feeling really surprised and impressed by something awesome.',
+            standard: 'Wide-eyed wonder at something remarkable — surprise tipped bright.',
+            simplified: 'Feeling wowed by something amazing.',
         },
         Excited: {
-            standard:
-                'An emotional state of heightened arousal and enthusiasm, often in anticipation of or response to positive events.',
-            simplified: 'Feeling happy, energetic, and looking forward to something fun.',
+            standard: "Buzzy, energized anticipation — eager and lit up for what's coming.",
+            simplified: 'Feeling happy and full of energy about something ahead.',
         },
-
-        // SECONDARY EMOTIONS - Bad Family
         Bored: {
-            standard:
-                'An emotional state characterized by lack of interest, engagement, or stimulation, often accompanied by restlessness.',
-            simplified: 'Feeling like nothing is interesting or fun to do.',
+            standard: 'A restless, understimulated flatness — nothing quite engages you.',
+            simplified: 'Feeling like nothing is fun or interesting to do.',
         },
         Busy: {
-            standard:
-                'An emotional state of feeling overwhelmed by excessive activity, tasks, or obligations, often accompanied by stress.',
-            simplified: 'Feeling like you have too many things to do and not enough time.',
+            standard: 'Feeling stretched by having a lot on — pulled in many directions at once.',
+            simplified: 'Feeling like you have too much to do and not enough time.',
         },
         Stressed: {
             standard:
-                "An emotional and physiological response to demanding situations that exceed one's perceived ability to cope effectively.",
-            simplified: 'Feeling worried and tight inside because of too much pressure.',
+                'Tense, pressured, and stretched thin — more is on you than you feel able to handle.',
+            simplified: 'Feeling tight and pressured by too much at once.',
         },
         Tired: {
-            standard:
-                'An emotional and physical state of depletion characterized by reduced energy, motivation, and cognitive capacity.',
-            simplified: "Feeling like you need rest and don't have energy to do things.",
+            standard: 'Worn down and low on energy or reserves, needing rest.',
+            simplified: 'Feeling worn out and needing rest.',
         },
-
-        // SECONDARY EMOTIONS - Fearful Family
         Scared: {
-            standard:
-                'An emotional response to immediate or perceived danger, characterized by alarm, apprehension, and the impulse to flee or hide.',
-            simplified: 'Feeling afraid that something bad is going to happen to you.',
+            standard: 'Afraid in the moment — bracing against something that feels dangerous.',
+            simplified: 'Feeling afraid that something bad will happen.',
         },
         Anxious: {
             standard:
-                'An emotional state of worry, nervousness, and apprehension, often about uncertain future events or potential threats.',
-            simplified: 'Feeling worried and nervous about something that might happen.',
+                'Keyed-up unease about something that might go wrong — focused on the future.',
+            simplified: 'Feeling worried and on edge about what might happen.',
         },
         Insecure: {
-            standard:
-                "An emotional state characterized by self-doubt, uncertainty about one's worth, and fear of judgment or rejection by others.",
-            simplified: 'Feeling unsure about yourself and worried that others might not like you.',
+            standard: 'Shaky and unsure of yourself or where you stand.',
+            simplified: 'Feeling unsure about yourself.',
         },
         Weak: {
-            standard:
-                'An emotional state of feeling powerless, inadequate, or lacking in strength to handle challenges or difficulties.',
-            simplified: "Feeling like you're not strong enough or good enough to do things.",
+            standard: 'Feeling without the strength or capacity to cope right now.',
+            simplified: "Feeling like you don't have the strength to handle things.",
         },
         Rejected: {
-            standard:
-                'The painful emotional experience of being excluded, dismissed, or unwanted by others or groups.',
-            simplified: "Feeling hurt because someone doesn't want to be with you or include you.",
+            standard: 'The sting of being pushed away or not wanted.',
+            simplified: "Feeling hurt because someone didn't want you.",
         },
         Threatened: {
             standard:
-                "An emotional response to perceived danger or potential harm to one's well-being, safety, or important values.",
-            simplified:
-                'Feeling like someone or something might hurt you or take away something important.',
+                'On guard — sensing something endangers your safety, standing, or sense of self.',
+            simplified: 'Feeling like something could hurt you or what matters to you.',
         },
 
-        // TERTIARY EMOTIONS - Additional emotional granularity
+        // TERTIARY
         Betrayed: {
-            standard:
-                'The profound emotional pain experienced when someone trusted violates that trust through deception or disloyalty.',
-            simplified:
-                'Feeling hurt because someone you trusted did something mean behind your back.',
+            standard: 'The deep wound of trust broken by someone you relied on.',
+            simplified: 'Feeling hurt because someone you trusted let you down badly.',
         },
         Resentful: {
-            standard:
-                'A persistent emotion of indignation and ill-will toward someone perceived as having caused injury or injustice.',
-            simplified: 'Feeling angry at someone for a long time because they hurt you.',
+            standard: 'Simmering, held-onto anger at a wrong that still feels unfair.',
+            simplified: 'Staying angry at someone for hurting you.',
+        },
+        Disrespected: {
+            standard: 'Feeling treated as unimportant or beneath consideration.',
+            simplified: "Feeling like someone treated you as if you don't matter.",
+        },
+        Ridiculed: {
+            standard: 'The hurt of being mocked or laughed at.',
+            simplified: 'Feeling hurt because people made fun of you.',
+        },
+        Indignant: {
+            standard: 'Righteous anger at something you find unjust or beneath you.',
+            simplified: 'Feeling angry because something is unfair or wrong.',
+        },
+        Violated: {
+            standard: 'The shaken feeling of having your boundaries, body, or rights crossed.',
+            simplified: 'Feeling shaken because someone crossed a line with you.',
         },
         Furious: {
-            standard:
-                'An intense state of rage characterized by overwhelming anger and loss of emotional control.',
-            simplified: 'Feeling so angry that you feel like you might explode.',
+            standard: "Intense, blazing anger, near the top of anger's range.",
+            simplified: 'Feeling so angry you could burst.',
         },
         Jealous: {
-            standard:
-                "An emotional response involving fear of losing someone's affection or attention to a rival, often accompanied by resentment.",
-            simplified:
-                'Feeling upset because you think someone else might take away something or someone you care about.',
+            standard: 'The uneasy fear of losing someone or something you value to a rival.',
+            simplified: 'Feeling afraid of losing someone or something you care about.',
         },
-        Overwhelmed: {
-            standard:
-                "An emotional state of being completely overcome by intense feelings, situations, or responsibilities beyond one's capacity to cope.",
-            simplified: "Feeling like everything is too much and you can't handle it all.",
+        Provoked: {
+            standard: 'Stirred toward anger — poked or baited into reacting.',
+            simplified: 'Feeling pushed into anger by something someone did.',
         },
-        Grief: {
+        Hostile: {
+            standard: 'Cold, combative antagonism — braced against someone.',
+            simplified: 'Feeling cold and ready to fight against someone.',
+        },
+        Infuriated: {
+            standard: 'Made intensely angry — pushed past your limit into rage.',
+            simplified: 'Feeling driven past your limit into anger.',
+        },
+        Annoyed: {
+            standard: 'Mild, low-grade irritation at something that grates.',
+            simplified: 'Feeling a little bugged or bothered.',
+        },
+        Withdrawn: {
+            standard: 'Pulled inward and away — quietly retreating from contact.',
+            simplified: 'Pulling away from people and keeping to yourself.',
+        },
+        Numb: {
+            standard: 'Emotionally blank or frozen — feeling little at all, often as protection.',
+            simplified: 'Feeling nothing, like your feelings switched off.',
+        },
+        Skeptical: {
+            standard: 'Doubting — not ready to believe or trust just yet.',
+            simplified: 'Feeling unsure and not ready to believe it.',
+        },
+        Dismissive: {
+            standard: 'Waving something or someone off as not worth your attention.',
+            simplified: "Feeling like something or someone isn't worth your time.",
+        },
+        Judgmental: {
+            standard: 'Quick to size things up and find fault.',
+            simplified: "Feeling quick to decide what's wrong with something.",
+        },
+        Embarrassed: {
+            standard: 'Self-conscious discomfort at feeling awkward or on show.',
+            simplified: 'Feeling awkward and shy about being noticed.',
+        },
+        Appalled: {
+            standard: 'Shocked dismay at something you find deeply wrong.',
+            simplified: 'Feeling shocked because something is so wrong.',
+        },
+        Revolted: {
+            standard: 'Powerful disgust — a whole-body "no."',
+            simplified: 'Feeling a strong "no" to something disgusting.',
+        },
+        Nauseated: {
+            standard: 'Disgust so strong it turns your stomach.',
+            simplified: 'Feeling sick inside because something is so gross or wrong.',
+        },
+        Detestable: {
+            standard: 'Finding something or someone loathsome — worthy of your contempt.',
+            simplified: 'Feeling like something or someone is truly hateful.',
+        },
+        Horrified: {
+            standard: 'Shocked and dismayed by something dreadful.',
+            simplified: 'Feeling shocked and scared by something awful.',
+        },
+        Hesitant: {
+            standard: 'Holding back — unsure whether to act or trust.',
+            simplified: 'Feeling unsure and holding back.',
+        },
+        Inferior: {
+            standard: 'Feeling lesser — not as good, worthy, or capable as others.',
+            simplified: "Feeling like you're not as good as other people.",
+        },
+        Empty: {
+            standard: 'A hollow, void feeling, as if something inside is missing.',
+            simplified: "Feeling hollow inside, like something's missing.",
+        },
+        Remorseful: {
             standard:
-                'The deep emotional suffering experienced in response to loss, particularly the death of someone loved or valued.',
-            simplified: 'Feeling very sad because someone or something important is gone forever.',
+                "Painful regret for something you did and wish you hadn't, with a pull to make it right.",
+            simplified: 'Feeling sorry for something you did and wanting to fix it.',
         },
         Ashamed: {
-            standard:
-                "A painful emotion arising from the consciousness of something dishonoring or ridiculous in one's conduct or circumstances.",
-            simplified:
-                'Feeling bad about yourself because you think you did something wrong or embarrassing.',
+            standard: 'The painful sense that *you yourself* are flawed or not enough.',
+            simplified: 'Feeling like something is wrong with who you are.',
         },
-        Joyful: {
-            standard:
-                'An intense emotional state of happiness characterized by feelings of great pleasure, delight, and celebration.',
-            simplified: 'Feeling so happy that you want to sing, dance, or celebrate.',
+        Powerless: {
+            standard: "Feeling unable to change or affect what's happening.",
+            simplified: "Feeling like you can't change what's happening.",
         },
-        Confident: {
-            standard:
-                "An emotional state of self-assurance and belief in one's abilities, judgment, and capacity to succeed.",
-            simplified: 'Feeling sure about yourself and believing you can do things well.',
+        Grief: {
+            standard: 'The deep sorrow of a real loss — love with nowhere to go.',
+            simplified: 'Feeling deep sadness because someone or something is gone.',
         },
-        Hopeful: {
-            standard:
-                'An emotional state characterized by expectation and desire for positive outcomes, accompanied by belief in the possibility of fulfillment.',
-            simplified: 'Feeling like good things will happen and everything will work out okay.',
+        Fragile: {
+            standard: 'Feeling delicate and easily broken — handle with care.',
+            simplified: 'Feeling delicate, like you could break easily.',
         },
-        Worried: {
-            standard:
-                'An emotional state of anxiety and concern about potential problems, dangers, or uncertainties.',
-            simplified: 'Feeling scared and thinking about bad things that might happen.',
+        Victimized: {
+            standard: "Feeling wronged and harmed by someone else's actions.",
+            simplified: 'Feeling hurt and wronged by what someone did.',
         },
         Abandoned: {
-            standard:
-                'The profound emotional experience of being left behind, deserted, or given up by those who were expected to provide care or support.',
-            simplified: 'Feeling alone and scared because someone important left you.',
+            standard: 'The painful sense of being left alone by those meant to stay.',
+            simplified: 'Feeling alone because someone important left you.',
         },
         Isolated: {
+            standard: 'Cut off and alone — separated from others.',
+            simplified: 'Feeling cut off and far from everyone.',
+        },
+        Aroused: {
             standard:
-                'The emotional experience of being separated or cut off from others, often accompanied by feelings of loneliness and disconnection.',
-            simplified: 'Feeling alone and far away from other people.',
+                'Emotionally stirred and awakened — your energy switched on, lively and engaged.',
+            simplified: 'Feeling stirred up and full of lively energy.',
+        },
+        Cheeky: {
+            standard: 'Playfully bold and a little impudent — teasing in good fun.',
+            simplified: 'Feeling playfully bold and a bit mischievous.',
+        },
+        Free: {
+            standard: 'Unburdened and at liberty — light, with nothing holding you back.',
+            simplified: 'Feeling light and free, with nothing holding you down.',
+        },
+        Joyful: {
+            standard: 'Bright, full-hearted delight and gladness — the peak of happiness.',
+            simplified: 'Feeling so glad and light you could celebrate.',
+        },
+        Curious: {
+            standard: 'Drawn to explore and learn — eager to know more.',
+            simplified: 'Feeling eager to find out more.',
+        },
+        Inquisitive: {
+            standard: 'Actively questioning and probing — wanting to really understand.',
+            simplified: 'Feeling full of questions and wanting to understand.',
+        },
+        Successful: {
+            standard: 'The satisfied sense of having achieved or accomplished something.',
+            simplified: 'Feeling good because you reached a goal.',
+        },
+        Confident: {
+            standard: 'Sure of yourself and your abilities — trusting you can handle it.',
+            simplified: 'Feeling sure you can do it.',
+        },
+        Respected: {
+            standard: 'Feeling regarded, valued, and taken seriously by others.',
+            simplified: 'Feeling like others take you seriously.',
+        },
+        Valued: {
+            standard: 'Feeling that you matter and are appreciated.',
+            simplified: 'Feeling like you matter to others.',
+        },
+        Courageous: {
+            standard: "Brave in the face of fear — acting even though you're afraid.",
+            simplified: 'Feeling brave enough to face something scary.',
+        },
+        Creative: {
+            standard: 'Lit up to make, imagine, and bring something new into being.',
+            simplified: 'Feeling full of ideas and ready to make something.',
+        },
+        Loving: {
+            standard: 'A warm, tender, caring feeling toward someone.',
+            simplified: 'Feeling warm and caring toward someone.',
+        },
+        Thankful: {
+            standard: "Warm appreciation for something good you've received.",
+            simplified: 'Feeling grateful for something good.',
+        },
+        Sensitive: {
+            standard:
+                'Feeling things deeply and finely attuned to emotion — attunement, not "too much."',
+            simplified: 'Feeling things deeply and noticing feelings easily.',
+        },
+        Intimate: {
+            standard: 'Feeling close and deeply connected with someone who truly knows you.',
+            simplified: 'Feeling close and truly known by someone.',
+        },
+        Hopeful: {
+            standard: 'Trusting that good is possible and reaching toward it.',
+            simplified: 'Feeling like good things can happen.',
+        },
+        Inspired: {
+            standard: 'Lit up and moved to create, act, or grow.',
+            simplified: 'Feeling moved and ready to create or do something.',
+        },
+        Shocked: {
+            standard: 'Jolted and stunned by something sudden and big.',
+            simplified: 'Feeling stunned by something big and sudden.',
+        },
+        Dismayed: {
+            standard: 'Discouraged and troubled by an unwelcome turn of events.',
+            simplified: 'Feeling upset and discouraged by bad news.',
+        },
+        Disillusioned: {
+            standard: 'The ache of losing a belief or ideal you held as a rosy hope falls away.',
+            simplified: "Feeling let down after learning something wasn't what you believed.",
+        },
+        Perplexed: {
+            standard: 'Puzzled and unable to make sense of something.',
+            simplified: 'Feeling puzzled and unable to figure it out.',
+        },
+        Astonished: {
+            standard: 'Struck with wonder or disbelief at something remarkable.',
+            simplified: 'Feeling amazed and hardly able to believe it.',
+        },
+        Awed: {
+            standard: 'Humbled wonder before something vast or magnificent.',
+            simplified: 'Feeling small and full of wonder at something huge.',
+        },
+        Eager: {
+            standard: 'Keenly ready and impatient to begin.',
+            simplified: "Feeling ready and can't wait to start.",
+        },
+        Energetic: {
+            standard: 'Full of vitality and get-up-and-go.',
+            simplified: 'Feeling full of energy and ready to go.',
+        },
+        Indifferent: {
+            standard: "Uninterested and unmoved — it just doesn't touch you.",
+            simplified: "Feeling like you don't care either way.",
+        },
+        Apathetic: {
+            standard: 'A flat lack of motivation or care about much of anything.',
+            simplified: "Feeling like you can't bring yourself to care.",
+        },
+        Pressured: {
+            standard: 'Feeling pushed to perform or decide by demands on you.',
+            simplified: 'Feeling pushed to do or decide something.',
+        },
+        Rushed: {
+            standard: "Hurried — not enough time for what's being asked of you.",
+            simplified: "Feeling like there's not enough time.",
+        },
+        Overwhelmed: {
+            standard: 'Swamped — more is coming at you than you can process or manage.',
+            simplified: 'Feeling like everything is too much to handle.',
+        },
+        'Out of Control': {
+            standard: "The feeling that you've lost your grip on a situation or on yourself.",
+            simplified: "Feeling like things are spinning and you can't hold on.",
+        },
+        Sleepy: {
+            standard: 'Drowsy and low-energy — your body asking for rest.',
+            simplified: 'Feeling drowsy and ready for sleep.',
+        },
+        Unfocused: {
+            standard: 'Scattered — unable to gather your attention.',
+            simplified: 'Feeling scattered and unable to concentrate.',
+        },
+        Helpless: {
+            standard: 'Feeling unable to help yourself or change things.',
+            simplified: "Feeling like you can't do anything to help yourself.",
+        },
+        Frightened: {
+            standard: 'Sharply afraid — fear hitting you in the moment.',
+            simplified: 'Feeling suddenly and strongly afraid.',
+        },
+        Worried: {
+            standard: 'Uneasy, looping thoughts about what might go wrong.',
+            simplified: 'Feeling uneasy and stuck on what might go wrong.',
+        },
+        Inadequate: {
+            standard: "Feeling not enough — not quite up to what's needed.",
+            simplified: "Feeling like you're not good enough for what's needed.",
+        },
+        Worthless: {
+            standard: 'The painful belief that you have no value — a shame signal, not a truth.',
+            simplified: "Feeling like you don't matter at all.",
+        },
+        Insignificant: {
+            standard: 'Feeling small, overlooked, and unimportant.',
+            simplified: 'Feeling small and easy to overlook.',
+        },
+        Excluded: {
+            standard: 'Left out — kept on the outside of a group or bond.',
+            simplified: 'Feeling left out of the group.',
+        },
+        Persecuted: {
+            standard: 'Feeling singled out and targeted for harm or blame.',
+            simplified: 'Feeling picked on and targeted.',
+        },
+        Nervous: {
+            standard: 'Jittery, on-edge unease before something uncertain.',
+            simplified: "Feeling jittery and on edge about what's ahead.",
+        },
+        Exposed: {
+            standard: 'Uncomfortably open to view, with nowhere to hide.',
+            simplified: 'Feeling open and seen, with nowhere to hide.',
         },
     },
 };

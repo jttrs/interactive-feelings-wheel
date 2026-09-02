@@ -762,13 +762,16 @@ body {
 }
 
 /* A feeling word that toggles its definition: a button reset that inherits the
-   level's type. The whole word is the affordance (cursor + hover tint). */
+   level's type. The whole word is the affordance (cursor + hover tint).
+   NB: inherit font-family only — the `font` shorthand also sets line-height, which
+   would clobber .feeling-name's 1.2 back to the body's 1.6 and inflate row height.
+   Size/weight come from the per-level .feeling-name rules; line-height stays 1.2. */
 .feeling-name--toggle {
     background: transparent;
     border: none;
     padding: 0;
     margin: 0;
-    font: inherit;
+    font-family: inherit;
     color: inherit;
     cursor: pointer;
     transition: color var(--motion-fast) var(--ease-soft);

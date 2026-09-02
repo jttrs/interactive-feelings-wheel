@@ -162,30 +162,71 @@ describe('renderFeelingsTree — DOM output', () => {
         expect(family.querySelector('.feeling-node--core .feeling-name')).not.toBeNull();
     });
 
-    it('shows the definition ONLY on the terminal node', () => {
+    it('renders a definition on every node that has one, but expands only the terminal by default', () => {
+        // Every level has a definition here, so all three render a (collapsible) def.
+        const allDefs = {
+            ...opts,
+            getDefinition: (e: string) => `Definition of ${e}.`,
+        };
         const { element } = renderFeelingsTree({
             selections: [
                 sel('core', 'Happy', null, 'Happy'),
                 sel('secondary', 'Playful', 'Happy', 'Happy'),
                 sel('tertiary', 'Cheeky', 'Playful', 'Happy'),
             ],
-            ...opts,
+            ...allDefs,
         });
-        const defs = element.querySelectorAll('.feeling-def');
-        expect(defs).toHaveLength(1);
-        expect(defs[0].textContent).toContain('Playfully bold');
-        // The terminal node is the tertiary Cheeky.
-        const cheeky = element.querySelector('.feeling-node--tertiary')!;
-        expect(cheeky.querySelector('.feeling-def')).not.toBeNull();
+        // All three levels carry a definition element.
+        expect(element.querySelectorAll('.feeling-def')).toHaveLength(3);
+
+        // Only the terminal (tertiary Cheeky) starts expanded; ancestors start collapsed.
+        const core = element.querySelector('.feeling-node--core')!;
+        const secondary = element.querySelector('.feeling-node--secondary')!;
+        const tertiary = element.querySelector('.feeling-node--tertiary')!;
+        expect(core.classList.contains('is-collapsed')).toBe(true);
+        expect(secondary.classList.contains('is-collapsed')).toBe(true);
+        expect(tertiary.classList.contains('is-collapsed')).toBe(false);
+
+        // The name is a toggle button reflecting expanded state via aria-expanded.
+        expect(tertiary.querySelector('.feeling-name--toggle')!.getAttribute('aria-expanded')).toBe(
+            'true'
+        );
+        expect(core.querySelector('.feeling-name--toggle')!.getAttribute('aria-expanded')).toBe(
+            'false'
+        );
     });
 
-    it('omits the definition line entirely when the terminal has no real definition', () => {
-        // 'Content' has no def in this stub → no filler line.
+    it('clicking any feeling word toggles its own definition collapse state', () => {
+        const allDefs = { ...opts, getDefinition: (e: string) => `Definition of ${e}.` };
+        const { element } = renderFeelingsTree({
+            selections: [
+                sel('secondary', 'Playful', 'Happy', 'Happy'),
+                sel('tertiary', 'Cheeky', 'Playful', 'Happy'),
+            ],
+            ...allDefs,
+        });
+        // The context core (Happy) starts collapsed; click its word to expand it.
+        const core = element.querySelector('.feeling-node--core')!;
+        const coreToggle = core.querySelector('.feeling-name--toggle') as HTMLButtonElement;
+        expect(core.classList.contains('is-collapsed')).toBe(true);
+        coreToggle.click();
+        expect(core.classList.contains('is-collapsed')).toBe(false);
+        expect(coreToggle.getAttribute('aria-expanded')).toBe('true');
+        // Click again to collapse.
+        coreToggle.click();
+        expect(core.classList.contains('is-collapsed')).toBe(true);
+    });
+
+    it('a word with no definition is a plain label, not a toggle button', () => {
+        // 'Content' has no def in this stub → no def element, no toggle button.
         const { element } = renderFeelingsTree({
             selections: [sel('secondary', 'Content', 'Happy', 'Happy')],
             ...opts,
         });
-        expect(element.querySelector('.feeling-def')).toBeNull();
+        const node = element.querySelector('.feeling-node--secondary')!;
+        expect(node.querySelector('.feeling-def')).toBeNull();
+        expect(node.querySelector('.feeling-name--toggle')).toBeNull();
+        expect(node.querySelector('.feeling-name')).not.toBeNull();
     });
 
     it('renders remove controls only on selected nodes, not context ancestors', () => {

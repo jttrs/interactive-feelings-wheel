@@ -1,14 +1,15 @@
 // Feelings Wheel Engine - Core wheel UI system: rendering, interaction, animation, and state management
-import { AnimationMixin } from './src/wheel/animation.js';
-import { RenderingMixin } from './src/wheel/rendering.js';
-import { InteractionMixin } from './src/wheel/interaction.js';
+import { AnimationMixin } from './src/wheel/animation.ts';
+import { RenderingMixin } from './src/wheel/rendering.ts';
+import { InteractionMixin } from './src/wheel/interaction.ts';
+import type { FeelingsData } from './src/types.ts';
 
 // Compose the mixins over an empty base; every method lands on one prototype chain
 // so shared `this` state behaves exactly as the original monolithic class.
 export class FeelingsWheelGenerator extends InteractionMixin(
     RenderingMixin(AnimationMixin(class {}))
 ) {
-    constructor(container, data) {
+    constructor(container: Element, data: FeelingsData) {
         super();
         this.container = container;
         this.data = data;

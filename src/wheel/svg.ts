@@ -9,15 +9,18 @@
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 // True only for a finite number (after coercion). Guards every geometry input.
-function finite(n) {
+function finite(n: unknown): number | null {
     const v = Number(n);
     return Number.isFinite(v) ? v : null;
 }
 
 // Base guarded element creator. `attrs` values that are null/undefined/'' are
 // skipped; numbers are stringified. `dataset`/`className`/`text` handled by callers.
-export function svgEl(name, attrs = {}) {
-    const el = document.createElementNS(SVG_NS, name);
+export function svgEl(
+    name: string,
+    attrs: Record<string, string | number | null | undefined> = {}
+): SVGElement {
+    const el = document.createElementNS(SVG_NS, name) as SVGElement;
     for (const [key, value] of Object.entries(attrs)) {
         if (value === null || value === undefined || value === '') continue;
         el.setAttribute(key, typeof value === 'number' ? String(value) : value);
@@ -28,15 +31,38 @@ export function svgEl(name, attrs = {}) {
 // An SVG <g> layer. Optional class + a transform-origin (the wheel's rotation
 // groups all rotate about the center). Centralizes the namespaced group creation
 // that the layer setup would otherwise hand-roll.
-export function group({ className, transformOrigin } = {}) {
-    const el = svgEl('g', { class: className || undefined });
+export function group({
+    className,
+    transformOrigin,
+}: { className?: string; transformOrigin?: string } = {}): SVGGElement {
+    const el = svgEl('g', { class: className || undefined }) as SVGGElement;
     if (transformOrigin) el.style.transformOrigin = transformOrigin;
     return el;
 }
 
+interface LineOptions {
+    x1: unknown;
+    y1: unknown;
+    x2: unknown;
+    y2: unknown;
+    stroke?: string;
+    width?: unknown;
+    dash?: string;
+    className?: string;
+}
+
 // A straight stroked line. Returns null (no element) if any endpoint is non-finite,
 // so a bad coordinate can't inject a broken <line>.
-export function line({ x1, y1, x2, y2, stroke, width, dash, className }) {
+export function line({
+    x1,
+    y1,
+    x2,
+    y2,
+    stroke,
+    width,
+    dash,
+    className,
+}: LineOptions): SVGLineElement | null {
     const c = [finite(x1), finite(y1), finite(x2), finite(y2)];
     if (c.some((v) => v === null)) return null;
     const el = svgEl('line', {
@@ -48,15 +74,33 @@ export function line({ x1, y1, x2, y2, stroke, width, dash, className }) {
         'stroke-width': finite(width) ?? undefined,
         'stroke-dasharray': dash || undefined,
         class: className || undefined,
-    });
+    }) as SVGLineElement;
     el.style.pointerEvents = 'none';
     return el;
 }
 
+interface CircleOptions {
+    cx: unknown;
+    cy: unknown;
+    r: unknown;
+    stroke?: string;
+    width?: unknown;
+    fill?: string;
+    className?: string;
+}
+
 // A concentric ring circle (stroke-only by default). Returns null on bad center/radius.
-export function circle({ cx, cy, r, stroke, width, fill = 'none', className }) {
+export function circle({
+    cx,
+    cy,
+    r,
+    stroke,
+    width,
+    fill = 'none',
+    className,
+}: CircleOptions): SVGCircleElement | null {
     const c = [finite(cx), finite(cy), finite(r)];
-    if (c.some((v) => v === null) || c[2] <= 0) return null;
+    if (c.some((v) => v === null) || (c[2] as number) <= 0) return null;
     const el = svgEl('circle', {
         cx: c[0],
         cy: c[1],
@@ -65,27 +109,59 @@ export function circle({ cx, cy, r, stroke, width, fill = 'none', className }) {
         stroke: stroke || undefined,
         'stroke-width': finite(width) ?? undefined,
         class: className || undefined,
-    });
+    }) as SVGCircleElement;
     el.style.pointerEvents = 'none';
     return el;
+}
+
+interface WedgePathOptions {
+    d?: string;
+    fill?: string;
+    className?: string;
+    dataset?: Record<string, string | number | null | undefined>;
 }
 
 // A fill-only wedge <path>. Geometry is passed in already-computed as the `d` string
 // (callers use the engine's createWedgePath so geometry.test.js stays authoritative).
 // No stroke: separators own all boundaries now.
-export function wedgePath({ d, fill, className, dataset = {} }) {
+export function wedgePath({
+    d,
+    fill,
+    className,
+    dataset = {},
+}: WedgePathOptions): SVGPathElement | null {
     if (!d) return null;
-    const el = svgEl('path', { d, fill: fill || undefined, class: className || undefined });
+    const el = svgEl('path', {
+        d,
+        fill: fill || undefined,
+        class: className || undefined,
+    }) as SVGPathElement;
     for (const [key, value] of Object.entries(dataset)) {
         if (value === null || value === undefined) continue;
-        el.setAttribute(`data-${key}`, value);
+        el.setAttribute(`data-${key}`, String(value));
     }
     el.style.cursor = 'pointer';
     return el;
 }
 
+interface TextOptions {
+    x: unknown;
+    y: unknown;
+    content?: string | null;
+    fontSize?: unknown;
+    className?: string;
+    dataset?: Record<string, string | number | null | undefined>;
+}
+
 // An SVG text label. Returns null if position is non-finite.
-export function text({ x, y, content, fontSize, className, dataset = {} }) {
+export function text({
+    x,
+    y,
+    content,
+    fontSize,
+    className,
+    dataset = {},
+}: TextOptions): SVGTextElement | null {
     const px = finite(x);
     const py = finite(y);
     if (px === null || py === null) return null;
@@ -99,10 +175,10 @@ export function text({ x, y, content, fontSize, className, dataset = {} }) {
         fill: 'currentColor',
         'pointer-events': 'none',
         class: className || undefined,
-    });
+    }) as SVGTextElement;
     for (const [key, value] of Object.entries(dataset)) {
         if (value === null || value === undefined) continue;
-        el.setAttribute(`data-${key}`, value);
+        el.setAttribute(`data-${key}`, String(value));
     }
     if (content !== undefined && content !== null) el.textContent = content;
     return el;
@@ -113,7 +189,7 @@ export function text({ x, y, content, fontSize, className, dataset = {} }) {
 // :root tokens win; in bare jsdom (unit tests, no stylesheet applied) getPropertyValue
 // returns '' so the fallback keeps rendering deterministic. Weights are ratios of wheel
 // size; color tokens are real colors.
-export const WHEEL_TOKEN_FALLBACKS = {
+export const WHEEL_TOKEN_FALLBACKS: Record<string, string> = {
     '--wheel-line': '#4a453d',
     '--wheel-line-primary': '0.0028',
     '--wheel-line-secondary': '0.0012',
@@ -122,7 +198,7 @@ export const WHEEL_TOKEN_FALLBACKS = {
     '--wheel-ring-weight': '0.0022',
 };
 
-function readToken(name) {
+function readToken(name: string): string {
     let raw = '';
     try {
         raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -132,10 +208,19 @@ function readToken(name) {
     return raw || WHEEL_TOKEN_FALLBACKS[name];
 }
 
+export interface WheelTokens {
+    lineColor: string;
+    ringColor: string;
+    primaryRatio: number;
+    secondaryRatio: number;
+    dyadRatio: number;
+    ringRatio: number;
+}
+
 // Resolve the wheel's separator theme once per generate(). Colors are strings; weight
 // ratios are parsed to numbers (falling back if a token is malformed).
-export function readWheelTokens() {
-    const num = (name) => {
+export function readWheelTokens(): WheelTokens {
+    const num = (name: string): number => {
         const v = Number(readToken(name));
         return Number.isFinite(v) ? v : Number(WHEEL_TOKEN_FALLBACKS[name]);
     };

@@ -1,16 +1,21 @@
 // Main Application Controller - Coordinates between wheel engine and panel UI
-// Architecture: feelings-wheel-engine.js handles wheel rendering/interaction, app.js handles panel/coordination
-import { FeelingsWheelGenerator } from './feelings-wheel-engine.js';
-import { FEELINGS_DATA } from './feelings-data.js';
-import { renderFeelingsTree } from './src/ui/feelings-tree.js';
+// Architecture: feelings-wheel-engine.ts handles wheel rendering/interaction, app.ts handles panel/coordination
+import { FeelingsWheelGenerator } from './feelings-wheel-engine.ts';
+import { FEELINGS_DATA } from './feelings-data.ts';
+import { renderFeelingsTree } from './src/ui/feelings-tree.ts';
+import type { Selection, EmotionSelectedDetail } from './src/types.ts';
 
 export class FeelingsWheelApp {
+    wheelGenerator!: FeelingsWheelGenerator;
+    currentView!: string;
+    views!: Record<string, HTMLElement | null>;
+    isResetting = false;
+
     constructor() {
-        this.wheelGenerator = null;
         this.init();
     }
 
-    init() {
+    init(): void {
         // Wait for DOM to be ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.setupApp());
@@ -19,9 +24,9 @@ export class FeelingsWheelApp {
         }
     }
 
-    setupApp() {
+    setupApp(): void {
         // Initialize the wheel
-        const wheelContainer = document.getElementById('wheel-container');
+        const wheelContainer = document.getElementById('wheel-container')!;
         this.wheelGenerator = new FeelingsWheelGenerator(wheelContainer, FEELINGS_DATA);
         this.wheelGenerator.generate();
 
@@ -36,11 +41,11 @@ export class FeelingsWheelApp {
 
         // Listen for emotion selection events
         document.addEventListener('emotionSelected', (event) => {
-            this.handleEmotionSelection(event.detail);
+            this.handleEmotionSelection((event as CustomEvent<EmotionSelectedDetail>).detail);
         });
     }
 
-    setupFullscreenFeature() {
+    setupFullscreenFeature(): void {
         // Check if fullscreen is supported
         if (!this.isFullscreenSupported()) {
             const fullscreenButton = document.getElementById('fullscreen-btn-panel');
@@ -77,25 +82,35 @@ export class FeelingsWheelApp {
         this.updateFullscreenButton();
     }
 
-    isFullscreenSupported() {
+    isFullscreenSupported(): boolean {
+        const doc = document as Document & {
+            webkitFullscreenEnabled?: boolean;
+            mozFullScreenEnabled?: boolean;
+            msFullscreenEnabled?: boolean;
+        };
         return !!(
             document.fullscreenEnabled ||
-            document.webkitFullscreenEnabled ||
-            document.mozFullScreenEnabled ||
-            document.msFullscreenEnabled
+            doc.webkitFullscreenEnabled ||
+            doc.mozFullScreenEnabled ||
+            doc.msFullscreenEnabled
         );
     }
 
-    isCurrentlyFullscreen() {
+    isCurrentlyFullscreen(): boolean {
+        const doc = document as Document & {
+            webkitFullscreenElement?: Element;
+            mozFullScreenElement?: Element;
+            msFullscreenElement?: Element;
+        };
         return !!(
             document.fullscreenElement ||
-            document.webkitFullscreenElement ||
-            document.mozFullScreenElement ||
-            document.msFullscreenElement
+            doc.webkitFullscreenElement ||
+            doc.mozFullScreenElement ||
+            doc.msFullscreenElement
         );
     }
 
-    async toggleFullscreen() {
+    async toggleFullscreen(): Promise<void> {
         try {
             if (this.isCurrentlyFullscreen()) {
                 await this.exitFullscreen();
@@ -108,8 +123,12 @@ export class FeelingsWheelApp {
         }
     }
 
-    async requestFullscreen() {
-        const element = document.documentElement;
+    async requestFullscreen(): Promise<void> {
+        const element = document.documentElement as HTMLElement & {
+            webkitRequestFullscreen?: () => Promise<void>;
+            mozRequestFullScreen?: () => Promise<void>;
+            msRequestFullscreen?: () => Promise<void>;
+        };
 
         if (element.requestFullscreen) {
             return element.requestFullscreen();
@@ -124,21 +143,27 @@ export class FeelingsWheelApp {
         throw new Error('Fullscreen not supported');
     }
 
-    async exitFullscreen() {
+    async exitFullscreen(): Promise<void> {
+        const doc = document as Document & {
+            webkitExitFullscreen?: () => Promise<void>;
+            mozCancelFullScreen?: () => Promise<void>;
+            msExitFullscreen?: () => Promise<void>;
+        };
+
         if (document.exitFullscreen) {
             return document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            return document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-            return document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) {
-            return document.msExitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+            return doc.webkitExitFullscreen();
+        } else if (doc.mozCancelFullScreen) {
+            return doc.mozCancelFullScreen();
+        } else if (doc.msExitFullscreen) {
+            return doc.msExitFullscreen();
         }
 
         throw new Error('Exit fullscreen not supported');
     }
 
-    updateFullscreenButton() {
+    updateFullscreenButton(): void {
         const fullscreenButton = document.getElementById('fullscreen-btn-panel');
 
         if (fullscreenButton) {
@@ -152,7 +177,7 @@ export class FeelingsWheelApp {
         }
     }
 
-    handleFullscreenChange() {
+    handleFullscreenChange(): void {
         // Update button state immediately
         this.updateFullscreenButton();
 
@@ -172,11 +197,12 @@ export class FeelingsWheelApp {
 
     // ===== KEYBOARD SHORTCUTS FUNCTIONALITY =====
 
-    setupKeyboardShortcuts() {
+    setupKeyboardShortcuts(): void {
         // Global keyboard event listener for all shortcuts
         document.addEventListener('keydown', (event) => {
             // Skip if user is typing in an input field
-            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+            const target = event.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
                 return;
             }
 
@@ -213,9 +239,11 @@ export class FeelingsWheelApp {
         });
     }
 
-    toggleSimplifiedMode() {
+    toggleSimplifiedMode(): void {
         // Find and trigger the simplified mode toggle input
-        const toggleInput = document.getElementById('simplified-mode-panel');
+        const toggleInput = document.getElementById(
+            'simplified-mode-panel'
+        ) as HTMLInputElement | null;
         if (toggleInput) {
             toggleInput.click();
         }
@@ -223,12 +251,12 @@ export class FeelingsWheelApp {
 
     // ===== INFORMATION PANEL FUNCTIONALITY =====
 
-    setupInformationPanel() {
+    setupInformationPanel(): void {
         // The selected-feelings tree is rebuilt wholesale from the wheel's selectedWedges
         // (the source of truth) on every change — no per-tile handle map to keep in sync.
 
         // Setup panel minimization (desktop)
-        const minimizeTab = document.getElementById('panel-minimize-tab');
+        const minimizeTab = document.getElementById('panel-minimize-tab')!;
         minimizeTab.addEventListener('click', () => {
             this.togglePanelMinimization();
         });
@@ -237,7 +265,7 @@ export class FeelingsWheelApp {
         this.updateArrowDirection();
 
         // Setup mobile collapse handle
-        const mobileHandle = document.getElementById('mobile-collapse-handle');
+        const mobileHandle = document.getElementById('mobile-collapse-handle')!;
         mobileHandle.addEventListener('click', () => {
             this.togglePanelMinimization();
         });
@@ -249,11 +277,13 @@ export class FeelingsWheelApp {
         this.showInstructions();
     }
 
-    setupPanelControls() {
+    setupPanelControls(): void {
         // Setup simplified mode toggle
-        const simplifiedModeToggle = document.getElementById('simplified-mode-panel');
+        const simplifiedModeToggle = document.getElementById(
+            'simplified-mode-panel'
+        ) as HTMLInputElement;
         simplifiedModeToggle.addEventListener('change', (event) => {
-            const isSimplified = event.target.checked;
+            const isSimplified = (event.target as HTMLInputElement).checked;
 
             // CRITICAL FIX: Clear app state completely and let wheel engine manage everything
             this.clearAllTilesWithoutInstructions(); // Don't auto-show instructions during mode switch
@@ -269,13 +299,13 @@ export class FeelingsWheelApp {
         });
 
         // Setup reset button
-        const resetButton = document.getElementById('reset-btn-panel');
+        const resetButton = document.getElementById('reset-btn-panel')!;
         resetButton.addEventListener('click', () => {
             this.resetWithAnimation();
         });
 
         // Setup fullscreen button
-        const fullscreenButton = document.getElementById('fullscreen-btn-panel');
+        const fullscreenButton = document.getElementById('fullscreen-btn-panel')!;
         fullscreenButton.addEventListener('click', () => {
             this.toggleFullscreen();
         });
@@ -289,7 +319,7 @@ export class FeelingsWheelApp {
     // (empty state + emotion tiles); the footer's ?, i, and coffee icons swap in
     // Help / About / Support views that fill the same space, each with a back
     // button. Selecting an emotion returns to Explore.
-    setupPanelViews() {
+    setupPanelViews(): void {
         this.currentView = 'explore';
         this.views = {
             explore: document.getElementById('view-explore'),
@@ -300,7 +330,9 @@ export class FeelingsWheelApp {
 
         // Footer icons that open a secondary view.
         document.querySelectorAll('.hero-btn[data-view]').forEach((btn) => {
-            btn.addEventListener('click', () => this.showView(btn.dataset.view));
+            btn.addEventListener('click', () =>
+                this.showView((btn as HTMLElement).dataset.view || 'explore')
+            );
         });
 
         // Back buttons return to Explore.
@@ -316,7 +348,7 @@ export class FeelingsWheelApp {
         });
     }
 
-    showView(name) {
+    showView(name: string): void {
         const target = this.views[name] || this.views.explore;
 
         Object.entries(this.views).forEach(([key, el]) => {
@@ -329,7 +361,7 @@ export class FeelingsWheelApp {
 
         // Lazily load the Ko-fi iframe the first time Support opens (and only then).
         if (name === 'support') {
-            const frame = document.getElementById('kofi-frame');
+            const frame = document.getElementById('kofi-frame') as HTMLIFrameElement | null;
             if (frame && !frame.src && frame.dataset.src) {
                 frame.src = frame.dataset.src;
             }
@@ -339,12 +371,12 @@ export class FeelingsWheelApp {
 
         // Move focus to the opened view's back button for keyboard users.
         if (name !== 'explore') {
-            const back = target.querySelector('[data-view-back]');
+            const back = target!.querySelector('[data-view-back]') as HTMLElement | null;
             if (back) back.focus();
         }
     }
 
-    handleEmotionSelection(detail) {
+    handleEmotionSelection(detail: EmotionSelectedDetail): void {
         const { emotion, selected } = detail;
 
         // Selecting an emotion always brings the Explore view forward.
@@ -361,12 +393,12 @@ export class FeelingsWheelApp {
     }
 
     // Number of currently-selected wedges (the tree's source of truth).
-    selectionCount() {
+    selectionCount(): number {
         return this.wheelGenerator ? this.wheelGenerator.selectedWedges.size : 0;
     }
 
     // Announce a message to screen readers via the polite live region.
-    announce(message) {
+    announce(message: string): void {
         const region = document.getElementById('sr-announcer');
         if (region) region.textContent = message;
     }
@@ -374,12 +406,12 @@ export class FeelingsWheelApp {
     // Rebuild the selected-feelings tree from the wheel's selectedWedges. Each id is
     // parsed into { level, emotion, parent, coreFamily } so the tree can group by branch
     // and place ancestors as context. Called on every selection change and mode switch.
-    renderFeelings() {
+    renderFeelings(): void {
         const container = document.getElementById('emotion-tiles');
         if (!container) return;
 
         const isSimplified = this.isSimplifiedActive();
-        const selections = [...this.wheelGenerator.selectedWedges].map((wedgeId) => {
+        const selections: Selection[] = [...this.wheelGenerator.selectedWedges].map((wedgeId) => {
             const meta = this.wheelGenerator.parseUniqueWedgeId(wedgeId);
             return { wedgeId, ...meta };
         });
@@ -395,27 +427,27 @@ export class FeelingsWheelApp {
         container.replaceChildren(element);
     }
 
-    isSimplifiedActive() {
-        const toggle = document.getElementById('simplified-mode-panel');
+    isSimplifiedActive(): boolean {
+        const toggle = document.getElementById('simplified-mode-panel') as HTMLInputElement | null;
         return !!(toggle && toggle.checked);
     }
 
     // Look up a definition; returns '' when none exists so the tree omits the line
     // entirely (no filler). The corpus covers all 130 words, but empties are honored.
-    getEmotionDefinition(emotion, isSimplified) {
+    getEmotionDefinition(emotion: string, isSimplified: boolean): string {
         const emotionData = FEELINGS_DATA.definitions[emotion];
         if (!emotionData) return '';
         return (isSimplified ? emotionData.simplified : emotionData.standard) || '';
     }
 
     // Clear the tree from the DOM and (optionally) restore the empty-state instructions.
-    clearAllTiles() {
+    clearAllTiles(): void {
         const container = document.getElementById('emotion-tiles');
         if (container) container.replaceChildren();
         this.showInstructions();
     }
 
-    clearAllTilesWithoutInstructions() {
+    clearAllTilesWithoutInstructions(): void {
         // Clear without auto-showing instructions (mode switch manages that itself).
         const container = document.getElementById('emotion-tiles');
         if (container) container.replaceChildren();
@@ -423,7 +455,7 @@ export class FeelingsWheelApp {
 
     // ===== ANIMATED RESET FUNCTIONALITY =====
 
-    resetWithAnimation() {
+    resetWithAnimation(): void {
         // CRITICAL FIX: Only reset current mode, prevent cross-mode contamination
 
         // If nothing is selected and the wheel is (near) un-rotated, reset instantly.
@@ -449,7 +481,7 @@ export class FeelingsWheelApp {
         this.animateUnwindTiles();
     }
 
-    animateUnwindTiles() {
+    animateUnwindTiles(): void {
         // Fade the whole tree out as one calm surface (respecting reduced-motion via CSS),
         // clear it after the fade, and unwind the wheel rotation concurrently.
         const container = document.getElementById('emotion-tiles');
@@ -466,13 +498,13 @@ export class FeelingsWheelApp {
         this.animateUnwindRotation();
     }
 
-    animateUnwindRotation() {
+    animateUnwindRotation(): void {
         // Delegate the wheel-layer rotation animation to the engine (1s to match the
         // tile unwind), then finalize app + engine state when it resolves.
         this.wheelGenerator.animateResetRotation(1000).then(() => this.completeReset());
     }
 
-    completeReset() {
+    completeReset(): void {
         // Engine owns its own reset-state bookkeeping.
         this.wheelGenerator.commitResetState();
 
@@ -481,12 +513,12 @@ export class FeelingsWheelApp {
         this.isResetting = false;
     }
 
-    showInstructions() {
-        const instructionsSection = document.getElementById('panel-instructions');
+    showInstructions(): void {
+        const instructionsSection = document.getElementById('panel-instructions')!;
         instructionsSection.hidden = false;
     }
 
-    updateArrowDirection() {
+    updateArrowDirection(): void {
         const panel = document.querySelector('.info-panel');
         const arrow = document.querySelector('.minimize-arrow');
         const tab = document.getElementById('panel-minimize-tab');
@@ -499,9 +531,9 @@ export class FeelingsWheelApp {
         if (tab) tab.setAttribute('aria-expanded', String(!minimized));
     }
 
-    togglePanelMinimization() {
-        const panel = document.querySelector('.info-panel');
-        const mainLayout = document.querySelector('.main-layout');
+    togglePanelMinimization(): void {
+        const panel = document.querySelector('.info-panel')!;
+        const mainLayout = document.querySelector('.main-layout')!;
 
         panel.classList.toggle('minimized');
         mainLayout.classList.toggle('panel-minimized'); // For wheel centering
@@ -521,17 +553,17 @@ export class FeelingsWheelApp {
 
     // REMOVED: getEmotionFamily() and getFamilyColor() methods
     // These were part of the old duplicate color system that caused conflicts
-    // All color resolution now uses centralized family-aware system in feelings-data.js
+    // All color resolution now uses centralized family-aware system in feelings-data.ts
 
     // ===== PROPER STATE SYNCHRONIZATION =====
 
-    recreateTilesFromWheelState() {
+    recreateTilesFromWheelState(): void {
         // The tree derives entirely from selectedWedges, so a rebuild reflects the engine's
         // restored state after a mode switch.
         this.renderFeelings();
     }
 
-    updateInstructionsVisibility() {
+    updateInstructionsVisibility(): void {
         // Show instructions only when nothing is selected.
         if (this.selectionCount() === 0) {
             this.showInstructions();
@@ -540,7 +572,7 @@ export class FeelingsWheelApp {
         }
     }
 
-    hideInstructions() {
+    hideInstructions(): void {
         const instructionsSection = document.getElementById('panel-instructions');
         if (instructionsSection) {
             instructionsSection.hidden = true;

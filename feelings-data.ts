@@ -1,5 +1,7 @@
 // Feelings Wheel Data - Exact match to reference image provided by user
-export const FEELINGS_DATA = {
+import type { FeelingsData } from './src/types.ts';
+
+export const FEELINGS_DATA: FeelingsData = {
     // Core emotions (center circle) - 7 primary emotions in clockwise order starting with Angry at 0°
     core: [
         { name: 'Angry', color: '#FFB3B3' }, // Pastel Red - at 0 degrees
@@ -96,13 +98,13 @@ export const FEELINGS_DATA = {
     // Single source of truth for emotion colors. Callers pass a core family NAME
     // (e.g. "Angry") rather than a wedge-id string, so this layer stays decoupled
     // from the id encoding used by the wheel engine.
-    getCoreEmotionColor(family) {
+    getCoreEmotionColor(family: string) {
         const coreEmotion = this.core.find((core) => core.name === family);
         return coreEmotion ? coreEmotion.color : '#4a90e2';
     },
 
     // Helper function to lighten colors (FIXED: proper lightening algorithm)
-    lightenColor(color, percent) {
+    lightenColor(color: string, percent: number) {
         // Parse hex color
         const num = parseInt(color.replace('#', ''), 16);
         const R = (num >> 16) & 0xff;

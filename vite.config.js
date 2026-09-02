@@ -7,32 +7,32 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 // so we author in modules and inline EVERYTHING into a single self-contained index.html.
 // The plugin is dev-only; the shipped output has zero runtime dependencies.
 export default defineConfig({
-  base: './',
-  plugins: [viteSingleFile()],
-  build: {
-    outDir: 'dist',
-    target: 'es2020',
-    cssCodeSplit: false,
-  },
-  test: {
-    environment: 'jsdom',
-    include: ['tests/unit/**/*.test.js'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'lcov'],
-      // Measure the app logic only; exclude glue/config/test scaffolding.
-      include: ['feelings-wheel-engine.js', 'src/**', 'feelings-data.js', 'app.js'],
-      exclude: ['tests/**', 'dist/**', '*.config.js'],
-      // Honest floors set just below what the current suite achieves (see below).
-      // app.js is DOM/browser glue exercised by Playwright e2e, not unit tests, so
-      // global line coverage is intentionally modest; the logic-heavy engine/data
-      // modules carry the real coverage weight.
-      thresholds: {
-        lines: 45,
-        functions: 55,
-        statements: 45,
-        branches: 70,
-      },
+    base: './',
+    plugins: [viteSingleFile()],
+    build: {
+        outDir: 'dist',
+        target: 'es2020',
+        cssCodeSplit: false,
     },
-  },
+    test: {
+        environment: 'jsdom',
+        include: ['tests/unit/**/*.test.ts'],
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html', 'lcov'],
+            // Measure the app logic only; exclude glue/config/test scaffolding.
+            include: ['feelings-wheel-engine.ts', 'src/**', 'feelings-data.ts', 'app.ts'],
+            exclude: ['tests/**', 'dist/**', '*.config.js'],
+            // Honest floors set just below what the current suite achieves (see below).
+            // app.js is DOM/browser glue exercised by Playwright e2e, not unit tests, so
+            // global line coverage is intentionally modest; the logic-heavy engine/data
+            // modules carry the real coverage weight.
+            thresholds: {
+                lines: 45,
+                functions: 55,
+                statements: 45,
+                branches: 70,
+            },
+        },
+    },
 });

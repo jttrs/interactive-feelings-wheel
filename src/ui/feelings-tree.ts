@@ -11,15 +11,16 @@
 // This module is pure/guarded: given the current selections it returns a fresh DOM
 // subtree. The app rebuilds it wholesale on every selection change (selectedWedges is
 // the source of truth), so there is no incremental add/remove state to drift.
+import type { Selection, ForestNode, ForestFamily, Level } from '../types.ts';
 
 // Small inline × icon (matches the stroke style used elsewhere in the panel).
-function removeIcon() {
+function removeIcon(): SVGSVGElement {
     const NS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(NS, 'svg');
+    const svg = document.createElementNS(NS, 'svg') as SVGSVGElement;
     svg.setAttribute('viewBox', '0 0 24 24');
     svg.setAttribute('class', 'feeling-ic');
     svg.setAttribute('aria-hidden', 'true');
-    const path = document.createElementNS(NS, 'path');
+    const path = document.createElementNS(NS, 'path') as SVGPathElement;
     path.setAttribute('d', 'M18 6L6 18M6 6l12 12');
     svg.appendChild(path);
     return svg;
@@ -32,14 +33,17 @@ function removeIcon() {
 // ordered by familyOrder, each family's nodes in core→secondary→tertiary depth order.
 // "Context" nodes (implied ancestors that are not themselves selected) get wedgeId:null
 // and selected:false, so a lone tertiary still shows its Happy › Playful lineage.
-export function buildForest(selections, { familyOrder = [] } = {}) {
-    const families = new Map(); // family -> { nodesByKey: Map(level+emotion -> node) }
+export function buildForest(
+    selections: Selection[],
+    { familyOrder = [] }: { familyOrder?: string[] } = {}
+): ForestFamily[] {
+    const families = new Map<string, Map<string, ForestNode>>(); // family -> { nodesByKey: Map(level+emotion -> node) }
 
-    const ensureFamily = (family) => {
+    const ensureFamily = (family: string): Map<string, ForestNode> => {
         if (!families.has(family)) families.set(family, new Map());
-        return families.get(family);
+        return families.get(family)!;
     };
-    const nodeKey = (level, emotion) => `${level}:${emotion}`;
+    const nodeKey = (level: Level, emotion: string): string => `${level}:${emotion}`;
 
     for (const sel of selections) {
         if (!sel || !sel.coreFamily || !sel.emotion) continue;
@@ -49,7 +53,13 @@ export function buildForest(selections, { familyOrder = [] } = {}) {
 
         // Ensure the ancestor context nodes exist (unselected placeholders unless
         // a real selection later marks them selected).
-        const ensureNode = (lvl, emotion, selected, wedgeId, parentEmotion) => {
+        const ensureNode = (
+            lvl: Level,
+            emotion: string,
+            selected: boolean,
+            wedgeId: string | null,
+            parentEmotion: string | null
+        ): ForestNode => {
             const key = nodeKey(lvl, emotion);
             const existing = nodes.get(key);
             if (existing) {
@@ -59,12 +69,13 @@ export function buildForest(selections, { familyOrder = [] } = {}) {
                 }
                 return existing;
             }
-            const node = {
+            const node: ForestNode = {
                 level: lvl,
                 emotion,
                 wedgeId: selected ? wedgeId : null,
                 selected,
                 parentEmotion: parentEmotion ?? null,
+                terminal: false,
             };
             nodes.set(key, node);
             return node;
@@ -84,7 +95,7 @@ export function buildForest(selections, { familyOrder = [] } = {}) {
     }
 
     // Assemble ordered output + compute terminal flags.
-    const orderIndex = (family) => {
+    const orderIndex = (family: string): number => {
         const i = familyOrder.indexOf(family);
         return i === -1 ? Number.MAX_SAFE_INTEGER : i;
     };
@@ -96,12 +107,12 @@ export function buildForest(selections, { familyOrder = [] } = {}) {
             // flat level-sorted list would drop a tertiary under whatever secondary
             // printed last — e.g. Violated appearing under Mad instead of Bitter.)
             const all = [...nodesMap.values()];
-            const byName = (a, b) => a.emotion.localeCompare(b.emotion);
+            const byName = (a: ForestNode, b: ForestNode) => a.emotion.localeCompare(b.emotion);
             const secondaries = all.filter((n) => n.level === 'secondary').sort(byName);
             const tertiaries = all.filter((n) => n.level === 'tertiary');
 
             const nodes = all.filter((n) => n.level === 'core');
-            const placed = new Set();
+            const placed = new Set<ForestNode>();
             for (const sec of secondaries) {
                 nodes.push(sec);
                 const kids = tertiaries.filter((t) => t.parentEmotion === sec.emotion).sort(byName);
@@ -145,7 +156,13 @@ export function renderFeelingsTree({
     getDefinition = () => '',
     getFamilyColor = () => 'currentColor',
     onRemove = () => {},
-} = {}) {
+}: {
+    selections?: Selection[];
+    familyOrder?: string[];
+    getDefinition?: (emotion: string) => string;
+    getFamilyColor?: (family: string) => string;
+    onRemove?: (wedgeId: string) => void;
+} = {}): { element: HTMLElement } {
     const forest = buildForest(selections, { familyOrder });
 
     const root = document.createElement('div');
@@ -195,7 +212,7 @@ export function renderFeelingsTree({
                 btn.className = 'feeling-remove';
                 btn.setAttribute('aria-label', `Remove ${node.emotion}`);
                 btn.appendChild(removeIcon());
-                btn.addEventListener('click', () => onRemove(node.wedgeId));
+                btn.addEventListener('click', () => onRemove(node.wedgeId!));
                 row.appendChild(btn);
             }
 

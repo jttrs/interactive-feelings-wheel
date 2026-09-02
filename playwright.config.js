@@ -26,10 +26,17 @@ export default defineConfig({
             use: { ...devices['Desktop Chrome'], deviceScaleFactor: 1 },
         },
     ],
+    // The app is now authored in TypeScript, which browsers can't execute directly, so
+    // e2e runs against the BUILT single-file bundle. Build first, then serve dist/.
+    // (SERVE_DIR can still be overridden to point elsewhere.)
     webServer: {
-        command: 'node tests/static-server.js',
+        command: 'npm run build && node tests/static-server.js',
         url: `http://localhost:${PORT}/index.html`,
         reuseExistingServer: !process.env.CI,
-        env: { PORT: String(PORT), SERVE_DIR: process.env.SERVE_DIR || process.cwd() },
+        timeout: 120000,
+        env: {
+            PORT: String(PORT),
+            SERVE_DIR: process.env.SERVE_DIR || `${process.cwd()}/dist`,
+        },
     },
 });

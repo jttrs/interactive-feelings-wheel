@@ -1,14 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { FeelingsWheelGenerator, FEELINGS_DATA, createTestWheel } from '../helpers/wheel.js';
+import { FeelingsWheelGenerator, FEELINGS_DATA, createTestWheel } from '../helpers/wheel.ts';
+import type { ResponsiveScaling } from '../../src/types.ts';
 
 // Behavior-pinning tests for the responsive scaling and font-sizing math.
 // jsdom's default window.innerWidth (1024) puts calculateResponsiveScaling
 // on the desktop branch, matching the golden values below.
 
+// Bare-container stub: these tests never touch the DOM, so a minimal object
+// standing in for Element is enough for the constructor to run.
+const STUB_CONTAINER = { innerHTML: '' } as unknown as Element;
+
 describe('calculateResponsiveScaling', () => {
     it('returns the exact desktop scaling profile at size 600', () => {
-        const gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
-        const scaling = gen.calculateResponsiveScaling(600);
+        const gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
+        const scaling = gen.calculateResponsiveScaling(600) as ResponsiveScaling & {
+            wedgeStroke?: number;
+        };
         // Separator strokes derive from the wheel line/ring tokens (ratios of wheel
         // size). In bare jsdom the tokens fall back to their constants: primary 0.28%,
         // secondary 0.18%, dyad 0.08%, ring 0.22%. Wedges are fill-only (no wedgeStroke).
@@ -26,7 +33,7 @@ describe('calculateResponsiveScaling', () => {
     });
 
     it('floors stroke widths at a tiny wheel size instead of going to zero', () => {
-        const gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        const gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
         const scaling = gen.calculateResponsiveScaling(50);
         // 50 * 0.0028 = 0.14, below the 0.3 floor, so the floor wins.
         expect(scaling.primaryDivisionStroke).toBe(Math.max(0.3, 50 * 0.0028));

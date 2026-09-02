@@ -4,8 +4,8 @@
 // which is exactly what jsdom does (it has no layout engine). createTestWheel stubs
 // getBoundingClientRect to a real size so generate() runs to completion, giving us a
 // fully-built wheel to assert against — no browser required.
-import { FeelingsWheelGenerator } from '../../feelings-wheel-engine.js';
-import { FEELINGS_DATA } from '../../feelings-data.js';
+import { FeelingsWheelGenerator } from '../../feelings-wheel-engine.ts';
+import { FEELINGS_DATA } from '../../feelings-data.ts';
 
 export { FeelingsWheelGenerator, FEELINGS_DATA };
 
@@ -25,7 +25,13 @@ export const FULL_WEDGE_COUNT = CORE + SECONDARY_TOTAL + TERTIARY_TOTAL; // 130
 export const SIMPLIFIED_WEDGE_COUNT = CORE + SECONDARY_TOTAL; // 48
 
 // Build a fully-generated wheel in jsdom. Returns { container, gen }.
-export function createTestWheel({ size = 600, simplified = false } = {}) {
+export function createTestWheel({
+    size = 600,
+    simplified = false,
+}: { size?: number; simplified?: boolean } = {}): {
+    container: HTMLDivElement;
+    gen: FeelingsWheelGenerator;
+} {
     const container = document.createElement('div');
     document.body.appendChild(container);
     stubSize(container, size);
@@ -40,7 +46,7 @@ export function createTestWheel({ size = 600, simplified = false } = {}) {
 }
 
 // Give an element a deterministic box so layout-dependent code has real numbers.
-export function stubSize(el, size) {
+export function stubSize(el: Element, size: number): void {
     el.getBoundingClientRect = () => ({
         width: size,
         height: size,
@@ -55,14 +61,14 @@ export function stubSize(el, size) {
 }
 
 // Query helpers (exclude shadow copies, which carry no wedge class).
-export function countWedges(container) {
+export function countWedges(container: Element): number {
     return container.querySelectorAll('.wedge:not(.shadow-wedge)').length;
 }
 
-export function getWedge(container, emotion) {
+export function getWedge(container: Element, emotion: string): Element | null {
     return container.querySelector(`.wedge[data-emotion="${emotion}"]:not(.shadow-wedge)`);
 }
 
-export function getWedgeById(container, wedgeId) {
+export function getWedgeById(container: Element, wedgeId: string): Element | null {
     return container.querySelector(`.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`);
 }

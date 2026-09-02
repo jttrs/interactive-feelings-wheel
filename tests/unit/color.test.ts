@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FeelingsWheelGenerator, FEELINGS_DATA } from '../helpers/wheel.js';
+import { FeelingsWheelGenerator, FEELINGS_DATA } from '../helpers/wheel.ts';
 
 // Behavior-pinning tests for the color helpers: lightening math and the
 // core-family color lookup.
 
+// Bare-container stub: these tests never touch the DOM, so a minimal object
+// standing in for Element is enough for the constructor to run.
+const STUB_CONTAINER = { innerHTML: '' } as unknown as Element;
+
 describe('lightenColor', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
     beforeEach(() => {
-        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
     });
 
     it('returns the original (lowercased) color at 0%', () => {
@@ -41,7 +45,7 @@ describe('lightenColor', () => {
 describe('getCoreEmotionColor', () => {
     it('resolves a known core family to its wheel color', () => {
         const angry = FEELINGS_DATA.core.find((c) => c.name === 'Angry');
-        expect(FEELINGS_DATA.getCoreEmotionColor('Angry')).toBe(angry.color);
+        expect(FEELINGS_DATA.getCoreEmotionColor('Angry')).toBe(angry!.color);
     });
 
     it('falls back to the default blue for an unknown family', () => {

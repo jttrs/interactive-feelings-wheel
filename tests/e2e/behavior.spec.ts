@@ -1,10 +1,10 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // Behavioral assertions driven entirely through the DOM (no reliance on any global),
 // so they stay valid after the module conversion removes the `app` global. These lock
 // the interaction contract: selection, tiles, deselection, reset, and mode switching.
 
-async function settle(page) {
+async function settle(page: Page) {
     await page.waitForSelector('#wheel-container svg .wedge');
     await page.waitForTimeout(200);
 }
@@ -133,11 +133,14 @@ test('regenerating (mode switch) does not stack duplicate document listeners', a
     const added = await page.evaluate(() => {
         let mousemoveAdds = 0;
         const orig = document.addEventListener.bind(document);
-        document.addEventListener = (type, ...rest) => {
+        document.addEventListener = (
+            type: string,
+            ...rest: [EventListenerOrEventListenerObject, (boolean | AddEventListenerOptions)?]
+        ) => {
             if (type === 'mousemove') mousemoveAdds++;
             return orig(type, ...rest);
         };
-        const toggle = document.getElementById('simplified-mode-panel');
+        const toggle = document.getElementById('simplified-mode-panel') as HTMLElement;
         for (let i = 0; i < 3; i++) toggle.click();
         document.dispatchEvent(new Event('fullscreenchange'));
         return mousemoveAdds;
@@ -186,9 +189,9 @@ test('instructions show when empty and hide when a feeling is selected', async (
 // ===== Keyboard rotation (arrows spin the wheel via the shared momentum model) =====
 
 // Absolute rotation (degrees) off the base group's inline transform: rotate(Ndeg).
-async function readRotation(page) {
+async function readRotation(page: Page): Promise<number> {
     return page.evaluate(() => {
-        const g = document.querySelector('#wheel-container svg .wheel-main-group');
+        const g = document.querySelector<SVGElement>('#wheel-container svg .wheel-main-group');
         const m = /rotate\(([-\d.]+)deg\)/.exec(g?.style.transform || '');
         return m ? parseFloat(m[1]) : 0;
     });
@@ -197,7 +200,7 @@ async function readRotation(page) {
 test('a single arrow press nudges the wheel; holding spins it further', async ({ page }) => {
     // Arrows rotate only when NO wedge is focused (body has focus on load). Blur any
     // focus to be safe, then confirm no wedge is the active element.
-    await page.evaluate(() => document.activeElement?.blur?.());
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
 
     const start = await readRotation(page);
     await page.keyboard.press('ArrowRight'); // one tap
@@ -217,7 +220,7 @@ test('a single arrow press nudges the wheel; holding spins it further', async ({
 });
 
 test('rapid arrow presses accumulate more rotation than a single press', async ({ page }) => {
-    await page.evaluate(() => document.activeElement?.blur?.());
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
 
     const start = await readRotation(page);
     await page.keyboard.press('ArrowRight');
@@ -238,10 +241,10 @@ test('arrows move wedge focus (not rotation) when a wedge is focused', async ({ 
     // navigation and stopPropagation()s them, so the wheel must NOT rotate.
     await page.locator('.wedge[tabindex="0"]').focus();
     const startRotation = await readRotation(page);
-    const first = await page.evaluate(() => document.activeElement.getAttribute('data-wedge-id'));
+    const first = await page.evaluate(() => document.activeElement!.getAttribute('data-wedge-id'));
 
     await page.keyboard.press('ArrowRight');
-    const second = await page.evaluate(() => document.activeElement.getAttribute('data-wedge-id'));
+    const second = await page.evaluate(() => document.activeElement!.getAttribute('data-wedge-id'));
     await page.waitForTimeout(300);
     const endRotation = await readRotation(page);
 

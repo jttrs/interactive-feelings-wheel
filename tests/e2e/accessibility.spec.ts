@@ -39,7 +39,7 @@ test('keyboard alone can focus, select, and the choice is announced', async ({ p
     // Focus the roving tab-stop wedge and select it with the keyboard.
     await page.locator('.wedge[tabindex="0"]').focus();
     const focusedEmotion = await page.evaluate(() =>
-        document.activeElement.getAttribute('data-emotion')
+        document.activeElement!.getAttribute('data-emotion')
     );
     await page.keyboard.press('Enter');
 
@@ -50,9 +50,9 @@ test('keyboard alone can focus, select, and the choice is announced', async ({ p
 
 test('arrow keys move focus between wedges without selecting', async ({ page }) => {
     await page.locator('.wedge[tabindex="0"]').focus();
-    const first = await page.evaluate(() => document.activeElement.getAttribute('data-wedge-id'));
+    const first = await page.evaluate(() => document.activeElement!.getAttribute('data-wedge-id'));
     await page.keyboard.press('ArrowRight');
-    const second = await page.evaluate(() => document.activeElement.getAttribute('data-wedge-id'));
+    const second = await page.evaluate(() => document.activeElement!.getAttribute('data-wedge-id'));
     expect(second).not.toBe(first);
     // Moving focus must not select anything.
     await expect(page.locator('.wedge.selected')).toHaveCount(0);
@@ -72,7 +72,7 @@ test('arrow focus order is stable after a selection (nav-index, not DOM order)',
     await page.locator(firstSel).focus();
     await page.keyboard.press('ArrowRight');
     const neighbourBefore = await page.evaluate(() =>
-        document.activeElement.getAttribute('data-wedge-id')
+        document.activeElement!.getAttribute('data-wedge-id')
     );
 
     // Reset focus to the first wedge, select it (moves it to the top layer), arrow again.
@@ -81,7 +81,7 @@ test('arrow focus order is stable after a selection (nav-index, not DOM order)',
     await page.locator('.wedge[data-nav-index="0"]').focus();
     await page.keyboard.press('ArrowRight');
     const neighbourAfter = await page.evaluate(() =>
-        document.activeElement.getAttribute('data-wedge-id')
+        document.activeElement!.getAttribute('data-wedge-id')
     );
 
     expect(neighbourAfter).toBe(neighbourBefore);
@@ -185,9 +185,9 @@ test('collapsing the panel keeps the expand tab reachable on screen', async ({ p
     // The tab must remain within the viewport (regression: it was pushed off-screen
     // by the panel's transform when it was a descendant).
     const box = await tab.boundingBox();
-    const width = page.viewportSize().width;
-    expect(box.x).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    const width = page.viewportSize()!.width;
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width);
     await tab.click(); // expand again
     await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
 });

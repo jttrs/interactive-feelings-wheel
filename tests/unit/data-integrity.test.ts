@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FEELINGS_DATA, CORE, SECONDARY_TOTAL, TERTIARY_KEYS } from '../helpers/wheel.js';
+import { FEELINGS_DATA, CORE, SECONDARY_TOTAL, TERTIARY_KEYS } from '../helpers/wheel.ts';
 
 // Structural sanity checks on the emotion data itself (no engine involved).
 // These pin the shape of FEELINGS_DATA so future edits to feelings-data.js

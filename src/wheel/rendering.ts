@@ -1,4 +1,4 @@
-import { FEELINGS_DATA } from '../../feelings-data.js';
+import { FEELINGS_DATA } from '../../feelings-data.ts';
 import {
     line as makeLine,
     circle as makeCircle,
@@ -6,13 +6,101 @@ import {
     text as makeText,
     group as makeGroup,
     readWheelTokens,
-} from './svg.js';
+} from './svg.ts';
+import type {
+    Ctor,
+    WheelInstance,
+    Level,
+    ParsedWedge,
+    ResponsiveScaling,
+    DynamicFontSizes,
+} from '../types.ts';
 
-export const RenderingMixin = (Base) =>
+// Loosely-typed key/value bag for wedge/label dataset attrs (dashed keys like
+// 'wedge-id' aren't valid identifiers, so an index signature is simplest here).
+type Dataset = Record<string, string | number>;
+
+// One core family's angular span, as computed by calculateCoreAngles().
+interface CoreAngle {
+    name: string;
+    color: string;
+    start: number;
+    end: number;
+    size: number;
+}
+
+interface BuildWedgeParams {
+    level: Level;
+    className: string;
+    fill: string;
+    innerR: number;
+    outerR: number;
+    start: number;
+    end: number;
+    emotion: string;
+    parent: string | null;
+    grandparent?: string;
+}
+
+interface BuildLabelParams {
+    level: Level;
+    wedgeId: string;
+    emotion: string;
+    parent: string | null;
+    grandparent?: string;
+    radius: number;
+    start: number;
+    end: number;
+    flipStart?: number;
+    flipEnd?: number;
+    smallMinFactor: number;
+    smallScale: number;
+}
+
+interface DrawRadialLineParams {
+    angleDeg: number;
+    innerRadius: number;
+    endRadius: number;
+    width: number;
+    className: string;
+    dash?: string;
+    round?: boolean;
+}
+
+export const RenderingMixin = <T extends Ctor>(Base: T) =>
     class extends Base {
+        // Shared instance state this mixin reads/writes (initialized by the engine ctor).
+        declare container: WheelInstance['container'];
+        declare data: WheelInstance['data'];
+        declare centerX: WheelInstance['centerX'];
+        declare centerY: WheelInstance['centerY'];
+        declare isSimplifiedMode: WheelInstance['isSimplifiedMode'];
+        declare wedgeRegistry: WheelInstance['wedgeRegistry'];
+        declare currentRotation: WheelInstance['currentRotation'];
+        declare coreRadius: WheelInstance['coreRadius'];
+        declare middleRadius: WheelInstance['middleRadius'];
+        declare outerRadius: WheelInstance['outerRadius'];
+        declare containerSize: WheelInstance['containerSize'];
+        declare responsiveScaling: WheelInstance['responsiveScaling'];
+        declare dynamicFontSizes: WheelInstance['dynamicFontSizes'];
+        declare svg: WheelInstance['svg'];
+        declare baseGroup: WheelInstance['baseGroup'];
+        declare divisionLinesGroup: WheelInstance['divisionLinesGroup'];
+        declare shadowGroup: WheelInstance['shadowGroup'];
+        declare topGroup: WheelInstance['topGroup'];
+        declare wheelGroup: WheelInstance['wheelGroup'];
+        declare textElements: WheelInstance['textElements'];
+        declare _navCounter: WheelInstance['_navCounter'];
+        declare dpr: WheelInstance['dpr'];
+        declare effectiveSize: WheelInstance['effectiveSize'];
+        declare fullModeState: WheelInstance['fullModeState'];
+        declare simplifiedModeState: WheelInstance['simplifiedModeState'];
+        // Provided by the interaction mixin; called at the end of generate().
+        declare setupEventListeners: () => void;
+
         // ===== CENTRALIZED RESPONSIVE SCALING SYSTEM =====
 
-        calculateResponsiveScaling(wheelSize) {
+        calculateResponsiveScaling(wheelSize: number): ResponsiveScaling {
             // Unified scaling for ALL visual parameters. Separator stroke widths derive
             // from the wheel line/ring TOKENS (ratios of wheel size) so the design-token
             // layer is the single source of truth; JS applies size + a minimum floor.
@@ -44,13 +132,13 @@ export const RenderingMixin = (Base) =>
             };
         }
 
-        updateAllResponsiveScaling() {
+        updateAllResponsiveScaling(): void {
             // Re-apply separator stroke widths after a resize. Wedges are fill-only, so
             // only the lines + ring circles need updating.
             if (!this.responsiveScaling) return;
             const s = this.responsiveScaling;
 
-            const setWidth = (selector, width) => {
+            const setWidth = (selector: string, width: number): void => {
                 this.container.querySelectorAll(selector).forEach((el) => {
                     el.setAttribute('stroke-width', width.toString());
                 });
@@ -62,18 +150,18 @@ export const RenderingMixin = (Base) =>
             setWidth('.wheel-ring', s.ringStroke);
         }
 
-        updateRadii() {
+        updateRadii(): void {
             // Radii are now calculated dynamically in the generate() method
             // based on container size and mode. This method is kept for compatibility
             // but actual calculation happens in generate().
         }
 
-        calculateDynamicFontSizes() {
+        calculateDynamicFontSizes(): DynamicFontSizes {
             // Calculate optimal font sizes for each ring based on available wedge space
             // This analyzes all wedges in each ring to find the constraining factor
 
             const coreAngles = this.calculateCoreAngles();
-            const fontSizes = {};
+            const fontSizes: Partial<DynamicFontSizes> = {};
 
             // Calculate core emotion font sizes
             const coreConstraints = coreAngles.map((core) => {
@@ -89,7 +177,7 @@ export const RenderingMixin = (Base) =>
             fontSizes.core = Math.min(...coreConstraints);
 
             // Calculate secondary emotion font sizes
-            const secondaryConstraints = [];
+            const secondaryConstraints: number[] = [];
             coreAngles.forEach((core) => {
                 const secondaryEmotions = this.data.secondary[core.name];
                 const anglePerSecondary = core.size / secondaryEmotions.length;
@@ -108,7 +196,7 @@ export const RenderingMixin = (Base) =>
 
             // Calculate tertiary emotion font sizes (only in full mode)
             if (!this.isSimplifiedMode) {
-                const tertiaryConstraints = [];
+                const tertiaryConstraints: number[] = [];
                 coreAngles.forEach((core) => {
                     const secondaryEmotions = this.data.secondary[core.name];
                     const anglePerSecondary = core.size / secondaryEmotions.length;
@@ -134,10 +222,14 @@ export const RenderingMixin = (Base) =>
                     tertiaryConstraints.length > 0 ? Math.min(...tertiaryConstraints) : 12;
             }
 
-            return fontSizes;
+            return fontSizes as DynamicFontSizes;
         }
 
-        calculateOptimalTextSize(radialWidth, angularWidth, textLength) {
+        calculateOptimalTextSize(
+            radialWidth: number,
+            angularWidth: number,
+            textLength: number
+        ): number {
             // Calculate optimal font size for text within given constraints
 
             // Primary constraint: font height fits in ring thickness
@@ -155,10 +247,13 @@ export const RenderingMixin = (Base) =>
             const maxSizeFromLength = availableRadialLength / (textLength * averageCharWidth);
 
             // Take the smaller of the two constraints
-            let optimalSize = Math.min(maxHeightFromRing, maxSizeFromLength);
+            const optimalSize = Math.min(maxHeightFromRing, maxSizeFromLength);
 
             // RESPONSIVE CONSTRAINTS: Set bounds that scale with wheel size
+            // (isMobile below is unused now that both branches share the same bounds,
+            // matching the original — kept for parity with the source.)
             const isMobile = window.innerWidth <= 767;
+            void isMobile;
 
             // Use much smaller minimums here since calculateFontSize will apply final responsive minimum
             const minSize = Math.max(2, this.containerSize * 0.004); // Very small minimum to let natural calculation work
@@ -169,9 +264,9 @@ export const RenderingMixin = (Base) =>
             return boundedSize;
         }
 
-        calculateFontSize(level) {
+        calculateFontSize(level: Level): number {
             // UNIFIED FONT CALCULATION: Use centralized responsive scaling system
-            let fontSize;
+            let fontSize: number;
 
             // Get dynamically calculated font size for the specified ring level
             if (this.dynamicFontSizes && this.dynamicFontSizes[level]) {
@@ -225,19 +320,19 @@ export const RenderingMixin = (Base) =>
         }
 
         // Helper function to lighten colors for middle and outer rings
-        lightenColor(color, percent) {
+        lightenColor(color: string, percent: number): string {
             // Use the centralized color lightening function for consistency
             return FEELINGS_DATA.lightenColor(color, percent);
         }
 
         // Calculate dynamic angles based on secondary emotion counts
-        calculateCoreAngles() {
+        calculateCoreAngles(): CoreAngle[] {
             // Calculate total secondary emotions first
             const totalSecondary = this.data.core.reduce((sum, core) => {
                 return sum + this.data.secondary[core.name].length;
             }, 0);
 
-            const angles = [];
+            const angles: CoreAngle[] = [];
             // Calculate starting angle so Angry's center is at 0 degrees
             const angrySecondaryCount = this.data.secondary['Angry'].length;
             const angryAngleSize = (angrySecondaryCount / totalSecondary) * 360;
@@ -264,7 +359,14 @@ export const RenderingMixin = (Base) =>
         }
 
         // Create SVG path for a wedge
-        createWedgePath(centerX, centerY, innerRadius, outerRadius, startAngle, endAngle) {
+        createWedgePath(
+            centerX: number,
+            centerY: number,
+            innerRadius: number,
+            outerRadius: number,
+            startAngle: number,
+            endAngle: number
+        ): string {
             const startAngleRad = (startAngle * Math.PI) / 180;
             const endAngleRad = (endAngle * Math.PI) / 180;
 
@@ -286,7 +388,13 @@ export const RenderingMixin = (Base) =>
         }
 
         // Position text in the middle of a wedge with radial orientation
-        positionText(centerX, centerY, radius, startAngle, endAngle) {
+        positionText(
+            centerX: number,
+            centerY: number,
+            radius: number,
+            startAngle: number,
+            endAngle: number
+        ): { x: number; y: number; baseAngle: number } {
             const midAngle = (startAngle + endAngle) / 2;
             const midAngleRad = (midAngle * Math.PI) / 180;
             const x = centerX + radius * Math.cos(midAngleRad);
@@ -301,7 +409,7 @@ export const RenderingMixin = (Base) =>
         // parent's midangle, so both words in a dyad flip together instead of
         // splitting when the pair straddles the 90/270 boundary. For core/secondary
         // labels flipAngle === baseAngle (no change from before).
-        calculateTextRotation(baseAngle, flipAngle = baseAngle) {
+        calculateTextRotation(baseAngle: number, flipAngle: number = baseAngle): number {
             const totalRotation = (flipAngle + this.currentRotation) % 360;
             const normalizedAngle = totalRotation < 0 ? totalRotation + 360 : totalRotation;
 
@@ -316,7 +424,7 @@ export const RenderingMixin = (Base) =>
         // only yields baseAngle or baseAngle+180 (flip flips only at the 90/270 boundary),
         // so on almost every frame the value is unchanged — write only when it actually
         // changes to avoid ~140 no-op attribute writes per drag/scroll frame.
-        updateTextRotations() {
+        updateTextRotations(): void {
             this.textElements.forEach((textData) => {
                 const newRotation = this.calculateTextRotation(
                     textData.baseAngle,
@@ -336,9 +444,9 @@ export const RenderingMixin = (Base) =>
         // value for the same conditions (they previously duplicated this with divergent
         // mobile floors — 150 vs 200 — which could size the wheel differently on resize
         // vs initial render). One floor (150) so very small screens still render.
-        computeAvailableWheelSize() {
+        computeAvailableWheelSize(): number {
             const rect = this.container.getBoundingClientRect();
-            let availableWidth = rect.width;
+            const availableWidth = rect.width;
             let availableHeight = rect.height;
 
             if (window.innerWidth <= 767) {
@@ -356,7 +464,7 @@ export const RenderingMixin = (Base) =>
             return Math.min(availableWidth, availableHeight);
         }
 
-        generate() {
+        generate(): void {
             // Clear container and text elements
             this.container.innerHTML = '';
             this.textElements = [];
@@ -607,9 +715,9 @@ export const RenderingMixin = (Base) =>
             emotion,
             parent,
             grandparent,
-        }) {
+        }: BuildWedgeParams): string {
             const wedgeId = this.createUniqueWedgeId(level, emotion, parent);
-            const dataset = { emotion, level, 'wedge-id': wedgeId };
+            const dataset: Dataset = { emotion, level, 'wedge-id': wedgeId };
             if (parent !== null && parent !== undefined) dataset.parent = parent;
             if (grandparent !== undefined) dataset.grandparent = grandparent;
             // Stable keyboard-navigation order (independent of later DOM layer moves).
@@ -623,7 +731,9 @@ export const RenderingMixin = (Base) =>
             });
             if (!path) return wedgeId;
             this.applyWedgeAccessibility(path, level, emotion, parent);
-            this.wheelGroup.appendChild(path);
+            // wheelGroup is set (= baseGroup) earlier in generate(), before any wedge is
+            // built; the shared field type is nullable only pre-generate().
+            (this.wheelGroup as SVGGElement).appendChild(path);
             return wedgeId;
         }
 
@@ -643,7 +753,7 @@ export const RenderingMixin = (Base) =>
             flipEnd,
             smallMinFactor,
             smallScale,
-        }) {
+        }: BuildLabelParams): void {
             const textPos = this.positionText(this.centerX, this.centerY, radius, start, end);
 
             // The flip is governed by flipStart/flipEnd's midangle when provided (dyad
@@ -658,7 +768,7 @@ export const RenderingMixin = (Base) =>
                 fontSize = Math.max(this.containerSize * smallMinFactor, fontSize * smallScale);
             }
 
-            const dataset = { emotion, level, 'wedge-id': wedgeId };
+            const dataset: Dataset = { emotion, level, 'wedge-id': wedgeId };
             if (parent !== null && parent !== undefined) dataset.parent = parent;
             if (grandparent !== undefined) dataset.grandparent = grandparent;
 
@@ -677,16 +787,16 @@ export const RenderingMixin = (Base) =>
                 x: textPos.x,
                 y: textPos.y,
             });
-            this.wheelGroup.appendChild(textEl);
+            (this.wheelGroup as SVGGElement).appendChild(textEl);
         }
 
-        createShadowCopy(originalWedge, wedgeId) {
+        createShadowCopy(originalWedge: SVGElement, wedgeId: string): void {
             // Create a group to hold the shadow with offset
             const shadowGroup = makeGroup();
             shadowGroup.setAttribute('data-shadow-id', wedgeId);
 
             // Create a copy of the wedge for shadow layer
-            const shadowWedge = originalWedge.cloneNode(true);
+            const shadowWedge = originalWedge.cloneNode(true) as SVGElement;
 
             // CRITICAL FIX: Remove data-wedge-id from shadow copy to prevent interference
             shadowWedge.removeAttribute('data-wedge-id');
@@ -707,8 +817,10 @@ export const RenderingMixin = (Base) =>
             this.updateShadowTransform(shadowGroup);
         }
 
-        removeShadowCopy(wedgeId) {
-            const shadowGroup = this.shadowGroup.querySelector(`[data-shadow-id="${wedgeId}"]`);
+        removeShadowCopy(wedgeId: string): void {
+            const shadowGroup = this.shadowGroup.querySelector(
+                `[data-shadow-id="${wedgeId}"]`
+            ) as SVGGElement | null;
             if (shadowGroup) {
                 // Clear any lingering transforms or effects
                 shadowGroup.style.transform = '';
@@ -718,16 +830,24 @@ export const RenderingMixin = (Base) =>
             }
         }
 
-        moveTextForWedge(emotion, level, parent, targetGroup, existingWedgeId = null) {
+        moveTextForWedge(
+            emotion: string,
+            level: Level,
+            parent: string | null,
+            targetGroup: SVGGElement,
+            existingWedgeId: string | null = null
+        ): void {
             // CRITICAL FIX: Use existing wedge ID if provided, otherwise create expected ID
-            let wedgeId;
+            let wedgeId: string;
             if (existingWedgeId) {
                 wedgeId = existingWedgeId;
             } else {
                 wedgeId = this.createUniqueWedgeId(level, emotion, parent);
             }
 
-            const textElement = this.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
+            const textElement = this.container.querySelector(
+                `text[data-wedge-id="${wedgeId}"]`
+            ) as SVGTextElement | null;
             if (textElement) {
                 targetGroup.appendChild(textElement);
             }
@@ -735,11 +855,11 @@ export const RenderingMixin = (Base) =>
 
         // ===== UNIQUE WEDGE ID SYSTEM =====
 
-        createUniqueWedgeId(level, emotion, parent) {
+        createUniqueWedgeId(level: Level, emotion: string, parent: string | null): string {
             // Build the family-aware id string AND register its structured metadata so
             // that meaning is later recovered by lookup rather than by splitting the
             // string on '-' (which breaks for emotions containing that separator).
-            const family =
+            const family: string | null =
                 level === 'core'
                     ? emotion
                     : level === 'secondary'
@@ -748,7 +868,7 @@ export const RenderingMixin = (Base) =>
                         ? this.findCoreFamily(parent)
                         : null;
 
-            let id;
+            let id: string;
             switch (level) {
                 case 'core':
                     id = `core-${emotion}`;
@@ -765,14 +885,21 @@ export const RenderingMixin = (Base) =>
                     id = `${level}-${emotion}`;
             }
 
-            this.wedgeRegistry.set(id, { level, emotion, parent: parent ?? null, family });
+            // family is only null for a level outside the Level union (defensive branch
+            // that's unreachable given the type), so the registry's non-null contract holds.
+            this.wedgeRegistry.set(id, {
+                level,
+                emotion,
+                parent: parent ?? null,
+                family: family as string,
+            });
             return id;
         }
 
-        findCoreFamily(secondaryEmotion) {
+        findCoreFamily(secondaryEmotion: string | null): string {
             // Find which core emotion family a secondary emotion belongs to
             for (const coreEmotion of this.data.core) {
-                if (this.data.secondary[coreEmotion.name]?.includes(secondaryEmotion)) {
+                if (this.data.secondary[coreEmotion.name]?.includes(secondaryEmotion as string)) {
                     return coreEmotion.name;
                 }
             }
@@ -781,7 +908,7 @@ export const RenderingMixin = (Base) =>
 
         // Human-readable label for assistive tech, e.g.
         // "Frustrated, a secondary emotion under Angry".
-        buildWedgeAriaLabel(level, emotion, parent) {
+        buildWedgeAriaLabel(level: Level, emotion: string, parent: string | null): string {
             if (level === 'core') return `${emotion}, a core emotion`;
             if (level === 'secondary') return `${emotion}, a secondary emotion under ${parent}`;
             if (level === 'tertiary') return `${emotion}, a specific emotion under ${parent}`;
@@ -789,15 +916,20 @@ export const RenderingMixin = (Base) =>
         }
 
         // Apply the shared accessibility semantics to a wedge <path>. Wedges are
-        // exposed as toggle buttons; keyboard focus/traversal is wired in interaction.js.
-        applyWedgeAccessibility(path, level, emotion, parent) {
+        // exposed as toggle buttons; keyboard focus/traversal is wired in interaction.ts.
+        applyWedgeAccessibility(
+            path: SVGPathElement,
+            level: Level,
+            emotion: string,
+            parent: string | null
+        ): void {
             path.setAttribute('role', 'button');
             path.setAttribute('tabindex', '-1'); // roving tabindex; one wedge made 0 after generation
             path.setAttribute('aria-pressed', 'false');
             path.setAttribute('aria-label', this.buildWedgeAriaLabel(level, emotion, parent));
         }
 
-        parseUniqueWedgeId(wedgeId) {
+        parseUniqueWedgeId(wedgeId: string): ParsedWedge {
             // Prefer the structured registry populated at generation time.
             const meta = this.wedgeRegistry.get(wedgeId);
             if (meta) {
@@ -812,7 +944,7 @@ export const RenderingMixin = (Base) =>
             // Defensive fallback for ids not seen during generation (e.g. a stale id
             // referenced after a mode switch). Preserves the original parsing semantics.
             const parts = wedgeId.split('-');
-            const level = parts[0];
+            const level = parts[0] as Level;
             switch (level) {
                 case 'core':
                     return {
@@ -836,16 +968,22 @@ export const RenderingMixin = (Base) =>
                         coreFamily: parts[1],
                     };
                 default:
+                    // Unreachable given the Level union, but kept for parity with the
+                    // original string-parsing fallback (coreFamily was untyped there).
                     return {
                         level,
                         emotion: parts.slice(1).join('-'),
                         parent: null,
-                        coreFamily: null,
+                        coreFamily: null as unknown as string,
                     };
             }
         }
 
-        findWedgeByUniqueId(level, emotion, parent) {
+        findWedgeByUniqueId(
+            level: Level,
+            emotion: string,
+            parent: string | null
+        ): SVGElement | null {
             // CRITICAL FIX: Create the expected ID format but don't recreate logic
             // This should match the ID that was set during generation
             const expectedWedgeId = this.createUniqueWedgeId(level, emotion, parent);
@@ -853,18 +991,18 @@ export const RenderingMixin = (Base) =>
             // Use more specific selector to exclude shadow copies (they don't have 'wedge' class anymore)
             const element = this.container.querySelector(
                 `.wedge[data-wedge-id="${expectedWedgeId}"]:not(.shadow-wedge)`
-            );
+            ) as SVGElement | null;
             return element;
         }
 
         // Find wedge by its actual stored ID (most reliable)
-        findWedgeByStoredId(wedgeId) {
+        findWedgeByStoredId(wedgeId: string): SVGElement | null {
             return this.container.querySelector(
                 `.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`
-            );
+            ) as SVGElement | null;
         }
 
-        updateShadowTransform(shadowGroup) {
+        updateShadowTransform(shadowGroup: SVGGElement): void {
             // Fixed light source from top-left - shadow always casts toward bottom-right
             const shadowOffsetX = 4;
             const shadowOffsetY = 4;
@@ -880,20 +1018,20 @@ export const RenderingMixin = (Base) =>
             );
         }
 
-        updateAllShadowTransforms() {
+        updateAllShadowTransforms(): void {
             // shadowGroup contains only shadow <g> children (one per selected wedge), so
             // iterate them directly instead of re-running an attribute-selector tree scan
             // every rotation frame.
             const groups = this.shadowGroup.children;
             for (let i = 0; i < groups.length; i++) {
-                this.updateShadowTransform(groups[i]);
+                this.updateShadowTransform(groups[i] as SVGGElement);
             }
         }
 
         // ===== SEPARATOR LAYER =====
         // The division lines + concentric ring circles own ALL of the wheel's
         // boundaries (wedges are fill-only), so every edge is drawn exactly once.
-        createAllDivisionLines(coreAngles) {
+        createAllDivisionLines(coreAngles: CoreAngle[]): void {
             // Rings first (concentric arcs), then the radial hierarchy on top.
             this.buildRingCircles();
 
@@ -909,8 +1047,8 @@ export const RenderingMixin = (Base) =>
 
         // Concentric ring circles at each ring boundary (core, middle, and — in full
         // mode — outer). These replace the arc edges the wedge outlines used to draw.
-        buildRingCircles() {
-            const s = this.responsiveScaling || {};
+        buildRingCircles(): void {
+            const s: Partial<ResponsiveScaling> = this.responsiveScaling || {};
             const color = s.ringColor || '#4a453d';
             const width = s.ringStroke || Math.max(0.2, this.containerSize * 0.0022);
             const radii = this.isSimplifiedMode
@@ -935,7 +1073,15 @@ export const RenderingMixin = (Base) =>
         // from innerRadius to endRadius at a given angle; only the radii, weight, dash,
         // linecap, and class differ. Centralizes the trig + makeLine + append + the
         // '#4a453d' color fallback that was copy-pasted across the three methods.
-        drawRadialLine({ angleDeg, innerRadius, endRadius, width, className, dash, round }) {
+        drawRadialLine({
+            angleDeg,
+            innerRadius,
+            endRadius,
+            width,
+            className,
+            dash,
+            round,
+        }: DrawRadialLineParams): void {
             const color = (this.responsiveScaling && this.responsiveScaling.lineColor) || '#4a453d';
             const rad = (angleDeg * Math.PI) / 180;
             const el = makeLine({
@@ -953,8 +1099,8 @@ export const RenderingMixin = (Base) =>
             this.divisionLinesGroup.appendChild(el);
         }
 
-        createPrimaryDivisions(coreAngles) {
-            const s = this.responsiveScaling || {};
+        createPrimaryDivisions(coreAngles: CoreAngle[]): void {
+            const s: Partial<ResponsiveScaling> = this.responsiveScaling || {};
             const width = s.primaryDivisionStroke || Math.max(0.5, this.containerSize * 0.006);
             const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
 
@@ -970,8 +1116,8 @@ export const RenderingMixin = (Base) =>
             });
         }
 
-        createSecondaryDivisions(coreAngles) {
-            const s = this.responsiveScaling || {};
+        createSecondaryDivisions(coreAngles: CoreAngle[]): void {
+            const s: Partial<ResponsiveScaling> = this.responsiveScaling || {};
             const width = s.secondaryDivisionStroke || Math.max(0.3, this.containerSize * 0.004);
             const endRadius = this.isSimplifiedMode ? this.middleRadius : this.outerRadius;
 
@@ -992,8 +1138,8 @@ export const RenderingMixin = (Base) =>
             });
         }
 
-        createDyadDivisions(coreAngles) {
-            const s = this.responsiveScaling || {};
+        createDyadDivisions(coreAngles: CoreAngle[]): void {
+            const s: Partial<ResponsiveScaling> = this.responsiveScaling || {};
             // Dyad splits are the lightest hint of division — rendered as a row of
             // round DOTS (dasharray 0 + round linecap makes each dash a dot whose
             // diameter is the stroke width). Slightly thicker than the hairline dash

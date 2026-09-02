@@ -6,7 +6,7 @@ import {
     FULL_WEDGE_COUNT,
     SIMPLIFIED_WEDGE_COUNT,
     CORE,
-} from '../helpers/wheel.js';
+} from '../helpers/wheel.ts';
 
 describe('full mode DOM', () => {
     it('renders exactly FULL_WEDGE_COUNT wedges and matching text nodes', () => {
@@ -42,8 +42,8 @@ describe('simplified mode DOM', () => {
 describe('selection', () => {
     it('selectWedge marks the wedge selected, moves it to topGroup, and adds a shadow', () => {
         const { container, gen } = createTestWheel();
-        const wedge = getWedge(container, 'Angry');
-        const id = wedge.getAttribute('data-wedge-id');
+        const wedge = getWedge(container, 'Angry') as SVGElement;
+        const id = wedge.getAttribute('data-wedge-id')!;
 
         gen.selectWedge(id, wedge, 'Angry');
 
@@ -56,8 +56,8 @@ describe('selection', () => {
 
     it('deselectWedge reverses selection, moving the wedge back to baseGroup and removing the shadow', () => {
         const { container, gen } = createTestWheel();
-        const wedge = getWedge(container, 'Angry');
-        const id = wedge.getAttribute('data-wedge-id');
+        const wedge = getWedge(container, 'Angry') as SVGElement;
+        const id = wedge.getAttribute('data-wedge-id')!;
 
         gen.selectWedge(id, wedge, 'Angry');
         gen.deselectWedge(id, wedge, 'Angry');
@@ -73,12 +73,12 @@ describe('reset', () => {
     it('clears all selections and rotation', () => {
         const { container, gen } = createTestWheel();
 
-        const sad = getWedge(container, 'Sad');
-        const sadId = sad.getAttribute('data-wedge-id');
+        const sad = getWedge(container, 'Sad') as SVGElement;
+        const sadId = sad.getAttribute('data-wedge-id')!;
         gen.selectWedge(sadId, sad, 'Sad');
 
-        const bad = getWedge(container, 'Bad');
-        const badId = bad.getAttribute('data-wedge-id');
+        const bad = getWedge(container, 'Bad') as SVGElement;
+        const badId = bad.getAttribute('data-wedge-id')!;
         gen.selectWedge(badId, bad, 'Bad');
 
         gen.currentRotation = 45;
@@ -100,8 +100,8 @@ describe('mode-state preservation', () => {
     it('restores the full-mode selection after switching to simplified and back', () => {
         const { container, gen } = createTestWheel();
 
-        const happy = getWedge(container, 'Happy');
-        const happyId = happy.getAttribute('data-wedge-id');
+        const happy = getWedge(container, 'Happy') as SVGElement;
+        const happyId = happy.getAttribute('data-wedge-id')!;
         gen.selectWedge(happyId, happy, 'Happy');
 
         gen.setSimplifiedMode(true);
@@ -117,7 +117,7 @@ describe('mode-state preservation', () => {
         const label = gen.textElements[0].element;
         let writes = 0;
         const orig = label.setAttribute.bind(label);
-        label.setAttribute = (name, ...rest) => {
+        label.setAttribute = (name: string, ...rest: [string]) => {
             if (name === 'transform') writes++;
             return orig(name, ...rest);
         };
@@ -145,8 +145,8 @@ describe('mode-state preservation', () => {
         // the tertiary is absent from the LIVE set while simplified (no orphan), and
         // returns from the full-mode snapshot on switch-back (intended per-mode memory).
         const { container, gen } = createTestWheel();
-        const cheeky = getWedge(container, 'Cheeky'); // tertiary under Playful
-        const id = cheeky.getAttribute('data-wedge-id');
+        const cheeky = getWedge(container, 'Cheeky') as SVGElement; // tertiary under Playful
+        const id = cheeky.getAttribute('data-wedge-id')!;
         gen.selectWedge(id, cheeky, 'Cheeky');
         expect(gen.parseUniqueWedgeId(id).level).toBe('tertiary');
 

@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { FeelingsWheelGenerator, FEELINGS_DATA, createTestWheel } from '../helpers/wheel.js';
+import { FeelingsWheelGenerator, FEELINGS_DATA, createTestWheel } from '../helpers/wheel.ts';
 
 const { Easing } = FeelingsWheelGenerator;
+
+// Bare-container stub: these tests never touch the DOM, so a minimal object
+// standing in for Element is enough for the constructor to run.
+const STUB_CONTAINER = { innerHTML: '' } as unknown as Element;
 
 describe('Easing functions', () => {
     it('linear is the identity function', () => {
@@ -27,9 +31,9 @@ describe('Easing functions', () => {
 });
 
 describe('getShortestRotationPath', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
     beforeEach(() => {
-        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
     });
 
     it('takes the short way across the 0/360 boundary (forward)', () => {
@@ -58,7 +62,7 @@ describe('getShortestRotationPath', () => {
 });
 
 describe('animation lifecycle', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
 
     afterEach(() => {
         // Avoid leaking a real requestAnimationFrame loop across tests.
@@ -88,11 +92,11 @@ describe('animation lifecycle', () => {
 });
 
 describe('scroll momentum (anti-flicker)', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
     const { SENSITIVITY, MAX_VELOCITY } = FeelingsWheelGenerator.ScrollPhysics;
 
     beforeEach(() => {
-        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
     });
 
     afterEach(() => {
@@ -142,7 +146,10 @@ describe('scroll momentum (anti-flicker)', () => {
 
 describe('held-arrow rotation (continuous spin)', () => {
     const { KEY_IMPULSE, MAX_VELOCITY } = FeelingsWheelGenerator.ScrollPhysics;
-    let gen, rafQueue, origRaf, origCancel;
+    let gen: FeelingsWheelGenerator;
+    let rafQueue: FrameRequestCallback[];
+    let origRaf: typeof globalThis.requestAnimationFrame;
+    let origCancel: typeof globalThis.cancelAnimationFrame;
 
     // Drive the momentum rAF loop deterministically: capture each scheduled callback and
     // flush frames manually so the held-key acceleration is testable without wall-clock.
@@ -163,7 +170,7 @@ describe('held-arrow rotation (continuous spin)', () => {
 
     const frame = () => {
         const cb = rafQueue.shift();
-        if (cb) cb();
+        if (cb) cb(performance.now());
     };
 
     it('a single press adds one KEY_IMPULSE (correct sign) and starts the loop', () => {

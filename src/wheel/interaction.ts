@@ -1,6 +1,71 @@
-export const InteractionMixin = (Base) =>
+import type {
+    Ctor,
+    WheelInstance,
+    ParsedWedge,
+    Level,
+    EmotionSelectedDetail,
+    ScrollPhysics,
+} from '../types.ts';
+
+export const InteractionMixin = <T extends Ctor>(Base: T) =>
     class extends Base {
-        saveCurrentState() {
+        // Shared instance state this mixin reads/writes (initialized by the engine ctor).
+        declare isSimplifiedMode: WheelInstance['isSimplifiedMode'];
+        declare selectedWedges: WheelInstance['selectedWedges'];
+        declare currentRotation: WheelInstance['currentRotation'];
+        declare svg: WheelInstance['svg'];
+        declare container: WheelInstance['container'];
+        declare containerSize: WheelInstance['containerSize'];
+        declare isDragging: WheelInstance['isDragging'];
+        declare isAnimating: WheelInstance['isAnimating'];
+        declare scrollVelocity: WheelInstance['scrollVelocity'];
+        declare momentumRafId: WheelInstance['momentumRafId'];
+        declare heldRotationDir: WheelInstance['heldRotationDir'];
+        declare fullModeState: WheelInstance['fullModeState'];
+        declare simplifiedModeState: WheelInstance['simplifiedModeState'];
+        declare wedgeRegistry: WheelInstance['wedgeRegistry'];
+        declare topGroup: WheelInstance['topGroup'];
+        declare baseGroup: WheelInstance['baseGroup'];
+        declare divisionLinesGroup: WheelInstance['divisionLinesGroup'];
+        declare shadowGroup: WheelInstance['shadowGroup'];
+        declare textElements: WheelInstance['textElements'];
+        declare resizeTimeout: WheelInstance['resizeTimeout'];
+        declare lastMouseAngle: WheelInstance['lastMouseAngle'];
+        declare _navCounter: WheelInstance['_navCounter'];
+        declare _globalListenersBound: WheelInstance['_globalListenersBound'];
+        declare _onMouseMove: WheelInstance['_onMouseMove'];
+        declare _onMouseUp: WheelInstance['_onMouseUp'];
+        declare _onResize: WheelInstance['_onResize'];
+        declare _onOrientationChange: WheelInstance['_onOrientationChange'];
+        declare _onKeyDown: WheelInstance['_onKeyDown'];
+        declare _onKeyUp: WheelInstance['_onKeyUp'];
+        declare _onBlur: WheelInstance['_onBlur'];
+        // Provided by the rendering mixin; called from several methods below.
+        declare updateRadii: () => void;
+        declare generate: () => void;
+        declare parseUniqueWedgeId: (wedgeId: string) => ParsedWedge;
+        declare createShadowCopy: (originalWedge: SVGElement, wedgeId: string) => void;
+        declare removeShadowCopy: (wedgeId: string) => void;
+        declare moveTextForWedge: (
+            emotion: string,
+            level: Level,
+            parent: string | null,
+            targetGroup: SVGGElement,
+            existingWedgeId?: string | null
+        ) => void;
+        declare findWedgeByStoredId: (wedgeId: string) => SVGElement | null;
+        declare findWedgeByUniqueId: (
+            level: Level,
+            emotion: string,
+            parent: string | null
+        ) => SVGElement | null;
+        declare computeAvailableWheelSize: () => number;
+        declare updateTextRotations: () => void;
+        declare updateAllShadowTransforms: () => void;
+        declare getShortestRotationPath: (from: number, to: number) => number;
+        declare clearAllAnimations: () => void;
+
+        saveCurrentState(): void {
             const currentState = this.isSimplifiedMode
                 ? this.simplifiedModeState
                 : this.fullModeState;
@@ -9,7 +74,7 @@ export const InteractionMixin = (Base) =>
             currentState.hasBeenInitialized = true;
         }
 
-        restoreState(targetMode) {
+        restoreState(targetMode: boolean): void {
             const targetState = targetMode ? this.simplifiedModeState : this.fullModeState;
 
             if (targetState.hasBeenInitialized) {
@@ -23,7 +88,7 @@ export const InteractionMixin = (Base) =>
             }
         }
 
-        setSimplifiedMode(enabled) {
+        setSimplifiedMode(enabled: boolean): void {
             // Save current state before switching
             this.saveCurrentState();
 
@@ -38,7 +103,7 @@ export const InteractionMixin = (Base) =>
             this.regenerateWheel();
         }
 
-        regenerateWheel() {
+        regenerateWheel(): void {
             // A momentum loop from the previous SVG would write to stale groups.
             this.stopMomentum();
 
@@ -63,7 +128,7 @@ export const InteractionMixin = (Base) =>
             // OLD CONTROL REPOSITIONING REMOVED
         }
 
-        applySelectedWedges() {
+        applySelectedWedges(): void {
             // Re-apply selection state to wedges after regeneration
             this.selectedWedges.forEach((wedgeId) => {
                 // Parse the unique wedge ID format
@@ -96,18 +161,22 @@ export const InteractionMixin = (Base) =>
         // leak). Global document/window listeners are bound ONCE via setupGlobalListeners()
         // (from the constructor), never here, to avoid stacking a duplicate set on every
         // regenerate (mode switch / resize / fullscreen).
-        setupEventListeners() {
+        setupEventListeners(): void {
+            // Called only right after generate() assigns a fresh this.svg, so it's
+            // always non-null here even though the shared field type is nullable.
+            const svg = this.svg as SVGSVGElement;
+
             // Mouse down to begin a drag-rotation.
-            this.svg.addEventListener('mousedown', (e) => {
+            svg.addEventListener('mousedown', (e: MouseEvent) => {
                 if (this.isAnimating) return;
 
                 // Grabbing the wheel arrests any in-flight scroll glide.
                 this.stopMomentum();
 
                 this.isDragging = true;
-                this.svg.style.cursor = 'grabbing';
+                svg.style.cursor = 'grabbing';
 
-                const rect = this.svg.getBoundingClientRect();
+                const rect = svg.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left - rect.width / 2;
                 const mouseY = e.clientY - rect.top - rect.height / 2;
 
@@ -119,9 +188,9 @@ export const InteractionMixin = (Base) =>
             // sign) and feed a decaying-velocity model so the wheel has weight and
             // does not flicker on the tiny sign-alternating deltas a slow trackpad
             // emits. { passive: false } because we call preventDefault().
-            this.svg.addEventListener(
+            svg.addEventListener(
                 'wheel',
-                (e) => {
+                (e: WheelEvent) => {
                     if (this.isAnimating) return;
                     e.preventDefault();
                     this.applyScrollInput(e.deltaY);
@@ -132,11 +201,12 @@ export const InteractionMixin = (Base) =>
             // Click events for emotions. Blocked during a drag AND during an animation
             // (e.g. the reset unwind) — a mid-reset click would otherwise select a wedge
             // the in-flight reset won't clean up, leaving it stuck-selected.
-            this.svg.addEventListener('click', (e) => {
+            svg.addEventListener('click', (e: MouseEvent) => {
                 if (this.isDragging || this.isAnimating) return;
 
-                const emotion = e.target.getAttribute('data-emotion');
-                if (emotion && e.target.classList.contains('wedge')) {
+                const target = e.target as Element;
+                const emotion = target.getAttribute('data-emotion');
+                if (emotion && target.classList.contains('wedge')) {
                     this.handleWedgeClick(e);
                 }
             });
@@ -145,13 +215,13 @@ export const InteractionMixin = (Base) =>
             // focus between wedges (roving tabindex). Arrow handling is scoped to when a
             // wedge is focused and stops propagation so it does not also rotate the wheel
             // via the app's global arrow-key shortcut — mouse/scroll behavior is unchanged.
-            this.svg.addEventListener('keydown', (e) => {
-                const target = e.target;
+            svg.addEventListener('keydown', (e: KeyboardEvent) => {
+                const target = e.target as Element | null;
                 if (!target || !target.classList || !target.classList.contains('wedge')) return;
 
                 if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
                     e.preventDefault();
-                    this.handleWedgeClick({ target });
+                    this.handleWedgeClick({ target } as unknown as MouseEvent);
                     return;
                 }
 
@@ -174,11 +244,11 @@ export const InteractionMixin = (Base) =>
         // single <svg>, so re-binding per generate() would stack duplicate handlers — a
         // steadily worsening memory + CPU leak. Bound refs are stored so they can be
         // removed on teardown. Each handler no-ops until the wheel is generated (svg set).
-        setupGlobalListeners() {
+        setupGlobalListeners(): void {
             if (this._globalListenersBound) return;
             this._globalListenersBound = true;
 
-            this._onMouseMove = (e) => {
+            this._onMouseMove = (e: MouseEvent) => {
                 if (!this.isDragging || this.isAnimating || !this.svg) return;
 
                 const rect = this.svg.getBoundingClientRect();
@@ -208,17 +278,17 @@ export const InteractionMixin = (Base) =>
             // NO wedge is focused: the svg's own keydown (setupEventListeners) handles arrows
             // as wedge focus-navigation and stopPropagation()s them, so a focused wedge never
             // reaches document here. Map: Left/Up = ccw (-1), Right/Down = cw (+1).
-            const ARROW_DIR = {
+            const ARROW_DIR: Record<string, number> = {
                 ArrowLeft: -1,
                 ArrowUp: -1,
                 ArrowRight: 1,
                 ArrowDown: 1,
             };
-            this._onKeyDown = (e) => {
+            this._onKeyDown = (e: KeyboardEvent) => {
                 const dir = ARROW_DIR[e.key];
                 if (dir === undefined || !this.svg) return;
                 // Don't hijack arrows while typing in a field.
-                const tag = e.target && e.target.tagName;
+                const tag = e.target && (e.target as Element).tagName;
                 if (tag === 'INPUT' || tag === 'TEXTAREA') return;
                 e.preventDefault();
                 // OS key-repeat presses are no-ops: the held-accel loop sustains the spin,
@@ -226,7 +296,7 @@ export const InteractionMixin = (Base) =>
                 if (e.repeat) return;
                 this.startHeldRotation(dir);
             };
-            this._onKeyUp = (e) => {
+            this._onKeyUp = (e: KeyboardEvent) => {
                 const dir = ARROW_DIR[e.key];
                 if (dir === undefined) return;
                 this.stopHeldRotation(dir);
@@ -249,7 +319,7 @@ export const InteractionMixin = (Base) =>
         // Focusable wedges in STABLE generation order (data-nav-index), not live DOM
         // order — a selected wedge's <path> is moved to the top layer, which would
         // otherwise reshuffle arrow-key navigation after any selection.
-        getFocusableWedges() {
+        getFocusableWedges(): Element[] {
             return Array.from(this.container.querySelectorAll('.wedge:not(.shadow-wedge)')).sort(
                 (a, b) =>
                     Number(a.getAttribute('data-nav-index')) -
@@ -258,19 +328,19 @@ export const InteractionMixin = (Base) =>
         }
 
         // Make exactly one wedge part of the tab order so the wheel is a single tab-stop.
-        initRovingTabindex() {
+        initRovingTabindex(): void {
             const wedges = this.getFocusableWedges();
             wedges.forEach((w) => w.setAttribute('tabindex', '-1'));
             if (wedges.length) wedges[0].setAttribute('tabindex', '0');
         }
 
         // Move keyboard focus among wedges, updating the roving tabindex.
-        moveWedgeFocus(current, key) {
+        moveWedgeFocus(current: Element, key: string): void {
             const wedges = this.getFocusableWedges();
             const i = wedges.indexOf(current);
             if (i === -1) return;
 
-            let next;
+            let next: number;
             if (key === 'Home') next = 0;
             else if (key === 'End') next = wedges.length - 1;
             else {
@@ -279,7 +349,7 @@ export const InteractionMixin = (Base) =>
             }
 
             current.setAttribute('tabindex', '-1');
-            const target = wedges[next];
+            const target = wedges[next] as SVGElement | HTMLElement;
             target.setAttribute('tabindex', '0');
             target.focus();
         }
@@ -287,8 +357,8 @@ export const InteractionMixin = (Base) =>
         // DPI-aware resize handler. Uses the SAME computeAvailableWheelSize() as
         // generate(), so a resize computes an identical size to the initial render for
         // the same viewport/panel state (no more 150-vs-200 floor divergence).
-        handleResize() {
-            clearTimeout(this.resizeTimeout);
+        handleResize(): void {
+            clearTimeout(this.resizeTimeout as ReturnType<typeof setTimeout>);
             this.resizeTimeout = setTimeout(() => {
                 const oldSize = this.containerSize;
                 const newCssSize = this.computeAvailableWheelSize();
@@ -303,14 +373,14 @@ export const InteractionMixin = (Base) =>
         // Unconditional re-render (no size-delta guard). Used after a fullscreen
         // transition to rebuild the SVG and refresh any stale GPU layer, even when
         // the window size is unchanged. Preserves rotation + selection state.
-        forceRerender() {
+        forceRerender(): void {
             this.regenerateWheel();
         }
 
-        handleWedgeClick(event) {
-            const wedge = event.target;
-            const emotion = wedge.getAttribute('data-emotion');
-            const level = wedge.getAttribute('data-level');
+        handleWedgeClick(event: MouseEvent): void {
+            const wedge = event.target as SVGElement;
+            const emotion = wedge.getAttribute('data-emotion') as string;
+            const level = wedge.getAttribute('data-level') as Level;
             const parent = wedge.getAttribute('data-parent');
 
             // CRITICAL FIX: Use the actual wedge ID from the element, don't recreate it!
@@ -331,19 +401,19 @@ export const InteractionMixin = (Base) =>
             }
 
             // Dispatch custom event for app to handle
-            const customEvent = new CustomEvent('emotionSelected', {
+            const customEvent = new CustomEvent<EmotionSelectedDetail>('emotionSelected', {
                 detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId },
             });
             document.dispatchEvent(customEvent);
         }
 
         // Public method to toggle wedge selection (called from panel tile X buttons)
-        toggleWedgeSelection(wedgeId) {
+        toggleWedgeSelection(wedgeId: string): void {
             const wedge = this.findWedgeByStoredId(wedgeId);
 
             if (wedge) {
-                const emotion = wedge.getAttribute('data-emotion');
-                const level = wedge.getAttribute('data-level');
+                const emotion = wedge.getAttribute('data-emotion') as string;
+                const level = wedge.getAttribute('data-level') as Level;
 
                 const isCurrentlySelected = this.selectedWedges.has(wedgeId);
 
@@ -355,16 +425,16 @@ export const InteractionMixin = (Base) =>
                 }
 
                 // Dispatch custom event for app to handle
-                const customEvent = new CustomEvent('emotionSelected', {
+                const customEvent = new CustomEvent<EmotionSelectedDetail>('emotionSelected', {
                     detail: { emotion, level, selected: this.selectedWedges.has(wedgeId), wedgeId },
                 });
                 document.dispatchEvent(customEvent);
             }
         }
 
-        selectWedge(wedgeId, wedge, emotion) {
+        selectWedge(wedgeId: string, wedge: SVGElement, emotion: string): void {
             // Centralized wedge selection logic
-            const level = wedge.getAttribute('data-level');
+            const level = wedge.getAttribute('data-level') as Level;
             const parent = wedge.getAttribute('data-parent');
 
             this.selectedWedges.add(wedgeId);
@@ -383,9 +453,9 @@ export const InteractionMixin = (Base) =>
             this.createShadowCopy(wedge, wedgeId);
         }
 
-        deselectWedge(wedgeId, wedge, emotion) {
+        deselectWedge(wedgeId: string, wedge: SVGElement, emotion: string): void {
             // Centralized wedge deselection logic
-            const level = wedge.getAttribute('data-level');
+            const level = wedge.getAttribute('data-level') as Level;
             const parent = wedge.getAttribute('data-parent');
 
             this.selectedWedges.delete(wedgeId);
@@ -409,12 +479,12 @@ export const InteractionMixin = (Base) =>
         }
 
         // Toggle the emphasis class on a wedge's paired label (weight bump on select).
-        setLabelSelected(wedgeId, on) {
+        setLabelSelected(wedgeId: string, on: boolean): void {
             const label = this.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
             if (label) label.classList.toggle('label-selected', on);
         }
 
-        updateRotation() {
+        updateRotation(): void {
             this.baseGroup.style.transform = `rotate(${this.currentRotation}deg)`;
             this.divisionLinesGroup.style.transform = `rotate(${this.currentRotation}deg)`;
             this.topGroup.style.transform = `rotate(${this.currentRotation}deg)`;
@@ -430,7 +500,7 @@ export const InteractionMixin = (Base) =>
         // KEY_IMPULSE is the one-shot velocity a single arrow tap adds (a tap glides
         // ~IMPULSE/(1-FRICTION) degrees); KEY_ACCEL is the per-frame velocity added while an
         // arrow is HELD, ramping up to MAX_VELOCITY for a smooth continuous spin.
-        static ScrollPhysics = {
+        static ScrollPhysics: ScrollPhysics = {
             SENSITIVITY: 0.025,
             FRICTION: 0.9,
             MAX_VELOCITY: 2,
@@ -442,8 +512,9 @@ export const InteractionMixin = (Base) =>
         // Feed one wheel event into the momentum model. Adds magnitude-scaled velocity
         // (so tiny jittery deltas add tiny, sign-correct nudges instead of a full ±5°
         // swing) and kicks the decay loop.
-        applyScrollInput(deltaY) {
-            const P = this.constructor.ScrollPhysics;
+        applyScrollInput(deltaY: number): void {
+            const P = (this.constructor as unknown as { ScrollPhysics: ScrollPhysics })
+                .ScrollPhysics;
             this.scrollVelocity += deltaY * P.SENSITIVITY;
             // Clamp so a hard flick can't spin absurdly fast.
             this.scrollVelocity = Math.max(
@@ -453,9 +524,10 @@ export const InteractionMixin = (Base) =>
             if (this.momentumRafId === null) this.startMomentum();
         }
 
-        startMomentum() {
-            const P = this.constructor.ScrollPhysics;
-            const step = () => {
+        startMomentum(): void {
+            const P = (this.constructor as unknown as { ScrollPhysics: ScrollPhysics })
+                .ScrollPhysics;
+            const step = (): void => {
                 // A programmatic animation (e.g. reset) takes over: drop momentum and any
                 // held-key spin so a second rAF can't fight the reset for currentRotation.
                 if (this.isAnimating) {
@@ -494,10 +566,11 @@ export const InteractionMixin = (Base) =>
         // Begin (or reverse) a held-arrow spin. dir: +1 clockwise, -1 counter-clockwise.
         // A single tap lands one KEY_IMPULSE and the friction glide carries it ~15°; holding
         // the key lets startMomentum()'s per-frame KEY_ACCEL take over for a continuous spin.
-        startHeldRotation(dir) {
+        startHeldRotation(dir: number): void {
             // A programmatic animation (reset) owns the wheel — ignore, matching scroll/drag.
             if (this.isAnimating) return;
-            const P = this.constructor.ScrollPhysics;
+            const P = (this.constructor as unknown as { ScrollPhysics: ScrollPhysics })
+                .ScrollPhysics;
             this.heldRotationDir = dir;
             this.scrollVelocity += dir * P.KEY_IMPULSE;
             this.scrollVelocity = Math.max(
@@ -509,11 +582,11 @@ export const InteractionMixin = (Base) =>
 
         // Release a held-arrow spin. Clears the held direction (if it still matches) so
         // friction decays the wheel to rest; the loop settles on its own.
-        stopHeldRotation(dir) {
+        stopHeldRotation(dir: number): void {
             if (this.heldRotationDir === dir) this.heldRotationDir = 0;
         }
 
-        stopMomentum() {
+        stopMomentum(): void {
             if (this.momentumRafId !== null) {
                 cancelAnimationFrame(this.momentumRafId);
                 this.momentumRafId = null;
@@ -522,7 +595,7 @@ export const InteractionMixin = (Base) =>
             this.heldRotationDir = 0;
         }
 
-        reset() {
+        reset(): void {
             // Clear all active animations first
             this.clearAllAnimations();
             this.stopMomentum();
@@ -574,7 +647,7 @@ export const InteractionMixin = (Base) =>
 
         // Clear every selected wedge visually WITHOUT touching rotation. Returns the ids
         // that were cleared (newest-first order is the app's concern, not ours).
-        clearSelections() {
+        clearSelections(): string[] {
             const cleared = [...this.selectedWedges];
             cleared.forEach((wedgeId) => this.clearSelection(wedgeId));
             // Remove any residual shadow copies.
@@ -584,12 +657,12 @@ export const InteractionMixin = (Base) =>
 
         // Clear a single wedge's selection visuals and move it back to the base layer.
         // No-op if the id is not currently selected.
-        clearSelection(wedgeId) {
+        clearSelection(wedgeId: string): void {
             if (!this.selectedWedges.has(wedgeId)) return;
             this.selectedWedges.delete(wedgeId);
             const wedge = this.container.querySelector(
                 `.wedge[data-wedge-id="${wedgeId}"]:not(.shadow-wedge)`
-            );
+            ) as SVGElement | null;
             if (wedge) {
                 wedge.classList.remove('selected');
                 wedge.setAttribute('aria-pressed', 'false');
@@ -601,7 +674,7 @@ export const InteractionMixin = (Base) =>
 
         // Animate rotation back to 0 over `duration` ms (ease-out cubic), resolving when
         // done. Mirrors the app's previous hand-rolled unwind so the feel is unchanged.
-        animateResetRotation(duration = 1000) {
+        animateResetRotation(duration = 1000): Promise<void> {
             return new Promise((resolve) => {
                 const startRotation = this.currentRotation;
                 const delta = this.getShortestRotationPath(startRotation, 0);
@@ -612,7 +685,7 @@ export const InteractionMixin = (Base) =>
                 }
 
                 const startTime = performance.now();
-                const frame = (now) => {
+                const frame = (now: number): void => {
                     const progress = Math.min((now - startTime) / duration, 1);
                     const easeOut = 1 - Math.pow(1 - progress, 3);
                     this.currentRotation = startRotation + delta * easeOut;
@@ -630,7 +703,7 @@ export const InteractionMixin = (Base) =>
         }
 
         // Persist the "cleared" state for the current mode after a reset completes.
-        commitResetState() {
+        commitResetState(): void {
             this.currentRotation = 0;
             this.updateRotation();
             const currentState = this.isSimplifiedMode

@@ -2,7 +2,7 @@
 // Architecture: feelings-wheel-engine.js handles wheel rendering/interaction, app.js handles panel/coordination
 import { FeelingsWheelGenerator } from './feelings-wheel-engine.js';
 import { FEELINGS_DATA } from './feelings-data.js';
-import { createCard } from './src/ui/emotion-card.js';
+import { renderFeelingsTree } from './src/ui/feelings-tree.js';
 
 export class FeelingsWheelApp {
     constructor() {
@@ -224,8 +224,8 @@ export class FeelingsWheelApp {
     // ===== INFORMATION PANEL FUNCTIONALITY =====
 
     setupInformationPanel() {
-        // Initialize emotion tiles tracking
-        this.emotionTiles = new Map(); // Maps wedgeId -> EmotionCard handle (insertion order)
+        // The selected-feelings tree is rebuilt wholesale from the wheel's selectedWedges
+        // (the source of truth) on every change — no per-tile handle map to keep in sync.
 
         // Setup panel minimization (desktop)
         const minimizeTab = document.getElementById('panel-minimize-tab');
@@ -345,25 +345,24 @@ export class FeelingsWheelApp {
     }
 
     handleEmotionSelection(detail) {
-        const { emotion, level, selected, wedgeId } = detail;
+        const { emotion, selected } = detail;
 
         // Selecting an emotion always brings the Explore view forward.
         if (this.currentView && this.currentView !== 'explore') {
             this.showView('explore');
         }
 
-        if (selected) {
-            // Add new emotion tile
-            this.addEmotionTile(wedgeId, emotion, level);
-            this.announce(`Selected ${emotion}.`);
-        } else {
-            // Remove emotion tile
-            this.removeEmotionTile(wedgeId);
-            this.announce(`Removed ${emotion}.`);
-        }
+        // Rebuild the whole tree from the wheel's current selection set.
+        this.renderFeelings();
+        this.announce(selected ? `Selected ${emotion}.` : `Removed ${emotion}.`);
 
         // Update instructions visibility
         this.updateInstructionsVisibility();
+    }
+
+    // Number of currently-selected wedges (the tree's source of truth).
+    selectionCount() {
+        return this.wheelGenerator ? this.wheelGenerator.selectedWedges.size : 0;
     }
 
     // Announce a message to screen readers via the polite live region.
@@ -372,34 +371,28 @@ export class FeelingsWheelApp {
         if (region) region.textContent = message;
     }
 
-    addEmotionTile(wedgeId, emotion, level) {
-        // Replace any existing card for this wedge (safety).
-        if (this.emotionTiles.has(wedgeId)) {
-            this.removeEmotionTile(wedgeId);
-        }
+    // Rebuild the selected-feelings tree from the wheel's selectedWedges. Each id is
+    // parsed into { level, emotion, parent, coreFamily } so the tree can group by branch
+    // and place ancestors as context. Called on every selection change and mode switch.
+    renderFeelings() {
+        const container = document.getElementById('emotion-tiles');
+        if (!container) return;
 
-        // Build a guarded EmotionCard. Every card KEEPS its definition — no accordion.
-        const { element, handle } = createCard({
-            wedgeId,
-            emotion,
-            level,
-            color: this.getEmotionColor(wedgeId),
-            definition: this.getEmotionDefinition(emotion, this.isSimplifiedActive()),
+        const isSimplified = this.isSimplifiedActive();
+        const selections = [...this.wheelGenerator.selectedWedges].map((wedgeId) => {
+            const meta = this.wheelGenerator.parseUniqueWedgeId(wedgeId);
+            return { wedgeId, ...meta };
+        });
+
+        const { element } = renderFeelingsTree({
+            selections,
+            familyOrder: FEELINGS_DATA.core.map((c) => c.name),
+            getDefinition: (emotion) => this.getEmotionDefinition(emotion, isSimplified),
+            getFamilyColor: (family) => FEELINGS_DATA.getCoreEmotionColor(family),
             onRemove: (id) => this.wheelGenerator.toggleWedgeSelection(id),
         });
 
-        this.emotionTiles.set(wedgeId, handle);
-
-        const tilesContainer = document.getElementById('emotion-tiles');
-        tilesContainer.insertBefore(element, tilesContainer.firstChild);
-    }
-
-    removeEmotionTile(wedgeId) {
-        const handle = this.emotionTiles.get(wedgeId);
-        if (handle) {
-            handle.remove();
-            this.emotionTiles.delete(wedgeId);
-        }
+        container.replaceChildren(element);
     }
 
     isSimplifiedActive() {
@@ -407,31 +400,25 @@ export class FeelingsWheelApp {
         return !!(toggle && toggle.checked);
     }
 
+    // Look up a definition; returns '' when none exists so the tree omits the line
+    // entirely (no filler). The corpus covers all 130 words, but empties are honored.
     getEmotionDefinition(emotion, isSimplified) {
-        // Get emotion-specific definition from our comprehensive database
         const emotionData = FEELINGS_DATA.definitions[emotion];
-
-        if (emotionData) {
-            return isSimplified ? emotionData.simplified : emotionData.standard;
-        }
-
-        // Fallback for missing definitions
-        return isSimplified
-            ? `${emotion} is a feeling that people experience.`
-            : `${emotion} is an emotion that represents a specific aspect of human emotional experience.`;
+        if (!emotionData) return '';
+        return (isSimplified ? emotionData.simplified : emotionData.standard) || '';
     }
 
+    // Clear the tree from the DOM and (optionally) restore the empty-state instructions.
     clearAllTiles() {
-        this.emotionTiles.forEach((handle) => handle.remove());
-        this.emotionTiles.clear();
+        const container = document.getElementById('emotion-tiles');
+        if (container) container.replaceChildren();
         this.showInstructions();
     }
 
     clearAllTilesWithoutInstructions() {
-        // Clear tiles without automatically showing instructions (for mode switching)
-        this.emotionTiles.forEach((handle) => handle.remove());
-        this.emotionTiles.clear();
-        // Don't call showInstructions() - let caller manage instruction visibility
+        // Clear without auto-showing instructions (mode switch manages that itself).
+        const container = document.getElementById('emotion-tiles');
+        if (container) container.replaceChildren();
     }
 
     // ===== ANIMATED RESET FUNCTIONALITY =====
@@ -443,7 +430,7 @@ export class FeelingsWheelApp {
         // currentRotation is a float accumulated from drag/momentum, so it's rarely
         // exactly 0 after any interaction — use an epsilon so the instant path isn't
         // effectively dead (a strict === 0 forced the full 1s animation every time).
-        if (this.emotionTiles.size === 0 && Math.abs(this.wheelGenerator.currentRotation) < 0.5) {
+        if (this.selectionCount() === 0 && Math.abs(this.wheelGenerator.currentRotation) < 0.5) {
             this.wheelGenerator.reset();
             this.clearAllTiles();
             return;
@@ -463,43 +450,20 @@ export class FeelingsWheelApp {
     }
 
     animateUnwindTiles() {
-        // Cards in current order (newest first). Map values are EmotionCard handles.
-        const handles = Array.from(this.emotionTiles.values());
-        if (handles.length === 0) {
-            // No cards to animate, but still animate wheel rotation.
-            this.wheelGenerator.clearSelections();
-            this.animateUnwindRotation();
-            return;
+        // Fade the whole tree out as one calm surface (respecting reduced-motion via CSS),
+        // clear it after the fade, and unwind the wheel rotation concurrently.
+        const container = document.getElementById('emotion-tiles');
+        if (container) {
+            container.classList.add('is-clearing');
+            const FADE = 260;
+            setTimeout(() => {
+                this.clearAllTiles();
+                container.classList.remove('is-clearing');
+            }, FADE);
         }
 
-        // Prevent a horizontal scrollbar while cards slide out.
-        const tilesContainer = document.getElementById('emotion-tiles');
-        tilesContainer.style.overflowX = 'hidden';
-
-        // Always ~1s total regardless of count.
-        const totalDuration = 1000;
-        const cardDuration = Math.max(150, (totalDuration * 0.6) / handles.length);
-        const staggerDelay = Math.max(50, (totalDuration * 0.4) / handles.length);
-
-        // Start the wheel unwind concurrently.
         this.wheelGenerator.clearSelections();
         this.animateUnwindRotation();
-
-        let i = 0;
-        const animateNext = () => {
-            if (i >= handles.length) {
-                this.clearAllTiles();
-                tilesContainer.style.overflowX = '';
-                return;
-            }
-            const handle = handles[i];
-            // Deselect in the wheel + slide the card out via its own guarded API.
-            this.wheelGenerator.clearSelection(handle.wedgeId);
-            handle.animateOut(cardDuration).then(() => this.emotionTiles.delete(handle.wedgeId));
-            i++;
-            setTimeout(animateNext, staggerDelay);
-        };
-        animateNext();
     }
 
     animateUnwindRotation() {
@@ -520,13 +484,6 @@ export class FeelingsWheelApp {
     showInstructions() {
         const instructionsSection = document.getElementById('panel-instructions');
         instructionsSection.hidden = false;
-    }
-
-    getEmotionColor(wedgeId) {
-        // Resolve the wedge's core family via the engine's structured registry,
-        // then map the family name to its accent color (no lightening for tiles).
-        const meta = this.wheelGenerator.parseUniqueWedgeId(wedgeId);
-        return FEELINGS_DATA.getCoreEmotionColor(meta.coreFamily);
     }
 
     updateArrowDirection() {
@@ -569,23 +526,14 @@ export class FeelingsWheelApp {
     // ===== PROPER STATE SYNCHRONIZATION =====
 
     recreateTilesFromWheelState() {
-        // Recreate tiles based on wheel engine's current selectedWedges state
-        this.wheelGenerator.selectedWedges.forEach((wedgeId) => {
-            // Find the actual wedge element to get emotion info
-            const wedge = document.querySelector(`[data-wedge-id="${wedgeId}"]`);
-            if (wedge) {
-                const emotion = wedge.getAttribute('data-emotion');
-                const level = wedge.getAttribute('data-level');
-
-                // Use the same tile creation flow as normal selection
-                this.addEmotionTile(wedgeId, emotion, level);
-            }
-        });
+        // The tree derives entirely from selectedWedges, so a rebuild reflects the engine's
+        // restored state after a mode switch.
+        this.renderFeelings();
     }
 
     updateInstructionsVisibility() {
-        // Show instructions only when no tiles exist
-        if (this.emotionTiles.size === 0) {
+        // Show instructions only when nothing is selected.
+        if (this.selectionCount() === 0) {
             this.showInstructions();
         } else {
             this.hideInstructions();

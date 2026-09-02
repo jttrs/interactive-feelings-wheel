@@ -192,14 +192,6 @@ export function renderFeelingsTree({
             const row = document.createElement('div');
             row.className = 'feeling-row';
 
-            // Core rows carry the family-color dot swatch.
-            if (node.level === 'core') {
-                const dot = document.createElement('span');
-                dot.className = 'feeling-dot';
-                dot.setAttribute('aria-hidden', 'true');
-                row.appendChild(dot);
-            }
-
             const name = document.createElement('span');
             name.className = 'feeling-name';
             name.textContent = node.emotion || 'Feeling';

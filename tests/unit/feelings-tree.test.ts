@@ -152,14 +152,14 @@ describe('renderFeelingsTree — DOM output', () => {
             e === 'Cheeky' ? 'Playfully bold and a little impudent.' : '',
     };
 
-    it('renders a family section tinted with the family color and a core dot', () => {
+    it('renders a family section tinted with the family color (stem)', () => {
         const { element } = renderFeelingsTree({
             selections: [sel('core', 'Happy', null, 'Happy')],
             ...opts,
         });
         const family = element.querySelector('.feeling-family') as HTMLElement;
         expect(family.style.getPropertyValue('--family-color')).toBe('#FFFF99');
-        expect(family.querySelector('.feeling-node--core .feeling-dot')).not.toBeNull();
+        expect(family.querySelector('.feeling-node--core .feeling-name')).not.toBeNull();
     });
 
     it('shows the definition ONLY on the terminal node', () => {

@@ -1,8 +1,12 @@
 // Easing functions + the 60fps rAF animation loop and rotation animation.
-export const Easing = {
+import type { Ctor, WheelInstance, WheelAnimation, AnimationOptions } from '../types.ts';
+
+type EasingFn = (t: number) => number;
+
+export const Easing: Record<'linear' | 'easeOut' | 'easeInOut' | 'bounce', EasingFn> = {
     linear: (t) => t,
     easeOut: (t) => 1 - Math.pow(1 - t, 3),
-    easeInOut: (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+    easeInOut: (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
     bounce: (t) => {
         const n1 = 7.5625;
         const d1 = 2.75;
@@ -15,21 +19,28 @@ export const Easing = {
         } else {
             return n1 * (t -= 2.625 / d1) * t + 0.984375;
         }
-    }
+    },
 };
 
-export const AnimationMixin = (Base) =>
+export const AnimationMixin = <T extends Ctor>(Base: T) =>
     class extends Base {
         static Easing = Easing;
 
-        /**
-         * Add a new animation to the system
-         * @param {Object} options - Animation configuration
-         * @returns {string} - Animation ID for tracking
-         */
-        addAnimation(options) {
+        // Shared instance state this mixin reads/writes (initialized by the engine ctor).
+        // `declare` = type-only, no runtime emit.
+        declare animations: WheelInstance['animations'];
+        declare animationId: WheelInstance['animationId'];
+        declare isAnimating: WheelInstance['isAnimating'];
+        declare animationCounter: WheelInstance['animationCounter'];
+        declare svg: WheelInstance['svg'];
+        declare currentRotation: WheelInstance['currentRotation'];
+        // Provided by the interaction mixin; called from onUpdate below.
+        declare updateRotation: () => void;
+
+        // Add a new animation to the system; returns its id for tracking.
+        addAnimation(options: AnimationOptions): string {
             const id = `anim_${++this.animationCounter}`;
-            const animation = {
+            const animation: WheelAnimation = {
                 id,
                 startTime: performance.now(),
                 duration: options.duration || 800,
@@ -38,7 +49,7 @@ export const AnimationMixin = (Base) =>
                 easing: options.easing || Easing.easeOut,
                 onUpdate: options.onUpdate || (() => {}),
                 onComplete: options.onComplete || (() => {}),
-                active: true
+                active: true,
             };
 
             this.animations.set(id, animation);
@@ -51,11 +62,8 @@ export const AnimationMixin = (Base) =>
             return id;
         }
 
-        /**
-         * Remove an animation from the system
-         * @param {string} id - Animation ID to remove
-         */
-        removeAnimation(id) {
+        // Remove an animation from the system by id.
+        removeAnimation(id: string): void {
             this.animations.delete(id);
 
             // Stop animation loop if no active animations
@@ -64,10 +72,8 @@ export const AnimationMixin = (Base) =>
             }
         }
 
-        /**
-         * Start the 60fps animation loop
-         */
-        startAnimationLoop() {
+        // Start the 60fps animation loop.
+        startAnimationLoop(): void {
             if (this.isAnimating) return;
 
             this.isAnimating = true;
@@ -77,7 +83,7 @@ export const AnimationMixin = (Base) =>
                 this.svg.classList.add('animating');
             }
 
-            const animate = (currentTime) => {
+            const animate = (currentTime: number): void => {
                 if (!this.isAnimating) return;
 
                 let hasActiveAnimations = false;
@@ -91,12 +97,14 @@ export const AnimationMixin = (Base) =>
                     const easedProgress = animation.easing(progress);
 
                     // Calculate current value based on eased progress
-                    let currentValue;
+                    let currentValue: number | number[];
                     if (typeof animation.from === 'number' && typeof animation.to === 'number') {
-                        currentValue = animation.from + (animation.to - animation.from) * easedProgress;
+                        currentValue =
+                            animation.from + (animation.to - animation.from) * easedProgress;
                     } else if (Array.isArray(animation.from) && Array.isArray(animation.to)) {
-                        currentValue = animation.from.map((fromVal, index) =>
-                            fromVal + (animation.to[index] - fromVal) * easedProgress
+                        const to = animation.to;
+                        currentValue = animation.from.map(
+                            (fromVal, index) => fromVal + (to[index] - fromVal) * easedProgress
                         );
                     } else {
                         currentValue = easedProgress;
@@ -126,10 +134,8 @@ export const AnimationMixin = (Base) =>
             this.animationId = requestAnimationFrame(animate);
         }
 
-        /**
-         * Stop the animation loop
-         */
-        stopAnimationLoop() {
+        // Stop the animation loop.
+        stopAnimationLoop(): void {
             this.isAnimating = false;
             if (this.animationId) {
                 cancelAnimationFrame(this.animationId);
@@ -142,38 +148,26 @@ export const AnimationMixin = (Base) =>
             }
         }
 
-        /**
-         * Clear all animations
-         */
-        clearAllAnimations() {
+        // Clear all animations.
+        clearAllAnimations(): void {
             this.animations.clear();
             this.stopAnimationLoop();
         }
 
-        /**
-         * Calculate the shortest rotation path between two angles
-         * @param {number} from - Starting angle in degrees
-         * @param {number} to - Target angle in degrees
-         * @returns {number} - Shortest delta angle (-180 to +180)
-         */
-        getShortestRotationPath(from, to) {
+        // Calculate the shortest rotation path between two angles (-180 to +180).
+        getShortestRotationPath(from: number, to: number): number {
             let delta = to - from;
-
-            // Normalize to -180 to +180 range
             while (delta > 180) delta -= 360;
             while (delta < -180) delta += 360;
-
             return delta;
         }
 
-        /**
-         * Animate wheel rotation to a target angle
-         * @param {number} targetRotation - Target rotation in degrees
-         * @param {number} duration - Animation duration in milliseconds
-         * @param {Function} easing - Easing function
-         * @returns {Promise} - Resolves when animation completes
-         */
-        animateRotation(targetRotation, duration = 800, easing = Easing.easeOut) {
+        // Animate wheel rotation to a target angle; resolves when the animation completes.
+        animateRotation(
+            targetRotation: number,
+            duration = 800,
+            easing: EasingFn = Easing.easeOut
+        ): Promise<void> {
             return new Promise((resolve) => {
                 // Calculate shortest path
                 const startRotation = this.currentRotation;
@@ -186,14 +180,14 @@ export const AnimationMixin = (Base) =>
                     to: endRotation,
                     easing,
                     onUpdate: (rotation) => {
-                        this.currentRotation = rotation;
+                        this.currentRotation = rotation as number;
                         this.updateRotation();
                     },
                     onComplete: () => {
                         this.currentRotation = targetRotation;
                         this.updateRotation();
                         resolve();
-                    }
+                    },
                 });
             });
         }

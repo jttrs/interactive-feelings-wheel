@@ -1,15 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FeelingsWheelGenerator } from '../../feelings-wheel-engine.js';
-import { FEELINGS_DATA } from '../../feelings-data.js';
+import { FeelingsWheelGenerator } from '../../feelings-wheel-engine.ts';
+import { FEELINGS_DATA } from '../../feelings-data.ts';
 
 // Unit tests for the structured wedge-identity registry and rotation math.
 // These need no DOM: we construct the generator with a stub container and call
 // the pure id/registry methods directly.
 
+// Bare-container stub: these tests never touch the DOM, so a minimal object
+// standing in for Element is enough for the constructor to run.
+const STUB_CONTAINER = { innerHTML: '' } as unknown as Element;
+
 describe('wedge identity registry', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
     beforeEach(() => {
-        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
     });
 
     it('registers and round-trips a core wedge', () => {
@@ -69,7 +73,7 @@ describe('wedge identity registry', () => {
 describe('color resolution', () => {
     it('maps a family name to its core accent color', () => {
         const angry = FEELINGS_DATA.core.find((c) => c.name === 'Angry');
-        expect(FEELINGS_DATA.getCoreEmotionColor('Angry')).toBe(angry.color);
+        expect(FEELINGS_DATA.getCoreEmotionColor('Angry')).toBe(angry!.color);
     });
 
     it('falls back to a default for an unknown family', () => {
@@ -78,9 +82,9 @@ describe('color resolution', () => {
 });
 
 describe('rotation math', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
     beforeEach(() => {
-        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
     });
 
     it('takes the shortest path across the 0/360 boundary', () => {

@@ -1,15 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FeelingsWheelGenerator, FEELINGS_DATA } from '../helpers/wheel.js';
+import { FeelingsWheelGenerator, FEELINGS_DATA } from '../helpers/wheel.ts';
 
 // Behavior-pinning tests for the pure geometry helpers on the wheel engine.
 // These need no DOM: we construct the generator with a stub container and
 // call the geometry/rotation methods directly with golden values captured
 // from the running code.
 
+// Bare-container stub: these tests never touch the DOM, so a minimal object
+// standing in for Element is enough for the constructor to run.
+const STUB_CONTAINER = { innerHTML: '' } as unknown as Element;
+
 describe('createWedgePath', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
     beforeEach(() => {
-        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
     });
 
     it('builds the exact path for a small (60deg) span', () => {
@@ -36,9 +40,9 @@ describe('createWedgePath', () => {
 });
 
 describe('positionText', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
     beforeEach(() => {
-        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
     });
 
     it('places text at the midpoint angle of the wedge span', () => {
@@ -51,9 +55,9 @@ describe('positionText', () => {
 });
 
 describe('calculateTextRotation', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
     beforeEach(() => {
-        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
     });
 
     // Text runs radially along baseAngle, but gets flipped +180 whenever the
@@ -102,9 +106,9 @@ describe('calculateTextRotation', () => {
 });
 
 describe('calculateCoreAngles', () => {
-    let gen;
+    let gen: FeelingsWheelGenerator;
     beforeEach(() => {
-        gen = new FeelingsWheelGenerator({ innerHTML: '' }, FEELINGS_DATA);
+        gen = new FeelingsWheelGenerator(STUB_CONTAINER, FEELINGS_DATA);
     });
 
     it('produces one entry per core emotion', () => {
@@ -120,18 +124,18 @@ describe('calculateCoreAngles', () => {
     it('centers Angry on 0 degrees', () => {
         const angry = gen.calculateCoreAngles().find((a) => a.name === 'Angry');
         expect(angry).toBeDefined();
-        expect(angry.start).toBeCloseTo(-35.122, 3);
-        expect(angry.size).toBeCloseTo(70.2439, 3);
-        expect(angry.start + angry.size / 2).toBeCloseTo(0, 6);
+        expect(angry!.start).toBeCloseTo(-35.122, 3);
+        expect(angry!.size).toBeCloseTo(70.2439, 3);
+        expect(angry!.start + angry!.size / 2).toBeCloseTo(0, 6);
     });
 
     it('sizes wedges proportionally to their secondary emotion counts', () => {
         const angles = gen.calculateCoreAngles();
         const angry = angles.find((a) => a.name === 'Angry'); // 8 secondaries
         const disgusted = angles.find((a) => a.name === 'Disgusted'); // 4 secondaries
-        expect(disgusted.size).toBeCloseTo(35.122, 3);
+        expect(disgusted!.size).toBeCloseTo(35.122, 3);
         // Angry has exactly twice as many secondaries as Disgusted, so its
         // wedge should be exactly twice as wide.
-        expect(angry.size).toBeCloseTo(disgusted.size * 2, 3);
+        expect(angry!.size).toBeCloseTo(disgusted!.size * 2, 3);
     });
 });

@@ -32,7 +32,9 @@ const server = http.createServer(async (req, res) => {
             return;
         }
         const body = await readFile(filePath);
-        res.writeHead(200, { 'Content-Type': MIME[extname(filePath)] || 'application/octet-stream' });
+        res.writeHead(200, {
+            'Content-Type': MIME[extname(filePath)] || 'application/octet-stream',
+        });
         res.end(body);
     } catch {
         res.writeHead(404);
@@ -41,6 +43,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-    // eslint-disable-next-line no-console
     console.log(`static-server serving ${ROOT} at http://localhost:${PORT}`);
 });

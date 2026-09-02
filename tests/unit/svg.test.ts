@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { svgEl, line, circle, wedgePath, text, readWheelTokens } from '../../src/wheel/svg.js';
-import { createTestWheel } from '../helpers/wheel.js';
+import { svgEl, line, circle, wedgePath, text, readWheelTokens } from '../../src/wheel/svg.ts';
+import { createTestWheel } from '../helpers/wheel.ts';
 
 // The guarded SVG primitive factory: valid inputs produce correct elements;
 // invalid numeric inputs are rejected (null) instead of injecting broken nodes.
@@ -27,7 +27,7 @@ describe('line', () => {
             width: 2,
             dash: '4 4',
             className: 'd',
-        });
+        })!;
         expect(el.tagName.toLowerCase()).toBe('line');
         expect(el.getAttribute('x2')).toBe('10');
         expect(el.getAttribute('stroke')).toBe('#123');
@@ -51,7 +51,7 @@ describe('circle', () => {
             stroke: '#333',
             width: 1,
             className: 'wheel-ring',
-        });
+        })!;
         expect(el.tagName.toLowerCase()).toBe('circle');
         expect(el.getAttribute('r')).toBe('20');
         expect(el.getAttribute('fill')).toBe('none');
@@ -72,7 +72,7 @@ describe('wedgePath', () => {
             fill: '#abc',
             className: 'wedge core-wedge',
             dataset: { emotion: 'Angry', level: 'core', 'wedge-id': 'core-Angry' },
-        });
+        })!;
         expect(el.tagName.toLowerCase()).toBe('path');
         expect(el.getAttribute('fill')).toBe('#abc');
         expect(el.hasAttribute('stroke')).toBe(false);
@@ -87,7 +87,13 @@ describe('wedgePath', () => {
 
 describe('text', () => {
     it('builds a centered label with font size and dataset', () => {
-        const el = text({ x: 5, y: 6, content: 'Happy', fontSize: 12, dataset: { level: 'core' } });
+        const el = text({
+            x: 5,
+            y: 6,
+            content: 'Happy',
+            fontSize: 12,
+            dataset: { level: 'core' },
+        })!;
         expect(el.getAttribute('font-size')).toBe('12px');
         expect(el.getAttribute('text-anchor')).toBe('middle');
         expect(el.textContent).toBe('Happy');
@@ -131,7 +137,7 @@ describe('ring circles (separator layer owns the arcs)', () => {
         );
         expect(stroked).toHaveLength(0);
         // Rings are stroke-only.
-        const ring = container.querySelector('.wheel-ring');
+        const ring = container.querySelector('.wheel-ring')!;
         expect(ring.getAttribute('fill')).toBe('none');
         expect(ring.getAttribute('stroke')).toBeTruthy();
     });

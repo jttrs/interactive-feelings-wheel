@@ -23,64 +23,64 @@ test('renders the full three-ring wheel', async ({ page }) => {
     await expect(core).toHaveCount(7);
 });
 
-test('clicking a core wedge selects it and creates a tile', async ({ page }) => {
+test('clicking a core wedge selects it and grows its family in the tree', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(page.locator('.wedge.selected')).toHaveCount(1);
-    const tile = page.locator('.emotion-card');
-    await expect(tile).toHaveCount(1);
-    await expect(tile.locator('.card-name')).toHaveText('Angry');
-    // definition loads from the data file, not a placeholder
-    await expect(tile.locator('.card-definition')).not.toHaveClass(/loading/);
-    await expect(tile.locator('.card-definition')).not.toHaveText('');
+    const node = page.locator('.feeling-node.is-selected');
+    await expect(node).toHaveCount(1);
+    await expect(node.locator('.feeling-name')).toHaveText('Angry');
+    // A lone core selection is terminal, so its definition shows (non-empty, from data).
+    await expect(node.locator('.feeling-def')).toHaveCount(1);
+    await expect(node.locator('.feeling-def')).not.toHaveText('');
 });
 
-test('deselecting via the tile remove button clears wedge and tile', async ({ page }) => {
+test('removing a node via its × clears the wedge and the tree entry', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
-    await expect(page.locator('.emotion-card')).toHaveCount(1);
-    await page.locator('.emotion-card .card-remove').click();
-    await expect(page.locator('.emotion-card')).toHaveCount(0);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(1);
+    await page.locator('.feeling-node.is-selected .feeling-remove').click();
+    await expect(page.locator('.feeling-node')).toHaveCount(0);
     await expect(page.locator('.wedge.selected')).toHaveCount(0);
 });
 
-test('multiple selections accumulate multiple tiles', async ({ page }) => {
+test('a selected branch nests core > secondary > tertiary under one family', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
     await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
     await expect(page.locator('.wedge.selected')).toHaveCount(3);
-    await expect(page.locator('.emotion-card')).toHaveCount(3);
+
+    // One Happy family section containing the nested path, all three selected.
+    await expect(page.locator('.feeling-family')).toHaveCount(1);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(3);
+    await expect(page.locator('.feeling-node--core .feeling-name')).toHaveText('Happy');
+    await expect(page.locator('.feeling-node--secondary .feeling-name')).toHaveText('Playful');
+    await expect(page.locator('.feeling-node--tertiary .feeling-name')).toHaveText('Cheeky');
 });
 
-test('every card keeps its own definition (no accordion)', async ({ page }) => {
+test('the definition appears ONLY on the deepest selected node of a branch', async ({ page }) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
+
+    // Exactly one definition in this branch — under the tertiary leaf (Cheeky).
+    await expect(page.locator('.feeling-def')).toHaveCount(1);
+    await expect(page.locator('.feeling-node--tertiary .feeling-def')).toHaveCount(1);
+    await expect(page.locator('.feeling-node--core .feeling-def')).toHaveCount(0);
+    await expect(page.locator('.feeling-node--secondary .feeling-def')).toHaveCount(0);
+});
+
+test('separate families each render their own stem in wheel order', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
 
-    const cards = page.locator('.emotion-card');
-    await expect(cards).toHaveCount(3);
-    // All three definitions are present AND visible — not just the newest.
-    for (let i = 0; i < 3; i++) {
-        const def = cards.nth(i).locator('.card-definition');
-        await expect(def).toBeVisible();
-        await expect(def).not.toHaveClass(/loading/);
-        await expect(def).not.toHaveText('');
-    }
-});
-
-test('a card collapses/expands independently without affecting others', async ({ page }) => {
-    await page.locator('.core-wedge[data-emotion="Happy"]').click();
-    await page.locator('.core-wedge[data-emotion="Angry"]').click();
-
-    // Collapse the first card; its definition hides, the other stays visible.
-    const first = page.locator('.emotion-card').first();
-    const second = page.locator('.emotion-card').nth(1);
-    await first.locator('.card-toggle').click();
-    await expect(first).toHaveClass(/is-collapsed/);
-    await expect(second).not.toHaveClass(/is-collapsed/);
-    await expect(second.locator('.card-definition')).toBeVisible();
-
-    // Expand it again.
-    await first.locator('.card-toggle').click();
-    await expect(first).not.toHaveClass(/is-collapsed/);
+    const families = page.locator('.feeling-family');
+    await expect(families).toHaveCount(3);
+    // Ordered by the wheel's core order (Angry, Sad, Happy) regardless of click order.
+    await expect(families.locator('.feeling-node--core .feeling-name')).toHaveText([
+        'Angry',
+        'Sad',
+        'Happy',
+    ]);
 });
 
 test('a fullscreen change re-renders the wheel and preserves selection', async ({ page }) => {
@@ -97,15 +97,15 @@ test('a fullscreen change re-renders the wheel and preserves selection', async (
     // Wheel fully rebuilt and the selection survived.
     await expect(page.locator('.wedge:not(.shadow-wedge)')).toHaveCount(130);
     await expect(page.locator('.wedge.selected')).toHaveCount(1);
-    await expect(page.locator('.emotion-card')).toHaveCount(1);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(1);
 });
 
-test('reset clears all selections and tiles', async ({ page }) => {
+test('reset clears all selections and the tree', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await page.locator('.core-wedge[data-emotion="Fearful"]').click();
-    await expect(page.locator('.emotion-card')).toHaveCount(2);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(2);
     await page.locator('#reset-btn-panel').click();
-    await expect(page.locator('.emotion-card')).toHaveCount(0);
+    await expect(page.locator('.feeling-node')).toHaveCount(0);
     await expect(page.locator('.wedge.selected')).toHaveCount(0);
 });
 
@@ -120,7 +120,7 @@ test('clicking a wedge mid-reset does not select it (isAnimating gate)', async (
     // Immediately click another wedge while the reset animation owns the wheel.
     await page.locator('.core-wedge[data-emotion="Angry"]').click({ force: true });
     // Let the reset finish.
-    await expect(page.locator('.emotion-card')).toHaveCount(0, { timeout: 3000 });
+    await expect(page.locator('.feeling-node')).toHaveCount(0, { timeout: 3000 });
     // Nothing is stuck-selected, and the wheel is usable again afterward.
     await expect(page.locator('.wedge.selected')).toHaveCount(0);
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
@@ -145,24 +145,24 @@ test('regenerating (mode switch) does not stack duplicate document listeners', a
     expect(added).toBe(0);
 });
 
-test('animated reset (rotated + multiple tiles) fully clears state', async ({ page }) => {
-    // Runs with real motion so the staggered tile-unwind + rotation animation path
-    // (engine.animateResetRotation + clearSelection) actually executes.
+test('animated reset (rotated + a full branch) fully clears state', async ({ page }) => {
+    // Runs with real motion so the tree fade-out + rotation unwind path
+    // (engine.animateResetRotation + clearSelections) actually executes.
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
     await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
     // Rotate so the unwind has real work to do.
     await page.mouse.wheel(0, 200);
-    await expect(page.locator('.emotion-card')).toHaveCount(3);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(3);
     await page.locator('#reset-btn-panel').click();
     // Wait out the ~1s animation.
-    await expect(page.locator('.emotion-card')).toHaveCount(0, { timeout: 3000 });
+    await expect(page.locator('.feeling-node')).toHaveCount(0, { timeout: 3000 });
     await expect(page.locator('.wedge.selected')).toHaveCount(0);
     // Wheel should be interactive again (isAnimating cleared) and instructions back.
     await expect(page.locator('#panel-instructions')).toBeVisible();
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
-    await expect(page.locator('.emotion-card')).toHaveCount(1);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(1);
 });
 
 test('simplified mode removes the tertiary ring', async ({ page }) => {
@@ -174,12 +174,12 @@ test('simplified mode removes the tertiary ring', async ({ page }) => {
     await expect(page.locator('.core-wedge')).toHaveCount(7);
 });
 
-test('instructions show when empty and hide when a tile exists', async ({ page }) => {
+test('instructions show when empty and hide when a feeling is selected', async ({ page }) => {
     const instructions = page.locator('#panel-instructions');
     await expect(instructions).toBeVisible();
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(instructions).toBeHidden();
-    await page.locator('.emotion-card .card-remove').click();
+    await page.locator('.feeling-node.is-selected .feeling-remove').click();
     await expect(instructions).toBeVisible();
 });
 

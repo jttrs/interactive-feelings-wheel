@@ -31,7 +31,7 @@ test('aria-pressed reflects selection state', async ({ page }) => {
     const happy = page.locator('.core-wedge[data-emotion="Happy"]');
     await happy.click();
     await expect(happy).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('.emotion-card .card-remove').click();
+    await page.locator('.feeling-node.is-selected .feeling-remove').click();
     await expect(happy).toHaveAttribute('aria-pressed', 'false');
 });
 
@@ -44,7 +44,7 @@ test('keyboard alone can focus, select, and the choice is announced', async ({ p
     await page.keyboard.press('Enter');
 
     await expect(page.locator('.wedge.selected')).toHaveCount(1);
-    await expect(page.locator('.emotion-card')).toHaveCount(1);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(1);
     await expect(page.locator('#sr-announcer')).toHaveText(`Selected ${focusedEmotion}.`);
 });
 
@@ -175,7 +175,7 @@ test('selecting an emotion returns from a secondary view to explore', async ({ p
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await expect(page.locator('#view-help')).toBeHidden();
     await expect(page.locator('#view-explore')).toBeVisible();
-    await expect(page.locator('.emotion-card')).toHaveCount(1);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(1);
 });
 
 test('collapsing the panel keeps the expand tab reachable on screen', async ({ page }) => {

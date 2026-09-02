@@ -56,16 +56,37 @@ test('a selected branch nests core > secondary > tertiary under one family', asy
     await expect(page.locator('.feeling-node--tertiary .feeling-name')).toHaveText('Cheeky');
 });
 
-test('the definition appears ONLY on the deepest selected node of a branch', async ({ page }) => {
+test('only the deepest selected node is expanded by default; others collapse', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
     await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
 
-    // Exactly one definition in this branch — under the tertiary leaf (Cheeky).
-    await expect(page.locator('.feeling-def')).toHaveCount(1);
-    await expect(page.locator('.feeling-node--tertiary .feeling-def')).toHaveCount(1);
-    await expect(page.locator('.feeling-node--core .feeling-def')).toHaveCount(0);
-    await expect(page.locator('.feeling-node--secondary .feeling-def')).toHaveCount(0);
+    // Every level has a definition (all 130 words are defined), but only the terminal
+    // (tertiary Cheeky) is expanded on load; the ancestors start collapsed.
+    await expect(page.locator('.feeling-node--tertiary')).not.toHaveClass(/is-collapsed/);
+    await expect(page.locator('.feeling-node--core')).toHaveClass(/is-collapsed/);
+    await expect(page.locator('.feeling-node--secondary')).toHaveClass(/is-collapsed/);
+    // The expanded definition is actually visible; a collapsed one is not.
+    await expect(page.locator('.feeling-node--tertiary .feeling-def')).toBeVisible();
+    await expect(page.locator('.feeling-node--core .feeling-def')).toBeHidden();
+});
+
+test('clicking a feeling word toggles its definition open and closed', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+
+    // Playful is the terminal here → expanded. Click the CORE word (Happy) to expand it.
+    const coreWord = page.locator('.feeling-node--core .feeling-name--toggle');
+    await expect(page.locator('.feeling-node--core')).toHaveClass(/is-collapsed/);
+    await coreWord.click();
+    await expect(page.locator('.feeling-node--core')).not.toHaveClass(/is-collapsed/);
+    await expect(page.locator('.feeling-node--core .feeling-def')).toBeVisible();
+    await expect(coreWord).toHaveAttribute('aria-expanded', 'true');
+    // Click again to collapse it back.
+    await coreWord.click();
+    await expect(page.locator('.feeling-node--core')).toHaveClass(/is-collapsed/);
+    await expect(coreWord).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('separate families each render their own stem in wheel order', async ({ page }) => {

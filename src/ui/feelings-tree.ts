@@ -192,12 +192,47 @@ export function renderFeelingsTree({
             const row = document.createElement('div');
             row.className = 'feeling-row';
 
-            const name = document.createElement('span');
-            name.className = 'feeling-name';
-            name.textContent = node.emotion || 'Feeling';
-            row.appendChild(name);
+            const def = (getDefinition(node.emotion) || '').trim();
+            const label = node.emotion || 'Feeling';
 
-            // Only selected nodes are removable; context ancestors are not interactive.
+            // Any feeling word that HAS a definition is a toggle button that expands or
+            // collapses its own definition. By default only the lowest level of each
+            // branch (terminal) starts expanded; every other definition starts collapsed.
+            if (def) {
+                const collapsed = !node.terminal;
+                if (collapsed) li.classList.add('is-collapsed');
+
+                const defId = `def-${node.level}-${(node.emotion || 'x').replace(/\s+/g, '-')}`;
+
+                const toggle = document.createElement('button');
+                toggle.type = 'button';
+                toggle.className = 'feeling-name feeling-name--toggle';
+                toggle.textContent = label;
+                toggle.setAttribute('aria-expanded', String(!collapsed));
+                toggle.setAttribute('aria-controls', defId);
+                toggle.addEventListener('click', () => {
+                    const nowCollapsed = li.classList.toggle('is-collapsed');
+                    toggle.setAttribute('aria-expanded', String(!nowCollapsed));
+                });
+                row.appendChild(toggle);
+
+                const p = document.createElement('p');
+                p.className = 'feeling-def';
+                p.id = defId;
+                p.textContent = def;
+                // Row first, then the definition it controls.
+                li.appendChild(row);
+                li.appendChild(p);
+            } else {
+                // No definition to reveal — a plain, non-interactive label.
+                const name = document.createElement('span');
+                name.className = 'feeling-name';
+                name.textContent = label;
+                row.appendChild(name);
+                li.appendChild(row);
+            }
+
+            // Only selected nodes are removable; context ancestors are not.
             if (node.selected && node.wedgeId) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -206,19 +241,6 @@ export function renderFeelingsTree({
                 btn.appendChild(removeIcon());
                 btn.addEventListener('click', () => onRemove(node.wedgeId!));
                 row.appendChild(btn);
-            }
-
-            li.appendChild(row);
-
-            // Definition ONLY on a terminal selection, and only if a real one exists.
-            if (node.terminal) {
-                const def = (getDefinition(node.emotion) || '').trim();
-                if (def) {
-                    const p = document.createElement('p');
-                    p.className = 'feeling-def';
-                    p.textContent = def;
-                    li.appendChild(p);
-                }
             }
 
             list.appendChild(li);

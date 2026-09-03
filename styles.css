@@ -685,7 +685,7 @@ body {
 .feelings-tree {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-3);
 }
 
 /* One core family = one tinted stem. */
@@ -723,10 +723,10 @@ body {
     margin: 0;
 }
 .feeling-node--secondary {
-    margin-top: var(--space-3);
+    margin-top: var(--space-1);
 }
 .feeling-node--tertiary {
-    margin-top: var(--space-1);
+    margin-top: 0;
 }
 /* The core sits first in each family — no leading gap. */
 .feeling-nodes > .feeling-node:first-child {
@@ -799,14 +799,21 @@ body {
     color: var(--color-ink-faint);
 }
 
-/* Remove control: quiet by default, surfaced on hover/focus within the row. */
+/* Remove control: quiet by default, surfaced on hover/focus within the row.
+   The visible box is line-height-sized (1.4em) so it never taller than the feeling
+   word — otherwise a bigger button stretches the centered flex row and leaves dead
+   space below the name. Negative vertical margins keep the actual tap area generous
+   (touch-target-min) without letting the button dictate row height. */
 .feeling-remove {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: max(28px, calc(var(--touch-target-min) - 8px));
-    height: max(28px, calc(var(--touch-target-min) - 8px));
+    box-sizing: content-box;
+    width: 1.4em;
+    height: 1.4em;
+    padding: calc((var(--touch-target-min) - 1.4em) / 2);
+    margin: calc((var(--touch-target-min) - 1.4em) / -2) 0;
     background: transparent;
     border: none;
     border-radius: var(--radius-sm);
@@ -847,9 +854,9 @@ body {
    Collapse animates via max-height/opacity; the expanded ceiling is generous enough
    for the longest definitions. */
 .feeling-def {
-    margin: var(--space-1) 0 0;
+    margin: 0;
     font-size: 0.85rem;
-    line-height: 1.45;
+    line-height: 1.25;
     color: var(--color-ink-muted);
     max-width: 42ch;
     max-height: 16rem;

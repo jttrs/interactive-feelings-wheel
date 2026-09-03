@@ -34,10 +34,15 @@ test('clicking a core wedge selects it and grows its family in the tree', async 
     await expect(node.locator('.feeling-def')).not.toHaveText('');
 });
 
-test('removing a node via its × clears the wedge and the tree entry', async ({ page }) => {
+test('clicking a selected wedge again clears it from the tree (wheel is the only control)', async ({
+    page,
+}) => {
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
     await expect(page.locator('.feeling-node.is-selected')).toHaveCount(1);
-    await page.locator('.feeling-node.is-selected .feeling-remove').click();
+    // The sidebar is informational only — there is no remove control in it.
+    await expect(page.locator('.feeling-remove')).toHaveCount(0);
+    // Deselect by clicking the wedge again on the wheel.
+    await page.locator('.core-wedge[data-emotion="Sad"]').click();
     await expect(page.locator('.feeling-node')).toHaveCount(0);
     await expect(page.locator('.wedge.selected')).toHaveCount(0);
 });
@@ -203,7 +208,8 @@ test('instructions show when empty and hide when a feeling is selected', async (
     await expect(instructions).toBeVisible();
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(instructions).toBeHidden();
-    await page.locator('.feeling-node.is-selected .feeling-remove').click();
+    // Deselect on the wheel (sidebar has no control); instructions return.
+    await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(instructions).toBeVisible();
 });
 
@@ -272,4 +278,110 @@ test('arrows move wedge focus (not rotation) when a wedge is focused', async ({ 
     expect(second).not.toBe(first); // focus moved
     expect(endRotation).toBe(startRotation); // wheel did not spin
     await expect(page.locator('.wedge.selected')).toHaveCount(0); // and nothing selected
+});
+
+// ===== Feelings-tree typography guard (real stylesheet applied) =====
+
+test('the toggle-button feeling word renders the tokenized type (no UA font leak)', async ({
+    page,
+}) => {
+    // A <button> carries a UA system font/weight; the tokenized .feeling-name baseline must
+    // override family + line-height so the toggle word matches the design, not the button UA.
+    // (Every defined word renders as a button, so this is the case that matters.) We assert
+    // the button's computed type equals the :root token values + the body font — and, as a
+    // cross-check, that it matches a reference span given the same classes.
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
+
+    const r = await page.evaluate(() => {
+        const btn = document.querySelector<HTMLElement>(
+            '.feeling-node--tertiary .feeling-name--toggle'
+        );
+        const result = {
+            ok: false,
+            familyMatch: false,
+            weightMatch: false,
+            lineHeightMatch: false,
+            usesBodyFont: false,
+            weight: '',
+        };
+        if (!btn) return result;
+        // Reference span with the SAME classes, inserted as a sibling in the same node.
+        const ref = document.createElement('span');
+        ref.className = 'feeling-name';
+        btn.parentElement!.appendChild(ref);
+        const cb = getComputedStyle(btn);
+        const cr = getComputedStyle(ref);
+        const root = getComputedStyle(document.documentElement);
+        result.ok = true;
+        result.familyMatch = cb.fontFamily === cr.fontFamily; // button vs span parity
+        result.weightMatch = cb.fontWeight === cr.fontWeight;
+        result.lineHeightMatch = cb.lineHeight === cr.lineHeight;
+        result.usesBodyFont = cb.fontFamily === root.getPropertyValue('--font-body').trim();
+        result.weight = cb.fontWeight; // tertiary weight token (600)
+        ref.remove();
+        return result;
+    });
+    expect(r.ok).toBe(true);
+    expect(r.familyMatch).toBe(true);
+    expect(r.weightMatch).toBe(true);
+    expect(r.lineHeightMatch).toBe(true);
+    expect(r.usesBodyFont).toBe(true);
+    expect(r.weight).toBe('600');
+});
+
+test('definitions share one uniform left indent regardless of level', async ({ page }) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click(); // secondary def
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click(); // tertiary def
+    // Expand the secondary's own def (only the terminal is open by default).
+    await page.locator('.feeling-node--secondary .feeling-name--toggle').click();
+
+    const pads = await page.evaluate(() => {
+        const secDef = document.querySelector<HTMLElement>('.feeling-node--secondary .feeling-def');
+        const terDef = document.querySelector<HTMLElement>('.feeling-node--tertiary .feeling-def');
+        return {
+            sec: secDef ? getComputedStyle(secDef).paddingLeft : null,
+            ter: terDef ? getComputedStyle(terDef).paddingLeft : null,
+        };
+    });
+    expect(pads.sec).not.toBeNull();
+    expect(pads.sec).toBe(pads.ter); // uniform, level-independent
+});
+
+// ===== Drag momentum (a flick glides like a scroll flick) =====
+
+test('a fast drag-and-release makes the wheel coast, then settle', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const svg = page.locator('#wheel-container svg');
+    const box = await svg.boundingBox();
+    if (!box) throw new Error('no svg box');
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+
+    // Drag along an arc near the rim and release while still moving (a flick).
+    await page.mouse.move(cx + box.width * 0.35, cy);
+    await page.mouse.down();
+    for (let i = 1; i <= 8; i++) {
+        const ang = (i / 8) * 0.9; // sweep ~0.9 rad
+        await page.mouse.move(
+            cx + Math.cos(ang) * box.width * 0.35,
+            cy + Math.sin(ang) * box.width * 0.35
+        );
+    }
+    await page.mouse.up();
+
+    // Immediately after release the wheel should still be moving (coasting)...
+    const r0 = await readRotation(page);
+    await page.waitForTimeout(120);
+    const r1 = await readRotation(page);
+    expect(Math.abs(r1 - r0)).toBeGreaterThan(0); // coasted after mouseup
+
+    // ...then friction brings it to rest.
+    await page.waitForTimeout(1200);
+    const r2 = await readRotation(page);
+    await page.waitForTimeout(200);
+    const r3 = await readRotation(page);
+    expect(Math.abs(r3 - r2)).toBeLessThan(0.5); // settled
 });

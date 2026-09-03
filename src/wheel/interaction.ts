@@ -250,16 +250,30 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
 
             this._onMouseMove = (e: MouseEvent) => {
                 if (!this.isDragging || this.isAnimating || !this.svg) return;
+                const P = (this.constructor as unknown as { ScrollPhysics: ScrollPhysics })
+                    .ScrollPhysics;
 
                 const rect = this.svg.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left - rect.width / 2;
                 const mouseY = e.clientY - rect.top - rect.height / 2;
 
                 const currentMouseAngle = Math.atan2(mouseY, mouseX);
-                const deltaAngle = (currentMouseAngle - this.lastMouseAngle) * (180 / Math.PI);
+                let deltaAngle = (currentMouseAngle - this.lastMouseAngle) * (180 / Math.PI);
+                // atan2 wraps at ±180°; normalize so crossing the seam doesn't spike velocity.
+                if (deltaAngle > 180) deltaAngle -= 360;
+                else if (deltaAngle < -180) deltaAngle += 360;
 
                 this.currentRotation += deltaAngle;
                 this.lastMouseAngle = currentMouseAngle;
+
+                // Seed the shared momentum model with this move's angular velocity (deg per
+                // move-event ≈ per frame during an active drag — the same unit startMomentum
+                // consumes). A move whose delta is ~0 (cursor held still) resets velocity to
+                // 0, so a pause-then-release ends at rest instead of flinging a stale value.
+                this.scrollVelocity =
+                    Math.abs(deltaAngle) < 0.01
+                        ? 0
+                        : Math.max(-P.MAX_VELOCITY, Math.min(P.MAX_VELOCITY, deltaAngle));
 
                 this.updateRotation();
             };
@@ -267,6 +281,19 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 if (!this.svg) return;
                 this.isDragging = false;
                 this.svg.style.cursor = 'grab';
+
+                // Release into a decaying glide, matching a scroll flick. A slow/still release
+                // (velocity below the settle threshold) just stops. mousedown already called
+                // stopMomentum(), so no prior glide competes.
+                const P = (this.constructor as unknown as { ScrollPhysics: ScrollPhysics })
+                    .ScrollPhysics;
+                if (
+                    !this.isAnimating &&
+                    this.momentumRafId === null &&
+                    Math.abs(this.scrollVelocity) >= P.MIN_VELOCITY
+                ) {
+                    this.startMomentum();
+                }
             };
             this._onResize = () => this.handleResize();
             this._onOrientationChange = () => {

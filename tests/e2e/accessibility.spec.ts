@@ -31,7 +31,8 @@ test('aria-pressed reflects selection state', async ({ page }) => {
     const happy = page.locator('.core-wedge[data-emotion="Happy"]');
     await happy.click();
     await expect(happy).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('.feeling-node.is-selected .feeling-remove').click();
+    // Deselect on the wheel (the sidebar is informational only, no remove control).
+    await happy.click();
     await expect(happy).toHaveAttribute('aria-pressed', 'false');
 });
 

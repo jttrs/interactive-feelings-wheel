@@ -726,7 +726,7 @@ body {
     margin-top: var(--space-1);
 }
 .feeling-node--tertiary {
-    margin-top: 0;
+    margin-top: var(--space-1);
 }
 /* The core sits first in each family — no leading gap. */
 .feeling-nodes > .feeling-node:first-child {

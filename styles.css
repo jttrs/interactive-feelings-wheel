@@ -92,6 +92,20 @@
     --font-body: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, -apple-system,
         'Segoe UI', Roboto, sans-serif;
 
+    /* Type scale — the feelings-tree tiers + definition, tokenized so every size/weight/
+       leading lives in ONE place (was scattered literals). Same-level words share these
+       regardless of element (button toggle vs plain span). */
+    --text-core: 1.25rem;
+    --text-secondary: 1.05rem;
+    --text-tertiary: 0.9rem;
+    --text-def: 0.85rem;
+    --weight-strong: 700;
+    --weight-medium: 600;
+    --leading-tight: 1.2; /* feeling names */
+    --leading-def: 1.25; /* definition body */
+    --tracking-tight: 0.01em;
+    --indent-def: var(--space-4); /* definition's uniform offset from its feeling word */
+
     /* Focus ring definition (used everywhere via :focus-visible) */
     --focus-ring-width: 3px;
     --focus-ring-offset: 2px;
@@ -753,25 +767,27 @@ body {
    SAME level are typographically identical — selection vs context is shown by COLOR
    only, never by size/weight, so a selected secondary reads as the same tier as a
    context secondary. */
+/* The type BASELINE for every feeling word, whatever element renders it (a <button>
+   toggle or a plain <span>). font-family + line-height are set EXPLICITLY here — never
+   left to inherit — so a <button>'s UA system font/line-height can't leak through and
+   make same-level words diverge. Size/weight/tracking come from the per-level rules. */
 .feeling-name {
+    font-family: var(--font-body);
+    line-height: var(--leading-tight);
     color: var(--color-ink);
-    line-height: 1.2;
     min-width: 0;
     overflow-wrap: anywhere;
     text-align: left;
 }
 
-/* A feeling word that toggles its definition: a button reset that inherits the
-   level's type. The whole word is the affordance (cursor + hover tint).
-   NB: inherit font-family only — the `font` shorthand also sets line-height, which
-   would clobber .feeling-name's 1.2 back to the body's 1.6 and inflate row height.
-   Size/weight come from the per-level .feeling-name rules; line-height stays 1.2. */
+/* A feeling word that toggles its definition: a pure button CHROME reset (no type here —
+   type is owned by .feeling-name above). Do NOT use the `font` shorthand: it also sets
+   line-height and would clobber the baseline. */
 .feeling-name--toggle {
     background: transparent;
     border: none;
     padding: 0;
     margin: 0;
-    font-family: inherit;
     color: inherit;
     cursor: pointer;
     transition: color var(--motion-fast) var(--ease-soft);
@@ -780,17 +796,17 @@ body {
     color: var(--color-accent-text);
 }
 .feeling-node--core .feeling-name {
-    font-size: 1.25rem;
-    font-weight: 700;
-    letter-spacing: 0.01em;
+    font-size: var(--text-core);
+    font-weight: var(--weight-strong);
+    letter-spacing: var(--tracking-tight);
 }
 .feeling-node--secondary .feeling-name {
-    font-size: 1.05rem;
-    font-weight: 600;
+    font-size: var(--text-secondary);
+    font-weight: var(--weight-medium);
 }
 .feeling-node--tertiary .feeling-name {
-    font-size: 0.9rem;
-    font-weight: 600;
+    font-size: var(--text-tertiary);
+    font-weight: var(--weight-medium);
 }
 
 /* Context-only ancestors read quieter — by COLOR alone (same size/weight as their
@@ -799,64 +815,14 @@ body {
     color: var(--color-ink-faint);
 }
 
-/* Remove control: quiet by default, surfaced on hover/focus within the row.
-   The visible box is line-height-sized (1.4em) so it never taller than the feeling
-   word — otherwise a bigger button stretches the centered flex row and leaves dead
-   space below the name. Negative vertical margins keep the actual tap area generous
-   (touch-target-min) without letting the button dictate row height. */
-.feeling-remove {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    box-sizing: content-box;
-    width: 1.4em;
-    height: 1.4em;
-    padding: calc((var(--touch-target-min) - 1.4em) / 2);
-    margin: calc((var(--touch-target-min) - 1.4em) / -2) 0;
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-sm);
-    color: var(--color-ink-faint);
-    cursor: pointer;
-    opacity: 0;
-    transition:
-        opacity var(--motion-fast) var(--ease-soft),
-        background-color var(--motion-fast) var(--ease-soft),
-        color var(--motion-fast) var(--ease-soft);
-}
-.feeling-row:hover .feeling-remove,
-.feeling-remove:focus-visible {
-    opacity: 1;
-}
-.feeling-remove:hover {
-    background: #fbecea;
-    color: #b3402f;
-}
-/* Touch devices have no hover — keep remove reachable there. */
-@media (hover: none) {
-    .feeling-remove {
-        opacity: 1;
-    }
-}
-
-.feeling-ic {
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-
 /* The definition: quiet, readable, and collapsible by clicking its feeling word.
    Collapse animates via max-height/opacity; the expanded ceiling is generous enough
    for the longest definitions. */
 .feeling-def {
     margin: 0;
-    font-size: 0.85rem;
-    line-height: 1.25;
+    font-family: var(--font-body);
+    font-size: var(--text-def);
+    line-height: var(--leading-def);
     color: var(--color-ink-muted);
     max-width: 42ch;
     max-height: 16rem;
@@ -871,11 +837,10 @@ body {
     margin-top: 0;
     opacity: 0;
 }
-.feeling-node--secondary .feeling-def {
-    padding-left: var(--space-4);
-}
-.feeling-node--tertiary .feeling-def {
-    padding-left: var(--space-6);
+/* Uniform relative indent from the feeling word, at EVERY level (the node's own
+   per-level padding already carries tree depth; this is just the def's offset). */
+.feeling-def {
+    padding-left: var(--indent-def);
 }
 
 @media (prefers-reduced-motion: reduce) {

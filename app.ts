@@ -421,7 +421,6 @@ export class FeelingsWheelApp {
             familyOrder: FEELINGS_DATA.core.map((c) => c.name),
             getDefinition: (emotion) => this.getEmotionDefinition(emotion, isSimplified),
             getFamilyColor: (family) => FEELINGS_DATA.getCoreEmotionColor(family),
-            onRemove: (id) => this.wheelGenerator.toggleWedgeSelection(id),
         });
 
         container.replaceChildren(element);

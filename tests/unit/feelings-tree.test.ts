@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { buildForest, renderFeelingsTree } from '../../src/ui/feelings-tree.ts';
 import type { Selection, Level } from '../../src/types.ts';
 
@@ -229,30 +229,65 @@ describe('renderFeelingsTree — DOM output', () => {
         expect(node.querySelector('.feeling-name')).not.toBeNull();
     });
 
-    it('renders remove controls only on selected nodes, not context ancestors', () => {
+    it('is informational only — never renders a remove/deselect control', () => {
+        // The sidebar must not control the wheel; deselection happens on the wheel itself.
         const { element } = renderFeelingsTree({
-            selections: [sel('tertiary', 'Cheeky', 'Playful', 'Happy')],
+            selections: [
+                sel('core', 'Happy', null, 'Happy', 'core-Happy'),
+                sel('tertiary', 'Cheeky', 'Playful', 'Happy'),
+            ],
             ...opts,
         });
-        // Context core (Happy) + context secondary (Playful) have no remove; Cheeky does.
-        const core = element.querySelector('.feeling-node--core')!;
-        const secondary = element.querySelector('.feeling-node--secondary')!;
-        const tertiary = element.querySelector('.feeling-node--tertiary')!;
-        expect(core.querySelector('.feeling-remove')).toBeNull();
-        expect(secondary.querySelector('.feeling-remove')).toBeNull();
-        expect(tertiary.querySelector('.feeling-remove')).not.toBeNull();
+        expect(element.querySelector('.feeling-remove')).toBeNull();
+        expect(element.querySelectorAll('button.feeling-remove')).toHaveLength(0);
     });
 
-    it('fires onRemove with the wedgeId when a remove control is activated', () => {
-        const onRemove = vi.fn();
-        const { element } = renderFeelingsTree({
-            selections: [sel('core', 'Happy', null, 'Happy', 'core-Happy')],
+    it('both toggle-button and plain-span words carry the shared .feeling-name class', () => {
+        // Structural half of the type guard (the COMPUTED-style parity is asserted in the
+        // e2e spec, where the real stylesheet is applied — jsdom does not load styles.css).
+        // Both element forms must carry .feeling-name so the tokenized level rules hit them.
+        // A word WITH a def renders a <button>; a word withOUT one renders a <span>.
+        const guardDefs = {
             ...opts,
-            onRemove,
+            getDefinition: (e: string) => (e === 'Cheeky' ? 'Playfully bold.' : ''), // Aroused → ''
+        };
+        const { element } = renderFeelingsTree({
+            selections: [
+                sel('tertiary', 'Cheeky', 'Playful', 'Happy'), // has def → <button>
+                sel('tertiary', 'Aroused', 'Playful', 'Happy'), // no def → <span>
+            ],
+            ...guardDefs,
         });
-        const remove = element.querySelector('.feeling-remove') as HTMLButtonElement;
-        remove.click();
-        expect(onRemove).toHaveBeenCalledWith('core-Happy');
+        const nodes = [...element.querySelectorAll('.feeling-node--tertiary')];
+        const toggle = nodes
+            .map((n) => n.querySelector('.feeling-name--toggle'))
+            .find((x): x is Element => !!x);
+        const span = nodes
+            .map((n) => n.querySelector('.feeling-name:not(.feeling-name--toggle)'))
+            .find((x): x is Element => !!x);
+        expect(toggle).toBeDefined();
+        expect(span).toBeDefined();
+        expect(toggle!.tagName).toBe('BUTTON');
+        expect(span!.tagName).toBe('SPAN');
+        expect(toggle!.classList.contains('feeling-name')).toBe(true);
+        expect(span!.classList.contains('feeling-name')).toBe(true);
+    });
+
+    it('all definitions share one uniform indent regardless of level', () => {
+        // The def's offset from its own word is level-independent (structural: they all get
+        // the same .feeling-def class; the single padding-left token is asserted in e2e).
+        const allDefs = { ...opts, getDefinition: (e: string) => `Definition of ${e}.` };
+        const { element } = renderFeelingsTree({
+            selections: [
+                sel('secondary', 'Playful', 'Happy', 'Happy'),
+                sel('tertiary', 'Cheeky', 'Playful', 'Happy'),
+            ],
+            ...allDefs,
+        });
+        const defs = [...element.querySelectorAll('.feeling-def')];
+        expect(defs.length).toBeGreaterThanOrEqual(2);
+        // No per-level def class/variant exists — every def is the same class.
+        for (const d of defs) expect(d.className).toBe('feeling-def');
     });
 
     it('degrades safely on blank/malformed selections', () => {

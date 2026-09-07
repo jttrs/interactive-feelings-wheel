@@ -135,6 +135,32 @@ test('reset clears all selections and the tree', async ({ page }) => {
     await expect(page.locator('.wedge.selected')).toHaveCount(0);
 });
 
+test('animated reset leaves NO selection residue on the wheel (incl. bold labels)', async ({
+    page,
+}) => {
+    // The reported bug: after Reset, previously-selected wedges kept their bold label.
+    // Rotate first so the ANIMATED reset path (clearSelections) runs, then assert a fully
+    // clean slate across every selection dimension.
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
+    await page.mouse.wheel(0, 200); // rotate → forces the animated reset
+    await expect(page.locator('.label-selected')).toHaveCount(3); // bold applied
+
+    await page.locator('#reset-btn-panel').click();
+    // Wait out the ~1s reset animation.
+    await expect(page.locator('.wedge.selected')).toHaveCount(0, { timeout: 3000 });
+    await expect(page.locator('.label-selected')).toHaveCount(0); // the bug: bold gone
+    await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(0);
+    await expect(page.locator('.shadow-wedge')).toHaveCount(0);
+    // A formerly-selected label computes back to non-bold.
+    const weight = await page
+        .locator('text[data-emotion="Cheeky"]')
+        .evaluate((el) => getComputedStyle(el).fontWeight);
+    expect(weight).toBe('400');
+});
+
 test('clicking a wedge mid-reset does not select it (isAnimating gate)', async ({ page }) => {
     // Regression: the click listener lacked an isAnimating guard, so a wedge clicked
     // during the ~1s reset unwind got selected + moved to topGroup but was never

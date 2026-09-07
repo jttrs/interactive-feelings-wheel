@@ -10,21 +10,10 @@
 //
 // This module is pure/guarded: given the current selections it returns a fresh DOM
 // subtree. The app rebuilds it wholesale on every selection change (selectedWedges is
-// the source of truth), so there is no incremental add/remove state to drift.
+// the source of truth), so there is no incremental add/remove state to drift. The tree is
+// INFORMATIONAL ONLY — it never controls the wheel (no remove/deselect affordance);
+// deselection happens by clicking a wedge on the wheel itself.
 import type { Selection, ForestNode, ForestFamily, Level } from '../types.ts';
-
-// Small inline × icon (matches the stroke style used elsewhere in the panel).
-function removeIcon(): SVGSVGElement {
-    const NS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(NS, 'svg') as SVGSVGElement;
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('class', 'feeling-ic');
-    svg.setAttribute('aria-hidden', 'true');
-    const path = document.createElementNS(NS, 'path') as SVGPathElement;
-    path.setAttribute('d', 'M18 6L6 18M6 6l12 12');
-    svg.appendChild(path);
-    return svg;
-}
 
 // Build the grouped forest from a flat selection list.
 //
@@ -147,21 +136,18 @@ export function buildForest(
 // opts:
 //   selections   — [{ wedgeId, level, emotion, parent, coreFamily }]
 //   familyOrder  — array of core family names (wheel order) for stable grouping
-//   getDefinition(emotion) -> string | '' (only used for terminal nodes)
-//   getFamilyColor(family) -> css color (decorative stem/dot only)
-//   onRemove(wedgeId)      — called when a selected node's × is activated
+//   getDefinition(emotion) -> string | '' (empty ⇒ no definition rendered)
+//   getFamilyColor(family) -> css color (decorative stem tint only)
 export function renderFeelingsTree({
     selections = [],
     familyOrder = [],
     getDefinition = () => '',
     getFamilyColor = () => 'currentColor',
-    onRemove = () => {},
 }: {
     selections?: Selection[];
     familyOrder?: string[];
     getDefinition?: (emotion: string) => string;
     getFamilyColor?: (family: string) => string;
-    onRemove?: (wedgeId: string) => void;
 } = {}): { element: HTMLElement } {
     const forest = buildForest(selections, { familyOrder });
 
@@ -230,17 +216,6 @@ export function renderFeelingsTree({
                 name.textContent = label;
                 row.appendChild(name);
                 li.appendChild(row);
-            }
-
-            // Only selected nodes are removable; context ancestors are not.
-            if (node.selected && node.wedgeId) {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'feeling-remove';
-                btn.setAttribute('aria-label', `Remove ${node.emotion}`);
-                btn.appendChild(removeIcon());
-                btn.addEventListener('click', () => onRemove(node.wedgeId!));
-                row.appendChild(btn);
             }
 
             list.appendChild(li);

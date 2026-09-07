@@ -7,6 +7,7 @@ import {
     SIMPLIFIED_WEDGE_COUNT,
     CORE,
 } from '../helpers/wheel.ts';
+import { SELECTION_EFFECTS } from '../../src/wheel/interaction.ts';
 
 describe('full mode DOM', () => {
     it('renders exactly FULL_WEDGE_COUNT wedges and matching text nodes', () => {
@@ -86,6 +87,94 @@ describe('reset', () => {
 
         expect(gen.selectedWedges.size).toBe(0);
         expect(gen.currentRotation).toBe(0);
+    });
+});
+
+// The single source of truth for selection visuals. These guards make it structurally
+// impossible for a reset to miss a dimension: every effect must round-trip (apply then
+// clear leaves the DOM identical), and after a reset NO wedge/label may retain any
+// selection residue. A new effect added to SELECTION_EFFECTS is exercised automatically;
+// a selection visual applied OUTSIDE the registry is caught by the clean-slate scan.
+describe('selection-effect registry (reset guard)', () => {
+    it('every registered effect has a name and callable apply + clear', () => {
+        expect(SELECTION_EFFECTS.length).toBeGreaterThan(0);
+        for (const fx of SELECTION_EFFECTS) {
+            expect(typeof fx.name).toBe('string');
+            expect(fx.name.length).toBeGreaterThan(0);
+            expect(typeof fx.apply).toBe('function');
+            expect(typeof fx.clear).toBe('function');
+        }
+        // Names are unique (a dupe would silently shadow a dimension).
+        const names = SELECTION_EFFECTS.map((f) => f.name);
+        expect(new Set(names).size).toBe(names.length);
+    });
+
+    it('apply → clear round-trips a wedge + its label back to identical DOM', () => {
+        const { container, gen } = createTestWheel();
+        const wedge = getWedge(container, 'Angry') as SVGElement;
+        const id = wedge.getAttribute('data-wedge-id')!;
+        const label = container.querySelector(`text[data-wedge-id="${id}"]`)!;
+
+        // Snapshot the dimensions any effect could touch, BEFORE selection. A className is
+        // normalized to its token set (order-independent, and an empty class="" reads the
+        // same as no attribute — classList.toggle leaves "" behind, which is equivalent).
+        const cls = (el: Element) => (el.getAttribute('class') || '').trim().split(/\s+/).sort();
+        const snap = () => ({
+            wedgeClass: cls(wedge),
+            aria: wedge.getAttribute('aria-pressed'),
+            wedgeParent: wedge.parentNode,
+            style: (wedge.getAttribute('style') || '').trim(),
+            labelClass: cls(label),
+            labelParent: label.parentNode,
+            shadows: gen.shadowGroup.querySelectorAll(`[data-shadow-id="${id}"]`).length,
+        });
+        const before = JSON.stringify(snap());
+
+        const ctx = gen.effectCtx(id, wedge)!;
+        expect(ctx).not.toBeNull();
+        gen.applySelectionEffects(ctx);
+        // Something actually changed (guards against a no-op registry).
+        expect(JSON.stringify(snap())).not.toBe(before);
+
+        // effectCtx re-resolves the wedge after the layer move; clear from a fresh ctx.
+        gen.clearSelectionEffects(gen.effectCtx(id, wedge)!);
+        expect(JSON.stringify(snap())).toBe(before);
+    });
+
+    it('after reset, NO wedge or label retains any selection residue (clean slate)', () => {
+        const { container, gen } = createTestWheel();
+        for (const name of ['Happy', 'Sad', 'Bad']) {
+            const w = getWedge(container, name) as SVGElement;
+            gen.selectWedge(w.getAttribute('data-wedge-id')!, w, name);
+        }
+        // Precondition: effects really applied (bold labels present).
+        expect(container.querySelectorAll('.label-selected').length).toBeGreaterThan(0);
+
+        gen.currentRotation = 30;
+        gen.reset();
+
+        expect(gen.selectedWedges.size).toBe(0);
+        expect(container.querySelectorAll('.wedge.selected')).toHaveLength(0);
+        expect(container.querySelectorAll('.label-selected')).toHaveLength(0); // the bug
+        expect(container.querySelectorAll('.wedge[aria-pressed="true"]')).toHaveLength(0);
+        expect(gen.shadowGroup.children.length).toBe(0);
+        // Every wedge + label is back under the base layer.
+        expect(gen.topGroup.querySelectorAll('.wedge, text')).toHaveLength(0);
+    });
+
+    it('clearSelections() (animated-reset path) also clears the bold label', () => {
+        // Regression lock for the exact reported bug: the animated reset routes through
+        // clearSelections(), which used to leave .label-selected behind.
+        const { container, gen } = createTestWheel();
+        const w = getWedge(container, 'Happy') as SVGElement;
+        gen.selectWedge(w.getAttribute('data-wedge-id')!, w, 'Happy');
+        expect(container.querySelectorAll('.label-selected').length).toBe(1);
+
+        gen.clearSelections();
+
+        expect(container.querySelectorAll('.label-selected')).toHaveLength(0);
+        expect(container.querySelectorAll('.wedge.selected')).toHaveLength(0);
+        expect(gen.selectedWedges.size).toBe(0);
     });
 });
 

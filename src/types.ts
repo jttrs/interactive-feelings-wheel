@@ -48,6 +48,16 @@ export interface ParsedWedge {
     coreFamily: string;
 }
 
+// Context passed to every selection EFFECT (see SELECTION_EFFECTS in interaction.ts).
+// Pure data resolved from a wedge id; the effect's apply/clear also receive the engine.
+export interface EffectCtx {
+    wedge: SVGElement; // the interactive wedge <path> (never a shadow copy)
+    wedgeId: string;
+    emotion: string;
+    level: Level;
+    parent: string | null;
+}
+
 // A positioned label tracked for per-frame rotation updates. `lastRotation` is filled in
 // lazily by updateTextRotations (undefined until the first write).
 export interface TextEl {

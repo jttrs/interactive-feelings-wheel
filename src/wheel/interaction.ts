@@ -21,19 +21,12 @@ import type {
 // new effect whose clear doesn't fully undo its apply fails CI; a selection visual applied
 // OUTSIDE this list is caught by the post-reset "clean slate" scan.
 
-// The subset of engine members an effect touches (structural — avoids importing the class).
-type EffectHost = Pick<WheelInstance, 'topGroup' | 'baseGroup'> & {
-    moveTextForWedge: (
-        emotion: string,
-        level: Level,
-        parent: string | null,
-        targetGroup: SVGGElement,
-        existingWedgeId?: string | null
-    ) => void;
-    createShadowCopy: (originalWedge: SVGElement, wedgeId: string) => void;
-    removeShadowCopy: (wedgeId: string) => void;
-    setLabelSelected: (wedgeId: string, on: boolean) => void;
-};
+// The subset of engine members an effect touches. A Pick of WheelInstance (the single
+// source of the method signatures — the mixins declare the same ones) so it can't drift.
+type EffectHost = Pick<
+    WheelInstance,
+    'topGroup' | 'baseGroup' | 'selectedWedges' | 'createShadowCopy' | 'removeShadowCopy'
+>;
 
 interface SelectionEffect {
     name: string;
@@ -41,7 +34,17 @@ interface SelectionEffect {
     clear: (ctx: EffectCtx, self: EffectHost) => void;
 }
 
+// ORDER IS SIGNIFICANT on apply: 'layer' raises the wedge to topGroup BEFORE 'shadow'
+// clones it. 'selected-set' is first so membership is established before visuals. Every
+// entry is a paired apply/clear; the generic baseline test (tests/unit/wheel-dom.test.ts)
+// proves a reset returns the wheel to pristine, so any effect whose clear is incomplete —
+// OR any selection visual added outside this list — fails CI.
 export const SELECTION_EFFECTS: readonly SelectionEffect[] = [
+    {
+        name: 'selected-set', // Set membership is a selection dimension the registry owns.
+        apply: ({ wedgeId }, self) => self.selectedWedges.add(wedgeId),
+        clear: ({ wedgeId }, self) => self.selectedWedges.delete(wedgeId),
+    },
     {
         name: 'selected-class',
         apply: ({ wedge }) => wedge.classList.add('selected'),
@@ -54,33 +57,24 @@ export const SELECTION_EFFECTS: readonly SelectionEffect[] = [
     },
     {
         name: 'label-emphasis', // the bold label (was the reset-persistence bug)
-        apply: ({ wedgeId }, self) => self.setLabelSelected(wedgeId, true),
-        clear: ({ wedgeId }, self) => self.setLabelSelected(wedgeId, false),
+        apply: ({ label }) => label?.classList.add('label-selected'),
+        clear: ({ label }) => label?.classList.remove('label-selected'),
     },
     {
         name: 'layer', // raise the wedge + its label to the top group; restore to base
-        apply: ({ wedge, wedgeId, emotion, level, parent }, self) => {
+        apply: ({ wedge, label }, self) => {
             self.topGroup.appendChild(wedge);
-            self.moveTextForWedge(emotion, level, parent, self.topGroup, wedgeId);
+            if (label) self.topGroup.appendChild(label);
         },
-        clear: ({ wedge, wedgeId, emotion, level, parent }, self) => {
+        clear: ({ wedge, label }, self) => {
             self.baseGroup.appendChild(wedge);
-            self.moveTextForWedge(emotion, level, parent, self.baseGroup, wedgeId);
+            if (label) self.baseGroup.appendChild(label);
         },
     },
     {
         name: 'shadow',
         apply: ({ wedge, wedgeId }, self) => self.createShadowCopy(wedge, wedgeId),
         clear: ({ wedgeId }, self) => self.removeShadowCopy(wedgeId),
-    },
-    {
-        name: 'inline-style-reset', // defensive: blank any lingering inline effect on clear
-        apply: () => {},
-        clear: ({ wedge }) => {
-            wedge.style.filter = '';
-            wedge.style.opacity = '';
-            wedge.style.transform = '';
-        },
     },
 ];
 
@@ -209,16 +203,20 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             // Re-apply selection state to a freshly regenerated wheel (mode switch / resize).
             // Routes through the effect registry so the rebuilt wedges get EVERY effect
             // (previously this omitted the bold label + aria-pressed — the same drift).
-            this.selectedWedges.forEach((wedgeId) => {
-                const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
-
+            // Iterate a snapshot: the 'selected-set' effect re-adds each id during apply,
+            // which mutates the Set we're looping over.
+            [...this.selectedWedges].forEach((wedgeId) => {
                 // Skip tertiary emotions in simplified mode since they don't exist.
-                if (this.isSimplifiedMode && level === 'tertiary') {
+                if (
+                    this.isSimplifiedMode &&
+                    this.parseUniqueWedgeId(wedgeId).level === 'tertiary'
+                ) {
                     return;
                 }
-
-                const wedge = this.findWedgeByUniqueId(level, emotion, parent);
-                if (wedge) this.applySelectionEffects({ wedge, wedgeId, emotion, level, parent });
+                // effectCtx resolves the freshly-regenerated wedge + label by id and is the
+                // ONE ctx builder — no hand-rolled second lookup path.
+                const ctx = this.effectCtx(wedgeId);
+                if (ctx) this.applySelectionEffects(ctx);
             });
         }
 
@@ -487,10 +485,10 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             // Toggle selection using centralized methods
             if (this.selectedWedges.has(wedgeId)) {
                 // Deselection - use centralized method
-                this.deselectWedge(wedgeId, wedge, emotion);
+                this.deselectWedge(wedgeId, wedge);
             } else {
                 // Selection - use centralized method
-                this.selectWedge(wedgeId, wedge, emotion);
+                this.selectWedge(wedgeId, wedge);
             }
 
             // Dispatch custom event for app to handle
@@ -512,9 +510,9 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
 
                 // Use centralized selection/deselection logic directly
                 if (isCurrentlySelected) {
-                    this.deselectWedge(wedgeId, wedge, emotion);
+                    this.deselectWedge(wedgeId, wedge);
                 } else {
-                    this.selectWedge(wedgeId, wedge, emotion);
+                    this.selectWedge(wedgeId, wedge);
                 }
 
                 // Dispatch custom event for app to handle
@@ -525,19 +523,24 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             }
         }
 
-        // Build the effect context for a wedge id. Returns null if the wedge isn't in the
-        // DOM (e.g. a tertiary hidden in simplified mode). `wedge` may be passed in when the
-        // caller already has it (selection click), else it's resolved by id.
+        // Build the effect context for a wedge id — the ONE ctx builder used by select,
+        // deselect, clear, and regenerate. Resolves the wedge (passed in on a click, else by
+        // id) AND its paired label once, so effects never re-query. Returns null if the
+        // wedge isn't in the DOM (e.g. a tertiary hidden in simplified mode).
         effectCtx(wedgeId: string, wedge?: SVGElement | null): EffectCtx | null {
             const el = wedge ?? this.findWedgeByStoredId(wedgeId);
             if (!el) return null;
             const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
-            return { wedge: el, wedgeId, emotion, level, parent };
+            const label = this.container.querySelector(
+                `text[data-wedge-id="${wedgeId}"]`
+            ) as SVGTextElement | null;
+            return { wedge: el, label, wedgeId, emotion, level, parent };
         }
 
         // Apply / clear ALL registered selection effects for one wedge. These are the ONLY
-        // methods that should turn selection visuals on or off — reset, deselect, and
-        // regenerate all funnel through here so no dimension can be missed.
+        // methods that turn selection visuals or state on/off — select, deselect, reset, and
+        // regenerate all funnel through here (incl. selectedWedges membership), so no
+        // dimension can be missed.
         applySelectionEffects(ctx: EffectCtx): void {
             for (const fx of SELECTION_EFFECTS) fx.apply(ctx, this);
         }
@@ -545,24 +548,14 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             for (const fx of SELECTION_EFFECTS) fx.clear(ctx, this);
         }
 
-        // `_emotion` is kept in the signature (callers pass it) but the ctx re-derives it.
-        selectWedge(wedgeId: string, wedge: SVGElement, _emotion?: string): void {
-            this.selectedWedges.add(wedgeId);
+        selectWedge(wedgeId: string, wedge: SVGElement): void {
             const ctx = this.effectCtx(wedgeId, wedge);
             if (ctx) this.applySelectionEffects(ctx);
         }
 
-        deselectWedge(wedgeId: string, wedge: SVGElement, _emotion?: string): void {
-            this.selectedWedges.delete(wedgeId);
+        deselectWedge(wedgeId: string, wedge: SVGElement): void {
             const ctx = this.effectCtx(wedgeId, wedge);
             if (ctx) this.clearSelectionEffects(ctx);
-        }
-
-        // Toggle the emphasis class on a wedge's paired label (weight bump on select).
-        // Called only from the 'label-emphasis' effect.
-        setLabelSelected(wedgeId: string, on: boolean): void {
-            const label = this.container.querySelector(`text[data-wedge-id="${wedgeId}"]`);
-            if (label) label.classList.toggle('label-selected', on);
         }
 
         updateRotation(): void {
@@ -681,35 +674,20 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             this.clearAllAnimations();
             this.stopMomentum();
 
-            // Use centralized deselection for each selected wedge
-            const selectedWedgeIds = [...this.selectedWedges]; // Copy the set to avoid modification during iteration
+            // Clear every selected wedge through the effect registry — the sole owner of
+            // selection visuals + Set membership. No bulk layer/shadow sweep here: each
+            // wedge's registry clear moves it back to baseGroup, removes its shadow, and
+            // deletes it from selectedWedges. (Iterate a snapshot; the 'selected-set' effect
+            // mutates the Set during the loop.) The generic baseline test proves this alone
+            // returns the wheel to pristine.
+            const selectedWedgeIds = [...this.selectedWedges];
             selectedWedgeIds.forEach((wedgeId) => {
                 const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
                 const wedge = this.findWedgeByUniqueId(level, emotion, parent);
-                if (wedge) {
-                    this.deselectWedge(wedgeId, wedge, emotion);
-                }
+                if (wedge) this.deselectWedge(wedgeId, wedge);
             });
 
-            // Final cleanup - ensure everything is in base layer
-            const wedges = this.container.querySelectorAll('.wedge');
-            wedges.forEach((wedge) => {
-                if (wedge.parentNode !== this.baseGroup) {
-                    this.baseGroup.appendChild(wedge);
-                }
-            });
-
-            // Move all text elements back to base layer using the reliable method
-            this.textElements.forEach((textData) => {
-                if (textData.element.parentNode !== this.baseGroup) {
-                    this.baseGroup.appendChild(textData.element);
-                }
-            });
-
-            // Clear all shadow copies
-            this.shadowGroup.innerHTML = '';
-
-            // Reset rotation instantly
+            // Reset rotation instantly (a non-selection duty reset still owns).
             this.currentRotation = 0;
             this.updateRotation();
 
@@ -727,22 +705,19 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         // into engine internals (baseGroup/shadowGroup/selectedWedges) directly.
 
         // Clear every selected wedge visually WITHOUT touching rotation. Returns the ids
-        // that were cleared (newest-first order is the app's concern, not ours).
+        // that were cleared (newest-first order is the app's concern, not ours). No bulk
+        // shadow wipe — the registry's 'shadow' clear owns shadow removal per wedge.
         clearSelections(): string[] {
             const cleared = [...this.selectedWedges];
             cleared.forEach((wedgeId) => this.clearSelection(wedgeId));
-            // Remove any residual shadow copies.
-            this.shadowGroup.innerHTML = '';
             return cleared;
         }
 
-        // Clear a single wedge's selection visuals and move it back to the base layer.
-        // No-op if the id is not currently selected. Routes through the effect registry so
-        // it clears EVERY dimension (previously it hand-rolled a partial clear and left the
-        // bold `.label-selected` behind — the reset-persistence bug).
+        // Clear a single wedge's selection through the effect registry — the sole owner of
+        // every dimension incl. selectedWedges membership (the 'selected-set' effect deletes
+        // it). No-op if the id is not currently selected.
         clearSelection(wedgeId: string): void {
             if (!this.selectedWedges.has(wedgeId)) return;
-            this.selectedWedges.delete(wedgeId);
             const ctx = this.effectCtx(wedgeId);
             if (ctx) this.clearSelectionEffects(ctx);
         }

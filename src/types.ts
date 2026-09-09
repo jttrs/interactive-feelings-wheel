@@ -52,6 +52,7 @@ export interface ParsedWedge {
 // Pure data resolved from a wedge id; the effect's apply/clear also receive the engine.
 export interface EffectCtx {
     wedge: SVGElement; // the interactive wedge <path> (never a shadow copy)
+    label: SVGTextElement | null; // the paired label, resolved once (may be absent)
     wedgeId: string;
     emotion: string;
     level: Level;
@@ -213,6 +214,19 @@ export interface WheelInstance {
     _onKeyDown?: (e: KeyboardEvent) => void;
     _onKeyUp?: (e: KeyboardEvent) => void;
     _onBlur?: () => void;
+
+    // Methods the selection-effect registry composes (the authoritative signatures — the
+    // mixins `declare` these against WheelInstance, and EffectHost is a Pick of them, so a
+    // signature change here propagates to both with no drift).
+    moveTextForWedge: (
+        emotion: string,
+        level: Level,
+        parent: string | null,
+        targetGroup: SVGGElement,
+        existingWedgeId?: string | null
+    ) => void;
+    createShadowCopy: (originalWedge: SVGElement, wedgeId: string) => void;
+    removeShadowCopy: (wedgeId: string) => void;
 }
 
 // Options accepted by addAnimation().

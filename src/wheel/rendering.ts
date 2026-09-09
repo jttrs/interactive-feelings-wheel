@@ -803,6 +803,15 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             shadowWedge.setAttribute('class', 'shadow-wedge'); // Remove 'wedge' class to prevent selection
             shadowWedge.setAttribute('data-shadow-for', wedgeId); // Mark what it's a shadow for
 
+            // Strip the a11y identity from the decorative clone: cloneNode(true) copied the
+            // wedge's role="button" / aria-pressed / aria-label / tabindex, which would make a
+            // screen reader announce every selected emotion twice. The shadow is purely visual.
+            shadowWedge.removeAttribute('role');
+            shadowWedge.removeAttribute('aria-pressed');
+            shadowWedge.removeAttribute('aria-label');
+            shadowWedge.removeAttribute('tabindex');
+            shadowWedge.setAttribute('aria-hidden', 'true');
+
             // Make shadow copy visible with a WARM, soft shadow (matches the palette
             // rather than a cold black blob). Values mirror the --wheel-shadow-* tokens.
             shadowWedge.setAttribute('fill', 'rgba(61, 52, 40, 0.28)');

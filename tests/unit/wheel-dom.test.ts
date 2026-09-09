@@ -46,7 +46,7 @@ describe('selection', () => {
         const wedge = getWedge(container, 'Angry') as SVGElement;
         const id = wedge.getAttribute('data-wedge-id')!;
 
-        gen.selectWedge(id, wedge, 'Angry');
+        gen.selectWedge(id, wedge);
 
         expect(wedge.classList.contains('selected')).toBe(true);
         expect(wedge.getAttribute('aria-pressed')).toBe('true');
@@ -60,13 +60,30 @@ describe('selection', () => {
         const wedge = getWedge(container, 'Angry') as SVGElement;
         const id = wedge.getAttribute('data-wedge-id')!;
 
-        gen.selectWedge(id, wedge, 'Angry');
-        gen.deselectWedge(id, wedge, 'Angry');
+        gen.selectWedge(id, wedge);
+        gen.deselectWedge(id, wedge);
 
         expect(wedge.getAttribute('aria-pressed')).toBe('false');
         expect(wedge.parentNode).toBe(gen.baseGroup);
         expect(gen.shadowGroup.querySelector(`[data-shadow-id="${id}"]`)).toBeNull();
         expect(gen.selectedWedges.has(id)).toBe(false);
+    });
+
+    it('the shadow clone is hidden from assistive tech (no duplicate pressed button)', () => {
+        const { container, gen } = createTestWheel();
+        const wedge = getWedge(container, 'Happy') as SVGElement;
+        const id = wedge.getAttribute('data-wedge-id')!;
+        gen.selectWedge(id, wedge);
+
+        // Exactly ONE element is announced as a pressed button for this emotion — the real
+        // wedge, not the decorative shadow clone (which used to inherit role/aria-pressed).
+        expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
+        const shadow = gen.shadowGroup.querySelector('.shadow-wedge') as SVGElement;
+        expect(shadow).not.toBeNull();
+        expect(shadow.getAttribute('aria-hidden')).toBe('true');
+        expect(shadow.hasAttribute('role')).toBe(false);
+        expect(shadow.hasAttribute('aria-pressed')).toBe(false);
+        expect(shadow.hasAttribute('aria-label')).toBe(false);
     });
 });
 
@@ -76,11 +93,11 @@ describe('reset', () => {
 
         const sad = getWedge(container, 'Sad') as SVGElement;
         const sadId = sad.getAttribute('data-wedge-id')!;
-        gen.selectWedge(sadId, sad, 'Sad');
+        gen.selectWedge(sadId, sad);
 
         const bad = getWedge(container, 'Bad') as SVGElement;
         const badId = bad.getAttribute('data-wedge-id')!;
-        gen.selectWedge(badId, bad, 'Bad');
+        gen.selectWedge(badId, bad);
 
         gen.currentRotation = 45;
         gen.reset();
@@ -145,7 +162,7 @@ describe('selection-effect registry (reset guard)', () => {
         const { container, gen } = createTestWheel();
         for (const name of ['Happy', 'Sad', 'Bad']) {
             const w = getWedge(container, name) as SVGElement;
-            gen.selectWedge(w.getAttribute('data-wedge-id')!, w, name);
+            gen.selectWedge(w.getAttribute('data-wedge-id')!, w);
         }
         // Precondition: effects really applied (bold labels present).
         expect(container.querySelectorAll('.label-selected').length).toBeGreaterThan(0);
@@ -167,7 +184,7 @@ describe('selection-effect registry (reset guard)', () => {
         // clearSelections(), which used to leave .label-selected behind.
         const { container, gen } = createTestWheel();
         const w = getWedge(container, 'Happy') as SVGElement;
-        gen.selectWedge(w.getAttribute('data-wedge-id')!, w, 'Happy');
+        gen.selectWedge(w.getAttribute('data-wedge-id')!, w);
         expect(container.querySelectorAll('.label-selected').length).toBe(1);
 
         gen.clearSelections();
@@ -175,6 +192,91 @@ describe('selection-effect registry (reset guard)', () => {
         expect(container.querySelectorAll('.label-selected')).toHaveLength(0);
         expect(container.querySelectorAll('.wedge.selected')).toHaveLength(0);
         expect(gen.selectedWedges.size).toBe(0);
+    });
+});
+
+// GENERIC reset guarantee: the authoritative guard. Instead of checking a handful of known
+// selectors, it snapshots EVERY wedge + label + layer group in the pristine post-generate
+// state and asserts a reset returns the wheel to byte-identical state. This catches ANY
+// selection residue — including a visual applied OUTSIDE SELECTION_EFFECTS — so a new
+// dimension that reset doesn't clear fails here regardless of whether it's in the registry.
+describe('reset returns the wheel to pristine (generic drift guard)', () => {
+    // Order-independent per-element record keyed by data-wedge-id. Select→reset re-appends
+    // nodes to the END of baseGroup (appendChild reorders siblings), so a document-order or
+    // outerHTML compare would false-fail; we compare a keyed map instead. `class` is a sorted
+    // token set (class="" ≡ absent); `transform` is excluded (label rotation, not selection);
+    // empty `style` is normalized to absent.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    type GenLike = any;
+    const layerName = (el: Element, gen: GenLike) => {
+        const p = el.parentNode;
+        if (p === gen.baseGroup) return 'base';
+        if (p === gen.topGroup) return 'top';
+        if (p === gen.shadowGroup) return 'shadow';
+        return 'other';
+    };
+    const tokens = (el: Element) =>
+        (el.getAttribute('class') || '').trim().split(/\s+/).filter(Boolean).sort();
+    const recordOf = (el: Element, gen: GenLike) => {
+        const attrs: Record<string, string> = {};
+        for (const a of Array.from(el.attributes)) {
+            if (a.name === 'class' || a.name === 'transform') continue;
+            if (a.name === 'style' && a.value.trim() === '') continue;
+            attrs[a.name] = a.value;
+        }
+        return { classes: tokens(el), layer: layerName(el, gen), attrs };
+    };
+    const snapshotWheel = (container: Element, gen: GenLike) => {
+        const map = new Map<string, ReturnType<typeof recordOf>>();
+        container.querySelectorAll('.wedge:not(.shadow-wedge)').forEach((w) => {
+            map.set('wedge:' + w.getAttribute('data-wedge-id'), recordOf(w, gen));
+        });
+        container.querySelectorAll('text[data-wedge-id]').forEach((t) => {
+            map.set('text:' + t.getAttribute('data-wedge-id'), recordOf(t, gen));
+        });
+        // Group-level record catches a stray class/style on a <g> or a new decorative node.
+        const groups: Record<string, { classes: string[]; style: string; childCount: number }> = {};
+        for (const [name, g] of [
+            ['base', gen.baseGroup],
+            ['top', gen.topGroup],
+            ['shadow', gen.shadowGroup],
+            ['division', gen.divisionLinesGroup],
+        ] as const) {
+            groups[name] = {
+                classes: tokens(g),
+                style: (g.getAttribute('style') || '').replace(/transform:[^;]*;?/, '').trim(),
+                childCount: g.children.length,
+            };
+        }
+        return { map, groups };
+    };
+
+    const asObj = (m: Map<string, unknown>) => Object.fromEntries([...m.entries()].sort());
+
+    it.each([
+        ['reset() (instant)', (gen: { currentRotation: number; reset: () => void }) => gen.reset()],
+        [
+            'clearSelections() (animated path)',
+            (gen: { clearSelections: () => void }) => gen.clearSelections(),
+        ],
+    ])('%s restores every wedge/label/group to pristine', (_label, doReset) => {
+        const { container, gen } = createTestWheel();
+        const pristine = snapshotWheel(container, gen);
+
+        for (const name of ['Happy', 'Sad', 'Frustrated', 'Cheeky']) {
+            const w = getWedge(container, name) as SVGElement;
+            gen.selectWedge(w.getAttribute('data-wedge-id')!, w);
+        }
+        expect(container.querySelectorAll('.wedge.selected').length).toBe(4);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (doReset as (g: any) => void)(gen);
+
+        const after = snapshotWheel(container, gen);
+        // Same set of elements, and every element identical to its pristine baseline.
+        expect(asObj(after.map)).toEqual(asObj(pristine.map));
+        expect(after.groups).toEqual(pristine.groups);
+        expect(gen.shadowGroup.children.length).toBe(0);
     });
 });
 
@@ -191,7 +293,7 @@ describe('mode-state preservation', () => {
 
         const happy = getWedge(container, 'Happy') as SVGElement;
         const happyId = happy.getAttribute('data-wedge-id')!;
-        gen.selectWedge(happyId, happy, 'Happy');
+        gen.selectWedge(happyId, happy);
 
         gen.setSimplifiedMode(true);
         // Full-mode state should have been snapshotted before the switch.
@@ -236,7 +338,7 @@ describe('mode-state preservation', () => {
         const { container, gen } = createTestWheel();
         const cheeky = getWedge(container, 'Cheeky') as SVGElement; // tertiary under Playful
         const id = cheeky.getAttribute('data-wedge-id')!;
-        gen.selectWedge(id, cheeky, 'Cheeky');
+        gen.selectWedge(id, cheeky);
         expect(gen.parseUniqueWedgeId(id).level).toBe('tertiary');
 
         gen.setSimplifiedMode(true);

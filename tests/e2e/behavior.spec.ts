@@ -147,6 +147,9 @@ test('animated reset leaves NO selection residue on the wheel (incl. bold labels
     await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
     await page.mouse.wheel(0, 200); // rotate → forces the animated reset
     await expect(page.locator('.label-selected')).toHaveCount(3); // bold applied
+    // Shadow clones must NOT duplicate the pressed button in the a11y tree: exactly one
+    // aria-pressed=true per selected emotion (3), not 6.
+    await expect(page.locator('[aria-pressed="true"]')).toHaveCount(3);
 
     await page.locator('#reset-btn-panel').click();
     // Wait out the ~1s reset animation.

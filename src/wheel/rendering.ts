@@ -445,25 +445,10 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
         // mobile floors — 150 vs 200 — which could size the wheel differently on resize
         // vs initial render). One floor (150) so very small screens still render.
         computeAvailableWheelSize(): number {
+            // The wheel section's CSS already reserves the mobile bottom sheet's live
+            // height (--sheet-h), so the container rect IS the visible wheel area.
             const rect = this.container.getBoundingClientRect();
-            const availableWidth = rect.width;
-            let availableHeight = rect.height;
-
-            if (window.innerWidth <= 767) {
-                // On mobile the bottom sheet eats vertical space — even minimized, its
-                // compact handle bar stays on screen, so measure it in both states.
-                const infoPanel = document.querySelector('.info-panel');
-                let panelHeight = 320; // fallback
-                if (infoPanel) {
-                    const measured = infoPanel.getBoundingClientRect().height;
-                    if (measured || infoPanel.classList.contains('minimized')) {
-                        panelHeight = measured;
-                    }
-                }
-                availableHeight = Math.max(150, availableHeight - panelHeight - 20);
-            }
-
-            return Math.min(availableWidth, availableHeight);
+            return Math.max(150, Math.min(rect.width, rect.height));
         }
 
         generate(): void {

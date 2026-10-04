@@ -25,10 +25,15 @@ export class FeelingsWheelApp {
     }
 
     setupApp(): void {
+        // Reserve the mobile sheet's real height before the first render so the wheel
+        // is sized for the visible area from frame one.
+        this.syncSheetHeight();
+
         // Initialize the wheel
         const wheelContainer = document.getElementById('wheel-container')!;
         this.wheelGenerator = new FeelingsWheelGenerator(wheelContainer, FEELINGS_DATA);
         this.wheelGenerator.generate();
+        this.observeLayout(wheelContainer);
 
         // Setup information panel (this will handle all controls now)
         this.setupInformationPanel();
@@ -551,15 +556,26 @@ export class FeelingsWheelApp {
 
         // Update arrow direction
         this.updateArrowDirection();
+        // Wheel re-fit happens via the layout observer once the panel settles.
+    }
 
-        // MOBILE FIX: Trigger wheel resize after panel state change
-        // This ensures the wheel recalculates its size based on new available space
-        if (this.wheelGenerator && window.innerWidth <= 767) {
-            // Small delay to allow CSS transitions to settle
-            setTimeout(() => {
-                this.wheelGenerator.handleResize();
-            }, 350); // Slightly longer than CSS transition (0.3s)
-        }
+    // Publish the panel's rendered height as --sheet-h. Only the portrait bottom-sheet
+    // CSS reads it; elsewhere it's inert.
+    syncSheetHeight(): void {
+        const panel = document.getElementById('info-panel');
+        if (!panel) return;
+        const h = Math.round(panel.getBoundingClientRect().height);
+        document.documentElement.style.setProperty('--sheet-h', `${h}px`);
+    }
+
+    // Keep the wheel fitted to its visible area: the sheet's height feeds --sheet-h,
+    // and any resulting change to the wheel container's box triggers a (debounced,
+    // size-guarded) re-fit — covers collapse/expand, rotation and short screens alike.
+    observeLayout(wheelContainer: HTMLElement): void {
+        if (typeof ResizeObserver === 'undefined') return;
+        const panel = document.getElementById('info-panel');
+        if (panel) new ResizeObserver(() => this.syncSheetHeight()).observe(panel);
+        new ResizeObserver(() => this.wheelGenerator?.handleResize()).observe(wheelContainer);
     }
 
     // REMOVED: getEmotionFamily() and getFamilyColor() methods

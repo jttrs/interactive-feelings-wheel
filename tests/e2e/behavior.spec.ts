@@ -414,3 +414,35 @@ test('a fast drag-and-release makes the wheel coast, then settle', async ({ page
     const r3 = await readRotation(page);
     expect(Math.abs(r3 - r2)).toBeLessThan(0.5); // settled
 });
+
+// The wheel must never sit under the panel: portrait sheets reserve their live
+// height (--sheet-h), landscape phones fall back to the side panel.
+async function wheelPanelOverlap(page: Page) {
+    return page.evaluate(() => {
+        const w = document.querySelector('.wheel-main-group')!.getBoundingClientRect();
+        const p = document.getElementById('info-panel')!.getBoundingClientRect();
+        const sheet = matchMedia('(max-width: 767px) and (orientation: portrait)').matches;
+        if (sheet) return Math.max(0, w.bottom - p.top);
+        return p.left < innerWidth - 1 ? Math.max(0, w.right - p.left) : 0;
+    });
+}
+
+for (const [width, height] of [
+    [390, 844],
+    [600, 900],
+    [740, 360],
+]) {
+    test(`wheel stays clear of the panel at ${width}x${height}, expanded and collapsed`, async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(500);
+        expect(await wheelPanelOverlap(page)).toBeLessThanOrEqual(1);
+
+        const handle = page.locator('#mobile-collapse-handle');
+        const toggle = (await handle.isVisible()) ? handle : page.locator('#panel-minimize-tab');
+        await toggle.click();
+        await page.waitForTimeout(600);
+        expect(await wheelPanelOverlap(page)).toBeLessThanOrEqual(1);
+    });
+}

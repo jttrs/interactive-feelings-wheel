@@ -528,6 +528,18 @@ export class FeelingsWheelApp {
         // Arrow points toward the action: ◀ reveals (when hidden), ▶ collapses.
         arrow.textContent = minimized ? '◀' : '▶';
         if (tab) tab.setAttribute('aria-expanded', String(!minimized));
+
+        // Mobile sheet handle: ▲ reveals the sheet, ▼ tucks it away.
+        const handle = document.getElementById('mobile-collapse-handle');
+        const handleArrow = handle?.querySelector('.mobile-collapse-arrow');
+        if (handle) {
+            handle.setAttribute('aria-expanded', String(!minimized));
+            handle.setAttribute(
+                'aria-label',
+                minimized ? 'Show feelings panel' : 'Hide feelings panel'
+            );
+        }
+        if (handleArrow) handleArrow.textContent = minimized ? '▲' : '▼';
     }
 
     togglePanelMinimization(): void {

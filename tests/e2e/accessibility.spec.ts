@@ -193,6 +193,34 @@ test('collapsing the panel keeps the expand tab reachable on screen', async ({ p
     await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
 });
 
+test('on mobile, the sheet handle is a button that stays on screen when collapsed', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(200);
+    const handle = page.locator('#mobile-collapse-handle');
+    await expect(handle).toHaveJSProperty('tagName', 'BUTTON');
+    await expect(handle).toHaveAttribute('aria-controls', 'panel-content');
+    await expect(handle).toHaveAttribute('aria-expanded', 'true');
+
+    await handle.click(); // collapse
+    await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
+    await expect(handle).toHaveAttribute('aria-expanded', 'false');
+    await expect(handle).toHaveAttribute('aria-label', 'Show feelings panel');
+    // Regression: the desktop translateX(100%) leaked to mobile and shoved the whole
+    // sheet (handle included) off the right edge.
+    const box = (await handle.boundingBox())!;
+    const vp = page.viewportSize()!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(vp.height);
+
+    await handle.focus();
+    await page.keyboard.press('Enter'); // expand by keyboard
+    await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
+    await expect(handle).toHaveAttribute('aria-expanded', 'true');
+});
+
 test('the empty-state invitation shows when empty and hides once a tile exists', async ({
     page,
 }) => {

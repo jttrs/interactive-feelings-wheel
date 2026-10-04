@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Feelings Wheel</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -22,12 +22,14 @@
             <!-- Right Column: Information Panel (30%) -->
             <aside class="info-panel" id="info-panel">
                 <!-- Mobile Collapse Handle -->
-                <div class="mobile-collapse-handle" id="mobile-collapse-handle">
-                    <span class="collapse-indicator"></span>
-                    <span class="mobile-collapse-arrow">▼</span>
-                </div>
+                <button class="mobile-collapse-handle" id="mobile-collapse-handle" type="button"
+                        aria-controls="panel-content" aria-expanded="true"
+                        aria-label="Hide feelings panel">
+                    <span class="collapse-indicator" aria-hidden="true"></span>
+                    <span class="mobile-collapse-arrow" aria-hidden="true">▼</span>
+                </button>
 
-                <div class="panel-content">
+                <div class="panel-content" id="panel-content">
                     <!-- EXPLORE view (default): same tabbed head + body as the other
                          views (no back button — this is the home tab). -->
                     <div class="panel-view panel-view--explore" id="view-explore" role="region"

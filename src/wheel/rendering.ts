@@ -450,13 +450,15 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             let availableHeight = rect.height;
 
             if (window.innerWidth <= 767) {
-                // On mobile the bottom-sheet panel eats vertical space.
+                // On mobile the bottom sheet eats vertical space — even minimized, its
+                // compact handle bar stays on screen, so measure it in both states.
                 const infoPanel = document.querySelector('.info-panel');
                 let panelHeight = 320; // fallback
-                if (infoPanel && !infoPanel.classList.contains('minimized')) {
-                    panelHeight = infoPanel.getBoundingClientRect().height || 320;
-                } else if (infoPanel && infoPanel.classList.contains('minimized')) {
-                    panelHeight = 0;
+                if (infoPanel) {
+                    const measured = infoPanel.getBoundingClientRect().height;
+                    if (measured || infoPanel.classList.contains('minimized')) {
+                        panelHeight = measured;
+                    }
                 }
                 availableHeight = Math.max(150, availableHeight - panelHeight - 20);
             }

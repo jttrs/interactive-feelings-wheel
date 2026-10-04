@@ -358,15 +358,23 @@ body {
             0 -20px 25px -5px rgba(0, 0, 0, 0.1),
             0 -10px 10px -5px rgba(0, 0, 0, 0.04),
             inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
+        padding-bottom: env(safe-area-inset-bottom);
     }
     
-    /* Mobile collapsed: Hide panel, show only centered expand button */
+    /* Mobile collapsed: the sheet folds down to just its handle, a pill resting
+       above the bottom safe area. The panel box itself goes click-through so the
+       wheel behind stays usable; only the handle takes taps. */
     .info-panel.minimized {
+        top: auto;
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        align-items: center;
+        padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
         background: transparent;
         border: none;
         box-shadow: none;
-        height: auto;
-        transform: none;
+        pointer-events: none;
     }
     
     .info-panel.minimized .panel-content,
@@ -375,16 +383,14 @@ body {
     }
     
     .info-panel.minimized .mobile-collapse-handle {
-        display: flex; /* Keep handle visible */
-        position: fixed; /* Center it on the screen */
-        top: auto; /* Override any top positioning */
-        bottom: 1rem; /* Position at bottom of screen */
-        left: 50%;
-        right: auto; /* Override any right positioning */
-        transform: translateX(-50%);
-        border-radius: 12px;
-        border: 2px solid rgba(255, 255, 255, 0.6);
-        z-index: 1000; /* Ensure it's above everything */
+        position: relative;
+        top: auto;
+        left: auto;
+        transform: none;
+        border: 1px solid var(--color-border-strong);
+        border-radius: var(--radius-pill);
+        box-shadow: var(--elev-2);
+        pointer-events: auto;
     }
 }
 
@@ -439,85 +445,89 @@ body {
 /* Desktop Minimized state — the whole populated panel slides off-screen as one
    surface (content stays rendered so it travels with it, rather than vanishing
    before the slide). The tab rides to the screen edge and stays reachable
-   (it lives outside the transformed panel). */
-.info-panel.minimized {
-    transform: translateX(100%);
-    box-shadow: none;
+   (it lives outside the transformed panel). Desktop only: on mobile the sheet
+   folds down instead of sliding sideways. */
+@media (min-width: 768px) {
+    .info-panel.minimized {
+        transform: translateX(100%);
+        box-shadow: none;
+    }
 }
 
 .main-layout.panel-minimized .panel-minimize-tab {
     right: 0;
 }
 
-/* Mobile Collapse Handle */
+/* Mobile sheet handle — a real button. 28px visual tab with an invisible
+   hit area extending it to a 44px touch target. */
 .mobile-collapse-handle {
     display: none; /* Hidden on desktop */
     position: absolute;
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 80px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 0 0 12px 12px;
-    border: 2px solid rgba(255, 255, 255, 0.6);
+    width: 88px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    background: var(--color-surface);
+    color: var(--color-ink-muted);
+    border: 1px solid var(--color-border);
     border-top: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
     cursor: pointer;
     z-index: 102;
     
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-2);
     
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transition:
+        background-color var(--motion-fast) var(--ease-soft),
+        color var(--motion-fast) var(--ease-soft);
+    box-shadow: var(--elev-1);
+}
+
+.mobile-collapse-handle::after {
+    content: '';
+    position: absolute;
+    inset: -8px -4px;
 }
 
 .collapse-indicator {
-    width: 32px;
+    width: 28px;
     height: 4px;
-    background: #cbd5e0;
-    border-radius: 2px;
-    transition: background-color 0.2s ease;
+    background: var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    transition: background-color var(--motion-fast) var(--ease-soft);
 }
 
-/* Mobile: Arrow points DOWN when expanded (will collapse DOWN), UP when collapsed (will expand UP) */
+/* ▼ when expanded (tucks down), ▲ when collapsed (lifts up) — set in app.ts. */
 .mobile-collapse-arrow {
-    font-size: 0.8rem;
-    color: #4a5568;
-    font-weight: bold;
-    /* Removed transition to eliminate arrow animation */
+    font-size: 0.75rem;
+    line-height: 1;
 }
 
-.mobile-collapse-handle:hover .collapse-indicator {
-    background: #4a90e2;
-}
+@media (hover: hover) {
+    .mobile-collapse-handle:hover {
+        background: var(--color-surface-alt);
+        color: var(--color-accent-text);
+    }
 
-.mobile-collapse-handle:hover .mobile-collapse-arrow {
-    color: #4a90e2;
-    transform: translateY(1px);
+    .mobile-collapse-handle:hover .collapse-indicator {
+        background: var(--color-accent);
+    }
 }
 
 /* Mobile: Show collapse handle and hide desktop tab */
 @media (max-width: 767px) {
     .mobile-collapse-handle {
         display: flex;
-        position: absolute; /* Ensure proper positioning context */
-        top: 0; /* At top of panel when expanded */
     }
     
     .panel-minimize-tab {
         display: none; /* Hide desktop tab on mobile */
-    }
-    
-    /* Override desktop positioning for mobile - not needed */
-    .info-panel.minimized .panel-minimize-tab {
-        display: none;
-    }
-    
-    /* Mobile collapsed: Arrow points UP (will expand up) */
-    .info-panel.minimized .mobile-collapse-arrow {
-        transform: rotate(180deg); /* ▼ becomes ▲ */
     }
 }
 

@@ -506,7 +506,7 @@ export class FeelingsWheelApp {
         // Mark wheel as animating to prevent user interaction
         this.wheelGenerator.isAnimating = true;
 
-        this.announce('Cleared all selected emotions.');
+        this.announce('Cleared all selected feelings.');
 
         // RESTORED: Full reset animation with tile unwinding + wheel rotation
         this.animateUnwindTiles();
@@ -559,7 +559,13 @@ export class FeelingsWheelApp {
         const minimized = panel.classList.contains('minimized');
         // Arrow points toward the action: ◀ reveals (when hidden), ▶ collapses.
         arrow.textContent = minimized ? '◀' : '▶';
-        if (tab) tab.setAttribute('aria-expanded', String(!minimized));
+        if (tab) {
+            tab.setAttribute('aria-expanded', String(!minimized));
+            tab.setAttribute(
+                'aria-label',
+                minimized ? 'Show feelings panel' : 'Hide feelings panel'
+            );
+        }
 
         // Mobile sheet handle: ▲ reveals the sheet, ▼ tucks it away.
         const handle = document.getElementById('mobile-collapse-handle');

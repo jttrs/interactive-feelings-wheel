@@ -39,7 +39,7 @@
                         </div>
                         <div class="view-body view-body--explore">
                             <div class="panel-empty" id="panel-instructions">
-                                <p class="empty-hint">Tap or spin the wheel to explore a feeling.</p>
+                                <p class="empty-hint">Choose any word on the wheel that feels close.<span class="empty-hint__more"> Pick as many as fit — there are no wrong answers.</span></p>
                             </div>
                             <div class="emotion-tiles" id="emotion-tiles">
                                 <!-- The selected-feelings tree is rendered here dynamically -->
@@ -62,8 +62,9 @@
                         <div class="view-body">
                             <section class="help-group">
                                 <h3 class="help-group__title">Explore feelings</h3>
-                                <p class="help-line">Tap or click any emotion to select it and read its meaning.</p>
-                                <p class="help-line">Select several to compare — tap a tile’s ✕ (or the emotion again) to remove it.</p>
+                                <p class="help-line">Choose any feeling on the wheel to add it to your list, with what it means.</p>
+                                <p class="help-line">Pick as many as fit. To remove one, choose it on the wheel again — or press Reset to start over.</p>
+                                <p class="help-line">In your list, tap a feeling’s name to show or hide its meaning.</p>
                             </section>
 
                             <section class="help-group">
@@ -71,38 +72,14 @@
                                 <p class="help-line">
                                     Drag it, scroll over it, or press the
                                     <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> arrow keys
-                                    to spin it — hold to keep spinning. When a wedge is
-                                    focused, the arrows step between wedges instead.
+                                    to spin it — hold to keep spinning. When a feeling on the
+                                    wheel has keyboard focus, the arrows move between feelings instead.
                                 </p>
                             </section>
 
                             <section class="help-group">
-                                <h3 class="help-group__title">View options</h3>
+                                <h3 class="help-group__title">View and actions</h3>
                                 <ul class="help-actions">
-                                    <li class="help-action">
-                                        <span class="help-action__ic" aria-hidden="true">
-                                            <svg class="hero-ic" viewBox="0 0 24 24">
-                                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
-                                            </svg>
-                                        </span>
-                                        <span class="help-action__text">
-                                            <span class="help-action__name">Reset</span>
-                                            clears your selections and re-centres the wheel.
-                                        </span>
-                                        <kbd class="kbd">R</kbd>
-                                    </li>
-                                    <li class="help-action">
-                                        <span class="help-action__ic" aria-hidden="true">
-                                            <svg class="hero-ic" viewBox="0 0 24 24">
-                                                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
-                                            </svg>
-                                        </span>
-                                        <span class="help-action__text">
-                                            <span class="help-action__name">Fullscreen</span>
-                                            gives the wheel the whole screen.
-                                        </span>
-                                        <kbd class="kbd">F11</kbd>
-                                    </li>
                                     <li class="help-action">
                                         <span class="help-action__ic" aria-hidden="true">
                                             <svg class="hero-ic" viewBox="0 0 24 24">
@@ -129,13 +106,37 @@
                                     </li>
                                     <li class="help-action">
                                         <span class="help-action__ic" aria-hidden="true">
+                                            <svg class="hero-ic" viewBox="0 0 24 24">
+                                                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="help-action__text">
+                                            <span class="help-action__name">Fullscreen</span>
+                                            gives the wheel the whole screen; press Esc to leave.
+                                        </span>
+                                        <kbd class="kbd">F11</kbd>
+                                    </li>
+                                    <li class="help-action">
+                                        <span class="help-action__ic" aria-hidden="true">
+                                            <svg class="hero-ic" viewBox="0 0 24 24">
+                                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="help-action__text">
+                                            <span class="help-action__name">Reset</span>
+                                            clears your chosen feelings and re-centres the wheel.
+                                        </span>
+                                        <kbd class="kbd">R</kbd>
+                                    </li>
+                                    <li class="help-action">
+                                        <span class="help-action__ic" aria-hidden="true">
                                             <svg class="hero-ic hero-ic--fill" viewBox="0 0 24 24">
                                                 <path d="M9 6l6 6-6 6z"></path>
                                             </svg>
                                         </span>
                                         <span class="help-action__text">
-                                            <span class="help-action__name">Collapse panel</span>
-                                            tuck the sidebar away any time.
+                                            <span class="help-action__name">Hide panel</span>
+                                            tucks this panel away to give the wheel more room.
                                         </span>
                                         <kbd class="kbd">P</kbd>
                                     </li>
@@ -277,7 +278,7 @@
                  panel's minimized transform can't capture this fixed element and
                  push it off-screen. -->
             <button class="panel-minimize-tab" id="panel-minimize-tab"
-                    aria-label="Toggle information panel" aria-expanded="true">
+                    aria-controls="info-panel" aria-label="Hide feelings panel" aria-expanded="true">
                 <span class="minimize-arrow">▶</span>
             </button>
         </main>

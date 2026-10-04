@@ -532,7 +532,7 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             this.svg.setAttribute('role', 'group');
             this.svg.setAttribute(
                 'aria-label',
-                'Feelings wheel. Use arrow keys to move between emotions and Enter or Space to select.'
+                'Feelings wheel. Use the arrow keys to move between feelings, and Enter or Space to choose one.'
             );
 
             // Create four layers for proper rendering (via the guarded group() helper).
@@ -906,11 +906,10 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
         }
 
         // Human-readable label for assistive tech, e.g.
-        // "Frustrated, a secondary emotion under Angry".
+        // "Frustrated, under Angry".
         buildWedgeAriaLabel(level: Level, emotion: string, parent: string | null): string {
-            if (level === 'core') return `${emotion}, a core emotion`;
-            if (level === 'secondary') return `${emotion}, a secondary emotion under ${parent}`;
-            if (level === 'tertiary') return `${emotion}, a specific emotion under ${parent}`;
+            if (level === 'core') return `${emotion}, core feeling`;
+            if (parent) return `${emotion}, under ${parent}`;
             return emotion;
         }
 

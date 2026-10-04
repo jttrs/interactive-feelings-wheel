@@ -16,10 +16,10 @@ test('wedges expose button semantics and labels', async ({ page }) => {
     const angry = page.locator('.core-wedge[data-emotion="Angry"]');
     await expect(angry).toHaveAttribute('role', 'button');
     await expect(angry).toHaveAttribute('aria-pressed', 'false');
-    await expect(angry).toHaveAttribute('aria-label', 'Angry, a core emotion');
+    await expect(angry).toHaveAttribute('aria-label', 'Angry, core feeling');
 
     const playful = page.locator('.secondary-wedge[data-emotion="Playful"]');
-    await expect(playful).toHaveAttribute('aria-label', 'Playful, a secondary emotion under Happy');
+    await expect(playful).toHaveAttribute('aria-label', 'Playful, under Happy');
 });
 
 test('the wheel is a single tab-stop (one wedge tabindex=0)', async ({ page }) => {
@@ -91,7 +91,7 @@ test('arrow focus order is stable after a selection (nav-index, not DOM order)',
 test('reset is announced to screen readers', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
     await page.locator('#reset-btn-panel').click();
-    await expect(page.locator('#sr-announcer')).toHaveText('Cleared all selected emotions.');
+    await expect(page.locator('#sr-announcer')).toHaveText('Cleared all selected feelings.');
 });
 
 test('control buttons have accessible names', async ({ page }) => {
@@ -226,7 +226,7 @@ test('the empty-state invitation shows when empty and hides once a tile exists',
 }) => {
     const empty = page.locator('#panel-instructions');
     await expect(empty).toBeVisible();
-    await expect(empty).toContainText('Tap or spin');
+    await expect(empty).toContainText('no wrong answers');
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(empty).toBeHidden();
 });

@@ -446,3 +446,61 @@ for (const [width, height] of [
         expect(await wheelPanelOverlap(page)).toBeLessThanOrEqual(1);
     });
 }
+
+// Guided view is OPT-IN: the full wheel is the default (therapists use the whole
+// spectrum). When on, it spotlights the path without changing geometry or selection.
+test('guided view is off by default: the full wheel is fully interactive', async ({ page }) => {
+    await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+    await expect(page.locator('.wedge[data-guided-rest]')).toHaveCount(0);
+});
+
+test('guided view opens rings along the chosen path and toggles off losslessly', async ({
+    page,
+}) => {
+    const rest = page.locator('.wedge[data-guided-rest]');
+    await page.locator('label[for="guided-mode-panel"]').click();
+    // Only the 7 cores are reachable at first.
+    await expect(page.locator('.wedge:not(.shadow-wedge):not([data-guided-rest])')).toHaveCount(7);
+    await expect(page.locator('.secondary-wedge[data-emotion="Playful"]')).toHaveAttribute(
+        'aria-hidden',
+        'true'
+    );
+
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await expect(page.locator('.secondary-wedge[data-emotion="Playful"]')).not.toHaveAttribute(
+        'data-guided-rest',
+        ''
+    );
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await expect(
+        page.locator('.tertiary-wedge[data-parent="Playful"]').first()
+    ).not.toHaveAttribute('data-guided-rest', '');
+    // Unrelated families stay at rest.
+    await expect(page.locator('.secondary-wedge[data-emotion="Lonely"]')).toHaveAttribute(
+        'data-guided-rest',
+        ''
+    );
+
+    // G toggles it off (even with focus left on the checkbox): full wheel back, selection kept.
+    await page.keyboard.press('g');
+    await expect(rest).toHaveCount(0);
+    await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(2);
+});
+
+test('keyboard toggling keeps focus on the wheel, even when guided view rests the wedge', async ({
+    page,
+}) => {
+    const happy = page.locator('.core-wedge[data-emotion="Happy"]');
+    await happy.focus();
+    await page.keyboard.press('Enter');
+    await expect(happy).toBeFocused();
+
+    await page.locator('label[for="guided-mode-panel"]').click();
+    const playful = page.locator('.secondary-wedge[data-emotion="Playful"]');
+    await playful.click();
+    await happy.click(); // deselect core; Playful stays reachable because it's selected
+    await playful.focus();
+    await page.keyboard.press('Enter'); // deselect -> Playful goes to rest
+    await expect(playful).toHaveAttribute('data-guided-rest', '');
+    await expect(happy).toBeFocused();
+});

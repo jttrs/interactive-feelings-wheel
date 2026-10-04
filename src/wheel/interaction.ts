@@ -7,6 +7,7 @@ import type {
     ScrollPhysics,
     EffectCtx,
 } from '../types.ts';
+import { applyGuidedFocus, GUIDED_REST_ATTR } from './guided.ts';
 
 // ===== SELECTION EFFECTS — THE SINGLE SOURCE OF TRUTH =====
 //
@@ -82,6 +83,7 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
     class extends Base {
         // Shared instance state this mixin reads/writes (initialized by the engine ctor).
         declare isSimplifiedMode: WheelInstance['isSimplifiedMode'];
+        declare isGuidedMode: WheelInstance['isGuidedMode'];
         declare selectedWedges: WheelInstance['selectedWedges'];
         declare currentRotation: WheelInstance['currentRotation'];
         declare svg: WheelInstance['svg'];
@@ -172,6 +174,45 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
 
             // Regenerate wheel
             this.regenerateWheel();
+        }
+
+        // Guided mode is a visual spotlight over the full wheel (see guided.ts). It never
+        // touches selection or rotation, so toggling it off restores the plain full view.
+        setGuidedMode(enabled: boolean): void {
+            this.isGuidedMode = enabled;
+            this.refreshGuidedFocus();
+        }
+
+        refreshGuidedFocus(): void {
+            if (!this.svg) return;
+            applyGuidedFocus(this.container, this.isGuidedMode);
+
+            // Keep the wheel a single tab-stop on a reachable wedge.
+            const reachable = this.getFocusableWedges();
+            if (reachable.length && !reachable.some((w) => w.getAttribute('tabindex') === '0')) {
+                reachable[0].setAttribute('tabindex', '0');
+            }
+        }
+
+        // After a keyboard toggle, put focus back: selection re-layers the wedge (which
+        // blurs it), and in guided view a just-deselected wedge may have gone to rest —
+        // then focus falls back to its family's core so the user isn't dropped to <body>.
+        restoreWedgeFocus(target: Element): void {
+            let next: Element | undefined = target;
+            if (target.hasAttribute(GUIDED_REST_ATTR)) {
+                const family =
+                    target.getAttribute('data-grandparent') ?? target.getAttribute('data-parent');
+                next = this.getFocusableWedges().find(
+                    (w) =>
+                        w.classList.contains('core-wedge') &&
+                        w.getAttribute('data-emotion') === family
+                );
+            }
+            if (!next) return;
+            this.getFocusableWedges().forEach((w) =>
+                w.setAttribute('tabindex', w === next ? '0' : '-1')
+            );
+            (next as SVGElement).focus();
         }
 
         regenerateWheel(): void {
@@ -286,6 +327,7 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
                     e.preventDefault();
                     this.handleWedgeClick({ target } as unknown as MouseEvent);
+                    this.restoreWedgeFocus(target);
                     return;
                 }
 
@@ -411,7 +453,11 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         // order — a selected wedge's <path> is moved to the top layer, which would
         // otherwise reshuffle arrow-key navigation after any selection.
         getFocusableWedges(): Element[] {
-            return Array.from(this.container.querySelectorAll('.wedge:not(.shadow-wedge)')).sort(
+            return Array.from(
+                this.container.querySelectorAll(
+                    `.wedge:not(.shadow-wedge):not([${GUIDED_REST_ATTR}])`
+                )
+            ).sort(
                 (a, b) =>
                     Number(a.getAttribute('data-nav-index')) -
                     Number(b.getAttribute('data-nav-index'))
@@ -543,9 +589,11 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         // dimension can be missed.
         applySelectionEffects(ctx: EffectCtx): void {
             for (const fx of SELECTION_EFFECTS) fx.apply(ctx, this);
+            if (this.isGuidedMode) this.refreshGuidedFocus();
         }
         clearSelectionEffects(ctx: EffectCtx): void {
             for (const fx of SELECTION_EFFECTS) fx.clear(ctx, this);
+            if (this.isGuidedMode) this.refreshGuidedFocus();
         }
 
         selectWedge(wedgeId: string, wedge: SVGElement): void {

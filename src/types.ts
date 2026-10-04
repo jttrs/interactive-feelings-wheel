@@ -157,6 +157,7 @@ export interface WheelInstance {
     centerX: number;
     centerY: number;
     isSimplifiedMode: boolean;
+    isGuidedMode: boolean;
     selectedWedges: Set<string>;
     wedgeRegistry: Map<string, WedgeMeta>;
 

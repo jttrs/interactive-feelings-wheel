@@ -106,6 +106,18 @@
                                     <li class="help-action">
                                         <span class="help-action__ic" aria-hidden="true">
                                             <svg class="hero-ic" viewBox="0 0 24 24">
+                                                <circle cx="12" cy="12" r="9" stroke-dasharray="2 3"></circle><circle cx="12" cy="12" r="3.5"></circle>
+                                            </svg>
+                                        </span>
+                                        <span class="help-action__text">
+                                            <span class="help-action__name">Guided view</span>
+                                            starts with the core feelings and opens each ring as you choose — the full wheel stays in view behind it.
+                                        </span>
+                                        <kbd class="kbd">G</kbd>
+                                    </li>
+                                    <li class="help-action">
+                                        <span class="help-action__ic" aria-hidden="true">
+                                            <svg class="hero-ic" viewBox="0 0 24 24">
                                                 <circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle>
                                             </svg>
                                         </span>
@@ -191,36 +203,48 @@
                     </div>
                 </div>
 
-                <!-- Panel Footer: hero-icon action row. Icon-only with tooltip + aria-label. -->
+                <!-- Panel Footer: two small chunks. View options are labelled toggles
+                     (they change how the wheel looks); actions sit beneath. -->
                 <footer class="panel-footer">
-                    <div class="hero-actions" role="toolbar" aria-label="Wheel actions">
-                        <button id="reset-btn-panel" class="hero-btn" type="button"
-                                data-tip="Reset" aria-label="Reset the wheel">
+                    <div class="view-toggles" role="group" aria-label="View options">
+                        <input type="checkbox" id="guided-mode-panel" class="hero-toggle-input" />
+                        <label for="guided-mode-panel" class="view-chip">
                             <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
+                                <circle cx="12" cy="12" r="9" stroke-dasharray="2 3"></circle><circle cx="12" cy="12" r="3.5"></circle>
                             </svg>
-                        </button>
+                            Guided
+                        </label>
 
-                        <button id="fullscreen-btn-panel" class="hero-btn" type="button"
-                                data-tip="Fullscreen" aria-label="Toggle fullscreen">
-                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
-                            </svg>
-                        </button>
-
-                        <!-- Simplified view: accessible checkbox styled as an icon toggle -->
                         <input type="checkbox" id="simplified-mode-panel" class="hero-toggle-input" />
-                        <label for="simplified-mode-panel" class="hero-btn hero-toggle"
-                               data-tip="Simplified view" aria-label="Simplified view">
+                        <label for="simplified-mode-panel" class="view-chip">
                             <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
                                 <circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle>
                             </svg>
+                            Simplified
                         </label>
 
-                        <span class="hero-sep" aria-hidden="true"></span>
+                        <button id="fullscreen-btn-panel" class="view-chip" type="button"
+                                aria-pressed="false">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                            </svg>
+                            Fullscreen
+                        </button>
+                    </div>
+
+                    <div class="hero-actions" role="toolbar" aria-label="Wheel actions">
+                        <button id="reset-btn-panel" class="hero-btn hero-btn--labelled" type="button"
+                                aria-label="Reset the wheel">
+                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
+                            </svg>
+                            <span aria-hidden="true">Reset</span>
+                        </button>
+
+                        <span class="hero-spacer" aria-hidden="true"></span>
 
                         <button id="help-btn-panel" class="hero-btn" type="button"
-                                data-view="help" aria-label="How to use the wheel">
+                                data-view="help" data-tip="Help" aria-label="How to use the wheel">
                             <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
                                 <circle cx="12" cy="12" r="9"></circle>
                                 <path d="M9.3 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.7 2.4-2.7 4"></path>
@@ -229,7 +253,7 @@
                         </button>
 
                         <button id="about-btn-panel" class="hero-btn" type="button"
-                                data-view="about" aria-label="About">
+                                data-view="about" data-tip="About" aria-label="About">
                             <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
                                 <circle cx="12" cy="12" r="9"></circle>
                                 <path d="M12 11v5"></path><path d="M12 8h.01"></path>

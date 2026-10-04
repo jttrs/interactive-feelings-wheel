@@ -230,7 +230,7 @@
 
 @media (prefers-contrast: more) {
     :where(a, button, [tabindex], [role='button']):focus-visible,
-    .hero-toggle-input:focus-visible + .hero-toggle,
+    .hero-toggle-input:focus-visible + .view-chip,
     .wedge:focus-visible {
         outline-width: 4px;
     }
@@ -867,28 +867,100 @@ body {
    Controls are labelled (icon + word), so they explain themselves without a
    standing manual. Wrap so they stay tappable on narrow panels; each meets the
    44px target-size we already commit to. */
-/* ===== PANEL FOOTER: HERO-ICON ACTION ROW =====
-   A quiet strip of icon buttons. Icon-only (with tooltip + aria-label), evenly
-   spaced, each a 44px target. This replaces the clunky labelled pills. */
+/* ===== PANEL FOOTER =====
+   Two chunks, each <= 4 controls: labelled view toggles (they change how the
+   wheel looks, so their names are always visible), then the action row — a
+   labelled Reset, with help/about/support as quiet icons on the right. */
 .panel-footer {
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
     padding: var(--space-3) var(--space-4);
+    padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
+}
+
+.view-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.view-chip {
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: var(--weight-medium);
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--color-ink-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition:
+        background-color var(--motion-fast) var(--ease-soft),
+        border-color var(--motion-fast) var(--ease-soft),
+        color var(--motion-fast) var(--ease-soft);
+}
+
+.view-chip .hero-ic {
+    width: 16px;
+    height: 16px;
+}
+
+@media (hover: hover) {
+    .view-chip:hover {
+        background: var(--color-surface-alt);
+        color: var(--color-accent-text);
+    }
+}
+
+.hero-toggle-input:checked + .view-chip,
+.view-chip[aria-pressed='true'] {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-on-accent);
+}
+
+.hero-toggle-input:focus-visible + .view-chip {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: var(--focus-ring-offset);
+}
+
+/* Touch: chips grow to the full 44px target. */
+@media (pointer: coarse) {
+    .view-chip {
+        min-height: var(--touch-target-min);
+    }
+}
+
+/* Narrow panels (small phones): drop chip icons so all three stay on one row. */
+@container (max-width: 359px) {
+    .view-chip {
+        padding: 0 var(--space-2);
+    }
+    .view-chip .hero-ic {
+        display: none;
+    }
 }
 
 .hero-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: var(--space-1);
 }
 
-.hero-sep {
-    width: 1px;
-    align-self: stretch;
-    margin: var(--space-1) var(--space-2);
-    background: var(--color-border);
+.hero-spacer {
+    flex: 1;
 }
 
 .hero-btn {
@@ -919,6 +991,15 @@ body {
     background: var(--color-border);
 }
 
+.hero-btn--labelled {
+    width: auto;
+    gap: var(--space-2);
+    padding: 0 var(--space-3) 0 var(--space-2);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: var(--weight-medium);
+}
+
 .hero-ic {
     width: 22px;
     height: 22px;
@@ -944,8 +1025,8 @@ body {
     color: var(--color-on-accent);
 }
 
-/* Simplified-view toggle rendered as an icon button; the checkbox is hidden but
-   keyboard-focusable, and the label carries the focus ring + active state. */
+/* View toggles are visually-hidden checkboxes; the label (.view-chip) carries the
+   focus ring + checked state. */
 .hero-toggle-input {
     position: absolute;
     width: 1px;
@@ -958,21 +1039,6 @@ body {
     border: 0;
 }
 
-.hero-toggle-input:focus-visible + .hero-toggle {
-    outline: var(--focus-ring-width) solid var(--color-focus);
-    outline-offset: var(--focus-ring-offset);
-}
-
-.hero-toggle-input:checked + .hero-toggle {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
-}
-
-/* Fullscreen active state (JS toggles .active). */
-.hero-btn.active {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
-}
 
 /* CSS-only tooltip from data-tip. Appears above the button on hover/focus. */
 .hero-btn[data-tip]::after {
@@ -996,8 +1062,7 @@ body {
 }
 
 .hero-btn[data-tip]:hover::after,
-.hero-btn[data-tip]:focus-visible::after,
-.hero-toggle-input:focus-visible + .hero-btn[data-tip]::after {
+.hero-btn[data-tip]:focus-visible::after {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
@@ -1273,6 +1338,17 @@ svg text {
 .wedge:hover {
     /* Subtle enhancement on hover - NO transform to avoid SVG conflicts */
     filter: saturate(1.2) brightness(1.1);
+}
+
+/* Guided view (opt-in): rings the user hasn't reached rest in the background —
+   still visible as the wheel's map, but quiet and inert until a choice opens them. */
+#wheel-container svg text {
+    transition: opacity var(--motion-base) var(--ease-soft);
+}
+
+#wheel-container [data-guided-rest] {
+    opacity: 0.22;
+    pointer-events: none;
 }
 
 /* Enhanced selection styling with smooth transitions. The glow is a REAL

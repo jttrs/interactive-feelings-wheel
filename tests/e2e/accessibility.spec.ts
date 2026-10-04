@@ -96,10 +96,10 @@ test('reset is announced to screen readers', async ({ page }) => {
 
 test('control buttons have accessible names', async ({ page }) => {
     await expect(page.locator('#reset-btn-panel')).toHaveAttribute('aria-label', 'Reset the wheel');
-    await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute(
-        'aria-label',
-        'Toggle fullscreen'
-    );
+    await expect(page.locator('#fullscreen-btn-panel')).toHaveAccessibleName('Fullscreen');
+    await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('#guided-mode-panel')).toHaveAccessibleName('Guided');
+    await expect(page.locator('#simplified-mode-panel')).toHaveAccessibleName('Simplified');
     await expect(page.locator('#help-btn-panel')).toHaveAttribute(
         'aria-label',
         'How to use the wheel'

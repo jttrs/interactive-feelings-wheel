@@ -172,6 +172,7 @@ export class FeelingsWheelApp {
         const fullscreenButton = document.getElementById('fullscreen-btn-panel');
 
         if (fullscreenButton) {
+            fullscreenButton.setAttribute('aria-pressed', String(this.isCurrentlyFullscreen()));
             if (this.isCurrentlyFullscreen()) {
                 fullscreenButton.classList.add('active');
                 fullscreenButton.title = 'Exit fullscreen (ESC)';
@@ -205,15 +206,28 @@ export class FeelingsWheelApp {
     setupKeyboardShortcuts(): void {
         // Global keyboard event listener for all shortcuts
         document.addEventListener('keydown', (event) => {
-            // Skip if user is typing in an input field
+            // Skip if the user is typing (checkbox toggles must not swallow shortcuts).
             const target = event.target as HTMLElement;
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+            const typing =
+                target.tagName === 'TEXTAREA' ||
+                target.isContentEditable ||
+                (target instanceof HTMLInputElement &&
+                    !['checkbox', 'radio', 'button'].includes(target.type));
+            if (typing) {
                 return;
             }
+
+            // Leave browser/OS chords (Cmd+R, Ctrl+G, …) alone.
+            if (event.metaKey || event.ctrlKey || event.altKey) return;
 
             const key = event.key.toLowerCase();
 
             switch (key) {
+                case 'g':
+                    event.preventDefault();
+                    (document.getElementById('guided-mode-panel') as HTMLInputElement)?.click();
+                    break;
+
                 case 's':
                     event.preventDefault();
                     this.toggleSimplifiedMode();
@@ -283,6 +297,19 @@ export class FeelingsWheelApp {
     }
 
     setupPanelControls(): void {
+        // Guided view: opt-in spotlight over the full wheel. Purely visual — selections
+        // and rotation are untouched, so switching it off returns the whole wheel as-is.
+        const guidedToggle = document.getElementById('guided-mode-panel') as HTMLInputElement;
+        guidedToggle.checked = false;
+        guidedToggle.addEventListener('change', () => {
+            this.wheelGenerator.setGuidedMode(guidedToggle.checked);
+            this.announce(
+                guidedToggle.checked
+                    ? 'Guided view on. Choose a core feeling to open the next ring.'
+                    : 'Guided view off. The full wheel is available.'
+            );
+        });
+
         // Setup simplified mode toggle
         const simplifiedModeToggle = document.getElementById(
             'simplified-mode-panel'

@@ -16,6 +16,7 @@ export class FeelingsWheelGenerator extends InteractionMixin(
         this.centerX = 300;
         this.centerY = 300;
         this.isSimplifiedMode = false;
+        this.isGuidedMode = false; // opt-in; the full wheel is the default view
         this.selectedWedges = new Set();
 
         // Structured wedge identity: maps a wedgeId string to its metadata

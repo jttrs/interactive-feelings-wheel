@@ -75,6 +75,8 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
         declare centerX: WheelInstance['centerX'];
         declare centerY: WheelInstance['centerY'];
         declare isSimplifiedMode: WheelInstance['isSimplifiedMode'];
+        declare isGuidedMode: WheelInstance['isGuidedMode'];
+        declare refreshGuidedFocus: () => void;
         declare wedgeRegistry: WheelInstance['wedgeRegistry'];
         declare currentRotation: WheelInstance['currentRotation'];
         declare coreRadius: WheelInstance['coreRadius'];
@@ -684,6 +686,7 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             currentState.hasBeenInitialized = true;
 
             this.setupEventListeners();
+            if (this.isGuidedMode) this.refreshGuidedFocus();
         }
 
         // ===== WEDGE LAYER (fill-only) =====

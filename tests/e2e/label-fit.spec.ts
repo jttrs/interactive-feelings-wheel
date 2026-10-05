@@ -95,11 +95,13 @@ test.describe('small-screen tip', () => {
         await open(page, 320, 568);
         const nudge = page.locator('#screen-nudge');
         await expect(nudge).toBeVisible();
-        await expect(nudge).toContainText('Simplified or Guided');
+        await expect(nudge).toContainText('to read it');
+        // It sits on the wheel it's about, not in the panel.
+        await expect(page.locator('.wheel-container #screen-nudge')).toHaveCount(1);
         await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
         await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
         await expect(page.locator('#wheel-container svg .tertiary-wedge').first()).toBeAttached();
-        await expect(page.locator('#sr-announcer')).toContainText('Small screen?');
+        await expect(page.locator('#sr-announcer')).toContainText('Simplified or Guided');
     });
 
     test('is hidden on a desktop wheel', async ({ page }) => {
@@ -124,6 +126,32 @@ test.describe('small-screen tip', () => {
         await page.waitForSelector('#wheel-container svg .wedge');
         await page.waitForTimeout(300);
         await expect(page.locator('#screen-nudge')).toBeHidden();
+    });
+
+    test('retires after the first press-and-hold, persisting across reloads', async ({
+        browser,
+    }) => {
+        const ctx = await browser.newContext({
+            viewport: { width: 390, height: 844 },
+            hasTouch: true,
+            isMobile: true,
+        });
+        const page = await ctx.newPage();
+        await page.goto('/index.html');
+        await page.waitForSelector('#wheel-container svg .wedge');
+        await expect(page.locator('#screen-nudge')).toBeVisible();
+        const box = (await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').boundingBox())!;
+        const cdp = await ctx.newCDPSession(page);
+        const pt = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt] });
+        await expect(page.locator('#wheel-lens')).toBeVisible();
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await expect(page.locator('#screen-nudge')).toBeHidden();
+        await page.reload();
+        await page.waitForSelector('#wheel-container svg .wedge');
+        await page.waitForTimeout(300);
+        await expect(page.locator('#screen-nudge')).toBeHidden();
+        await ctx.close();
     });
 
     test('hides while Simplified is on', async ({ page }) => {

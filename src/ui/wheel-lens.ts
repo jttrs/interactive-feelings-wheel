@@ -102,7 +102,13 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
         const w = wedgeFrom(e.target);
         if (!w || !e.isPrimary) return;
         down = { x: e.clientX, y: e.clientY, wedge: w };
-        if (e.pointerType !== 'mouse' || small(w)) show(w);
+        if (e.pointerType !== 'mouse' || small(w)) {
+            show(w);
+            // Lets the small-screen tip know its lesson ("press and hold") landed.
+            if (e.pointerType !== 'mouse') {
+                wheelRoot.dispatchEvent(new CustomEvent('wheel:lens-hold'));
+            }
+        }
     };
     const onMove = (e: PointerEvent) => {
         if (!down) return;

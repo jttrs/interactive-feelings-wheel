@@ -730,28 +730,38 @@ body {
     line-height: 1.5;
 }
 
-/* Small-screen tip: a quiet inset note under the empty-state hint. It only ever
-   appears on cramped (phone) wheels, so it is compact by default. Calm surface +
-   muted ink so it reads as help, not an alert. */
+/* Small-screen tip: a calm pill pinned to the bottom of the wheel area (the wheel it's
+   about), teaching the reading lens in one short line. Only appears on
+   cramped phone wheels and retires after first use, so it never lingers. */
 .screen-nudge {
+    position: absolute;
+    bottom: var(--space-2);
+    left: 50%;
+    z-index: 3;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
-    align-self: stretch;
     gap: var(--space-1);
-    padding: var(--space-1) 0 var(--space-1) var(--space-3);
-    text-align: left;
-    background: var(--color-surface-alt);
-    border-radius: var(--radius-sm);
+    width: max-content;
+    max-width: calc(100% - var(--space-5));
+    padding: 0 0 0 var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    box-shadow: var(--elev-2);
 }
 .screen-nudge[hidden] {
     display: none;
 }
 .screen-nudge__text {
-    flex: 1;
     margin: 0;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     line-height: 1.35;
     color: var(--color-ink-muted);
+}
+.screen-nudge__how {
+    color: var(--color-ink);
+    font-weight: var(--weight-medium);
 }
 .screen-nudge__dismiss {
     flex-shrink: 0;
@@ -771,34 +781,16 @@ body {
     width: 16px;
     height: 16px;
 }
-.screen-nudge__dismiss:focus-visible {
-    outline: var(--focus-ring-width) solid var(--color-focus);
-    outline-offset: -2px;
-}
 @media (hover: hover) {
     .screen-nudge__dismiss:hover {
         color: var(--color-accent-text);
-        background: var(--color-surface);
+        background: var(--color-surface-alt);
     }
 }
 @media (prefers-reduced-motion: no-preference) {
     .screen-nudge {
-        animation: screen-nudge-in var(--motion-slow) var(--ease-soft);
+        animation: fadeIn var(--motion-slow) var(--ease-soft);
     }
-}
-@keyframes screen-nudge-in {
-    from {
-        opacity: 0;
-    }
-}
-/* While the tip shows, the optional second sentence steps aside so the hint and
-   the tip both fit the phone sheet without scrolling. */
-.panel-empty:has(.screen-nudge:not([hidden])) {
-    gap: var(--space-1);
-    padding: var(--space-1) var(--space-2);
-}
-.panel-empty:has(.screen-nudge:not([hidden])) .empty-hint__more {
-    display: none;
 }
 
 /* The bottom sheet is short: keep the invitation compact so it never crowds the footer. */

@@ -1,9 +1,10 @@
-// ===== SMALL-SCREEN NUDGE =====
+// ===== SMALL-SCREEN TIP =====
 // When the full wheel's words render too small to read comfortably (the wheel
 // reports this via `wheel:labelfit` / data-labels-cramped), show a quiet, dismissible
-// note above the view chips suggesting Simplified or Guided. It is ONLY a suggestion:
-// it never toggles a view itself — the existing chips are the action. The full wheel
-// stays the default.
+// one-line tip on the wheel teaching the reading lens ("press and hold a word"); the
+// screen-reader version also suggests Simplified or Guided. It is ONLY a suggestion: nothing switches unless the user
+// presses a view button. It retires (persisted) once it has done its job — the first
+// lens hold, choosing an easier view, or dismissing it. The full wheel stays default.
 
 export const NUDGE_DISMISSED_KEY = 'ifw:small-screen-nudge-dismissed';
 
@@ -61,6 +62,15 @@ export function initSmallScreenNudge({
     container.addEventListener('wheel:labelfit', (event) => {
         cramped = Boolean((event as CustomEvent<{ cramped: boolean }>).detail?.cramped);
         update();
+    });
+
+    // Mouse users read small words by pointing, not pressing.
+    const how = nudge.querySelector<HTMLElement>('.screen-nudge__how');
+    if (how && window.matchMedia?.('(pointer: fine)').matches) how.textContent = 'Point at a word';
+
+    // First successful press-and-hold read: the lesson landed.
+    container.addEventListener('wheel:lens-hold', () => {
+        if (!nudge.hidden) dismiss();
     });
 
     viewToggles.forEach((toggle) =>

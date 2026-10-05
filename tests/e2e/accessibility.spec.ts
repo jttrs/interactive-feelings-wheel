@@ -251,6 +251,53 @@ test('keyboard: opening a view moves focus in; closing returns it to the opener'
     await expect(page.locator('#about-btn-panel')).toBeFocused();
 });
 
+test('keyboard: the Help body can be reached and scrolled (WCAG 2.1.1)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await page.locator('#help-btn-panel').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#view-help [data-view-back]')).toBeFocused();
+
+    const body = page.locator('#view-help .view-body--help');
+    await expect(body).toHaveAccessibleName('How to use the wheel');
+    const overflows = await body.evaluate((el) => el.scrollHeight > el.clientHeight);
+    expect(overflows).toBe(true);
+
+    await page.keyboard.press('Tab');
+    await expect(body).toBeFocused();
+    expect(await body.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+
+    const before = await body.evaluate((el) => el.scrollTop);
+    await page.keyboard.press('PageDown');
+    await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeGreaterThan(before);
+    await page.keyboard.press('End');
+    await expect
+        .poll(() => body.evaluate((el) => el.scrollTop + el.clientHeight >= el.scrollHeight - 1))
+        .toBe(true);
+    await expect(body.locator('.help-keys tr').last()).toBeInViewport();
+});
+
+test('every overflowing view body is keyboard-scrollable', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 480 });
+    for (const [btn, view] of [
+        ['#help-btn-panel', '#view-help'],
+        ['#about-btn-panel', '#view-about'],
+        ['#kofi-btn-panel', '#view-support'],
+    ]) {
+        await page.locator(btn).click();
+        await expect(page.locator(view)).toBeVisible();
+        const ok = await page.locator(`${view} .view-body`).evaluate((el) => {
+            if (el.scrollHeight <= el.clientHeight) return true;
+            const focusable = 'a[href], button, iframe, input, select, textarea, [tabindex]';
+            return (
+                (el.hasAttribute('tabindex') && (el as HTMLElement).tabIndex >= 0) ||
+                Array.from(el.querySelectorAll<HTMLElement>(focusable)).some((n) => n.tabIndex >= 0)
+            );
+        });
+        expect(ok, `${view} body overflows without a keyboard way to scroll it`).toBe(true);
+        await page.keyboard.press('Escape');
+    }
+});
+
 test('pointer: opening a view does not paint a focus ring on its back button', async ({ page }) => {
     await page.locator('#help-btn-panel').click();
     await expect(page.locator('#view-help')).toBeVisible();

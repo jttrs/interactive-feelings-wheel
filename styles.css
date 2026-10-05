@@ -91,8 +91,9 @@
     --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Fonts */
-    --font-body: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, -apple-system,
-        'Segoe UI', Roboto, sans-serif;
+    --font-body:
+        'Atkinson Hyperlegible', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+        sans-serif;
 
     /* Type scale — the feelings-tree tiers + definition, tokenized so every size/weight/
        leading lives in ONE place (was scattered literals). Same-level words share these
@@ -122,7 +123,7 @@
     --touch-target-min: max(44px, 3vmin); /* WCAG accessibility compliance */
     --spacing-unit: max(8px, 0.5vmin);
     --border-radius-base: max(8px, 0.5vmin);
-    
+
     /* DPI-aware scaling factors */
     --dpi-scale: 1;
     --font-scale: 1;
@@ -139,7 +140,7 @@
     }
 }
 
-/* Very high DPI displays (iPhone Plus, many Android flagships) */  
+/* Very high DPI displays (iPhone Plus, many Android flagships) */
 @media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 288dpi) {
     :root {
         --dpi-scale: 1.25;
@@ -384,10 +385,12 @@ body {
         margin: 0;
         border: none;
         border-top: 1px solid var(--color-border);
-        box-shadow: 0 -8px 24px rgba(43, 42, 40, 0.1), 0 -1px 4px rgba(43, 42, 40, 0.06);
+        box-shadow:
+            0 -8px 24px rgba(43, 42, 40, 0.1),
+            0 -1px 4px rgba(43, 42, 40, 0.06);
         padding-bottom: env(safe-area-inset-bottom);
     }
-    
+
     /* Mobile collapsed: the sheet folds down to just its handle, a pill resting
        above the bottom safe area. The panel box itself goes click-through so the
        wheel behind stays usable; only the handle takes taps. */
@@ -403,12 +406,12 @@ body {
         box-shadow: none;
         pointer-events: none;
     }
-    
+
     .info-panel.minimized .panel-content,
     .info-panel.minimized .panel-footer {
         display: none;
     }
-    
+
     .info-panel.minimized .mobile-collapse-handle {
         position: relative;
         top: auto;
@@ -505,11 +508,11 @@ body {
     border-radius: 0 0 var(--radius-md) var(--radius-md);
     cursor: pointer;
     z-index: 102;
-    
+
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    
+
     transition:
         background-color var(--motion-fast) var(--ease-soft),
         color var(--motion-fast) var(--ease-soft);
@@ -552,7 +555,7 @@ body {
     .mobile-collapse-handle {
         display: flex;
     }
-    
+
     .panel-minimize-tab {
         display: none; /* Hide desktop tab on mobile */
     }
@@ -574,8 +577,14 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ===== IN-PANEL VIEWS =====
@@ -1153,7 +1162,6 @@ body {
     border: 0;
 }
 
-
 /* CSS-only tooltip from data-tip. Appears above the button on hover/focus. */
 .hero-btn[data-tip]::after {
     content: attr(data-tip);
@@ -1297,7 +1305,9 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .panel-empty { animation: none; }
+    .panel-empty {
+        animation: none;
+    }
 }
 
 /* Mobile-specific panel adjustments */
@@ -1349,7 +1359,7 @@ body {
     .main-layout {
         flex-direction: column;
     }
-    
+
     .info-panel {
         position: fixed;
         bottom: 0;
@@ -1417,14 +1427,16 @@ svg text {
 @media (prefers-reduced-motion: reduce) {
     /* Not `text`: a label's rotate() is its static radial layout, not motion —
        removing it lays every word flat across its neighbours. */
-    svg, path:not(.shadow-wedge), .wheel-main-group {
+    svg,
+    path:not(.shadow-wedge),
+    .wheel-main-group {
         /* Disable hardware acceleration if user prefers reduced motion */
         will-change: auto;
         transform: none;
     }
 }
 
-/* ===== END SVG OPTIMIZATION ===== */ 
+/* ===== END SVG OPTIMIZATION ===== */
 
 /* ===== MICRO-INTERACTIONS & SMOOTH ANIMATIONS ===== */
 
@@ -1573,4 +1585,4 @@ svg.animating {
     }
 }
 
-/* ===== END MICRO-INTERACTIONS ===== */ 
+/* ===== END MICRO-INTERACTIONS ===== */

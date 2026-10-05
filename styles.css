@@ -925,6 +925,9 @@ body {
    type is owned by .feeling-name above). Do NOT use the `font` shorthand: it also sets
    line-height and would clobber the baseline. */
 .feeling-name--toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
     background: transparent;
     border: none;
     padding: 0;
@@ -933,8 +936,37 @@ body {
     cursor: pointer;
     transition: color var(--motion-fast) var(--ease-soft);
 }
-.feeling-name--toggle:hover {
-    color: var(--color-accent-text);
+/* Disclosure chevron: says "this opens" without needing hover. Points right when the
+   meaning is hidden, down when shown; drawn from borders so it inherits text colour. */
+.feeling-name--toggle::after {
+    content: '';
+    flex: none;
+    width: 0.42em;
+    height: 0.42em;
+    margin-top: -0.1em;
+    border-right: 2px solid var(--color-ink-faint);
+    border-bottom: 2px solid var(--color-ink-faint);
+    transform: rotate(-45deg);
+    transition:
+        transform var(--motion-base) var(--ease-soft),
+        border-color var(--motion-fast) var(--ease-soft);
+}
+.feeling-name--toggle[aria-expanded='true']::after {
+    margin-top: -0.3em;
+    transform: rotate(45deg);
+}
+@media (hover: hover) {
+    .feeling-name--toggle:hover {
+        color: var(--color-accent-text);
+    }
+    .feeling-name--toggle:hover::after {
+        border-color: var(--color-accent);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .feeling-name--toggle::after {
+        transition: none;
+    }
 }
 .feeling-node--core .feeling-name {
     font-size: var(--text-core);

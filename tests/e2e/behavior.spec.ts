@@ -744,3 +744,18 @@ test('on a phone, pressing a wedge shows its word large and a tap still chooses 
     await expect(wedge).toHaveAttribute('aria-pressed', 'true');
     await ctx.close();
 });
+
+test('feeling names that reveal a meaning carry a chevron that turns with the state', async ({
+    page,
+}) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    const toggle = page.locator('.feeling-node--core .feeling-name--toggle');
+    const chevron = () => toggle.evaluate((el) => getComputedStyle(el, '::after').transform);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    const closed = await chevron();
+    expect(closed).not.toBe('none');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(await chevron()).not.toBe(closed);
+});

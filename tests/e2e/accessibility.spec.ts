@@ -236,6 +236,13 @@ test('the back button returns an in-panel view to explore and it owns focus', as
     await back.click();
     await expect(page.locator('#view-help')).toBeHidden();
     await expect(page.locator('#view-explore')).toBeVisible();
+    // Focus returns to the control that opened it, never <body>.
+    await expect(page.locator('#help-btn-panel')).toBeFocused();
+
+    await page.locator('#about-btn-panel').click();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#view-about')).toBeHidden();
+    await expect(page.locator('#about-btn-panel')).toBeFocused();
 });
 
 test('about opens in-panel (attribution not full-time) with the credits', async ({ page }) => {
@@ -388,4 +395,44 @@ test('on mobile, collapsing from inside the sheet moves focus to the sheet handl
     await page.locator('#reset-btn-panel').focus();
     await page.keyboard.press('p');
     await expect(page.locator('#mobile-collapse-handle')).toBeFocused();
+});
+
+test('shortcuts are exposed on their controls', async ({ page }) => {
+    await expect(page.locator('#guided-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'G');
+    await expect(page.locator('#simplified-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'S');
+    await expect(page.locator('#reset-btn-panel')).toHaveAttribute('aria-keyshortcuts', 'R');
+    await expect(page.locator('#panel-minimize-tab')).toHaveAttribute('aria-keyshortcuts', 'P');
+    await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute('aria-keyshortcuts', 'F11');
+});
+
+test('the keyboard lens teaches the keys for the first few feelings, then gets quiet', async ({
+    page,
+}) => {
+    const keys = page.locator('#wheel-lens .wheel-lens__keys');
+    await page.locator('.core-wedge[data-emotion="Angry"]').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(keys).toBeVisible();
+    await expect(keys).toContainText('change ring');
+    for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowRight');
+    // Retired: the full list steps back to a pointer…
+    await expect(keys).toHaveText('Press ? for keys');
+    await expect(page.locator('#wheel-lens .wheel-lens__word')).toBeVisible();
+    // …and ? brings it back on demand (and ? again tucks it away).
+    await page.keyboard.press('?');
+    await expect(keys).toContainText('change ring');
+    await page.keyboard.press('ArrowRight');
+    await expect(keys).toContainText('change ring');
+    await page.keyboard.press('?');
+    await expect(keys).toHaveText('Press ? for keys');
+});
+
+test('the empty state mentions that the wheel turns', async ({ page }) => {
+    await expect(page.locator('#panel-instructions')).toContainText('Drag the wheel to turn it.');
+    await expect(page.locator('#panel-instructions')).toContainText('Too much at once?');
+    await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+
+    // The suggestion is an action — but only when pressed.
+    await page.locator('.inline-action[data-toggle="guided-mode-panel"]').click();
+    await expect(page.locator('#guided-mode-panel')).toBeChecked();
+    await expect(page.locator('.empty-hint--aside')).toBeHidden(); // status line takes over
 });

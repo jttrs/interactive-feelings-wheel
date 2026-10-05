@@ -21,11 +21,38 @@
                 <section class="wheel-section" aria-label="Feelings wheel">
                     <div class="wheel-container">
                         <div id="wheel-container"></div>
+                        <!-- Small-screen tip, on the wheel it's about: shown only when the
+                             full wheel's words render too small. Teaches the reading lens and
+                             offers the easier views; it never switches a view by itself. -->
+                        <div
+                            class="screen-nudge"
+                            id="screen-nudge"
+                            hidden
+                            data-announce="Words look small on this screen. Press and hold any word to read it larger, or try Simplified or Guided view."
+                        >
+                            <p class="screen-nudge__text">
+                                <span class="screen-nudge__how">Press and hold a word</span> to read
+                                it.
+                            </p>
+                            <button
+                                type="button"
+                                class="screen-nudge__dismiss"
+                                id="screen-nudge-dismiss"
+                                aria-label="Dismiss tip"
+                            >
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M6 6l12 12M18 6L6 18"></path>
+                                </svg>
+                            </button>
+                        </div>
                         <!-- Reading lens: a large copy of the pressed/focused wedge's word
                              (visual only; wedges carry their own accessible names) -->
                         <div class="wheel-lens" id="wheel-lens" aria-hidden="true" hidden>
                             <span class="wheel-lens__path"></span>
                             <span class="wheel-lens__word"></span>
+                            <span class="wheel-lens__keys" hidden
+                                >← → move · ↓ ↑ change ring · Enter chooses</span
+                            >
                         </div>
                     </div>
                     <!-- Guided view caption (visual only; the live region speaks for screen readers) -->
@@ -41,6 +68,7 @@
                     <button
                         class="mobile-collapse-handle"
                         id="mobile-collapse-handle"
+                        aria-keyshortcuts="P"
                         type="button"
                         aria-controls="panel-content"
                         aria-expanded="true"
@@ -62,6 +90,17 @@
                             <div class="view-head">
                                 <h2 class="view-title">How are you feeling?</h2>
                             </div>
+                            <!-- Which easier view is on, in words, with a one-tap way back. -->
+                            <div class="view-status" id="view-status" hidden>
+                                <p class="view-status__text" id="view-status-text"></p>
+                                <button
+                                    type="button"
+                                    class="view-status__reset"
+                                    id="view-status-reset"
+                                >
+                                    Show full wheel
+                                </button>
+                            </div>
                             <div class="view-body view-body--explore">
                                 <div class="panel-empty" id="panel-instructions">
                                     <p class="empty-hint">
@@ -71,32 +110,27 @@
                                             Pick as many as fit — there are no wrong answers.</span
                                         >
                                     </p>
-                                    <!-- Shown only when the full wheel's words render too small to read
-                                     comfortably. A suggestion only — the view chips are the action. -->
-                                    <div
-                                        class="screen-nudge"
-                                        id="screen-nudge"
-                                        hidden
-                                        data-announce="Small screen? Simplified or Guided view can make words easier to read."
-                                    >
-                                        <p class="screen-nudge__text">
-                                            Small screen? Try Simplified or Guided.
-                                        </p>
+                                    <p class="empty-hint empty-hint--aside">
+                                        <span class="empty-hint__drag"
+                                            >Drag the wheel to turn it. </span
+                                        >Too much at once? Try
                                         <button
                                             type="button"
-                                            class="screen-nudge__dismiss"
-                                            id="screen-nudge-dismiss"
-                                            aria-label="Dismiss tip"
+                                            class="inline-action"
+                                            data-toggle="guided-mode-panel"
                                         >
-                                            <svg
-                                                class="hero-ic"
-                                                viewBox="0 0 24 24"
-                                                aria-hidden="true"
-                                            >
-                                                <path d="M6 6l12 12M18 6L6 18"></path>
-                                            </svg>
+                                            Guided
                                         </button>
-                                    </div>
+                                        or
+                                        <button
+                                            type="button"
+                                            class="inline-action"
+                                            data-toggle="simplified-mode-panel"
+                                        >
+                                            Simplified
+                                        </button>
+                                        view.
+                                    </p>
                                 </div>
                                 <div class="emotion-tiles" id="emotion-tiles">
                                     <!-- The selected-feelings tree is rendered here dynamically -->
@@ -169,6 +203,10 @@
                                         / Page Down jump to the next family;
                                         <kbd class="kbd">Enter</kbd> or
                                         <kbd class="kbd">Space</kbd> chooses a feeling.
+                                    </p>
+                                    <p class="help-line">
+                                        Press <kbd class="kbd">?</kbd> on the wheel to show these
+                                        keys beside the word you’re on.
                                     </p>
                                 </section>
 
@@ -367,8 +405,13 @@
                                 type="checkbox"
                                 id="guided-mode-panel"
                                 class="hero-toggle-input"
+                                aria-keyshortcuts="G"
                             />
-                            <label for="guided-mode-panel" class="view-chip">
+                            <label
+                                for="guided-mode-panel"
+                                class="view-chip"
+                                title="Guided view (G)"
+                            >
                                 <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
                                     <circle cx="12" cy="12" r="9" stroke-dasharray="2 3"></circle>
                                     <circle cx="12" cy="12" r="3.5"></circle>
@@ -380,8 +423,13 @@
                                 type="checkbox"
                                 id="simplified-mode-panel"
                                 class="hero-toggle-input"
+                                aria-keyshortcuts="S"
                             />
-                            <label for="simplified-mode-panel" class="view-chip">
+                            <label
+                                for="simplified-mode-panel"
+                                class="view-chip"
+                                title="Simplified view (S)"
+                            >
                                 <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
                                     <circle cx="12" cy="12" r="9"></circle>
                                     <circle cx="12" cy="12" r="4"></circle>
@@ -394,6 +442,7 @@
                                 class="view-chip"
                                 type="button"
                                 aria-pressed="false"
+                                aria-keyshortcuts="F11"
                             >
                                 <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
                                     <path
@@ -410,6 +459,8 @@
                                 class="hero-btn hero-btn--labelled"
                                 type="button"
                                 aria-label="Reset the wheel"
+                                aria-keyshortcuts="R"
+                                title="Reset (R)"
                             >
                                 <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
@@ -478,6 +529,8 @@
                 <button
                     class="panel-minimize-tab"
                     id="panel-minimize-tab"
+                    aria-keyshortcuts="P"
+                    title="Hide or show the panel (P)"
                     aria-controls="info-panel"
                     aria-label="Hide feelings panel"
                     aria-expanded="true"

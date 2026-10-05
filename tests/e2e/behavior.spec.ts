@@ -618,7 +618,7 @@ test('Simplified view keeps outer-ring choices chosen and says so; full view sho
     await expect(page.locator('.tertiary-wedge')).toHaveCount(0);
     await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(2);
     await expect(page.locator('.feeling-node.is-selected')).toHaveCount(3);
-    await expect(page.locator('.hidden-ring-note')).toContainText('stays chosen');
+    await expect(page.locator('#view-status')).toContainText('Still chosen but hidden: Cheeky.');
     await expect(page.locator('#sr-announcer')).toContainText(
         '1 chosen feeling is in the hidden outer ring and stays chosen.'
     );
@@ -628,7 +628,7 @@ test('Simplified view keeps outer-ring choices chosen and says so; full view sho
         'aria-pressed',
         'true'
     );
-    await expect(page.locator('.hidden-ring-note')).toHaveCount(0);
+    await expect(page.locator('#view-status')).toBeHidden();
 });
 
 // Drag vs tap: a drag that starts and ends on wedges rotates but never selects;
@@ -779,4 +779,34 @@ test('the reading lens shows when a key is pressed on a wedge focused by script'
     await page.keyboard.press('ArrowDown'); // can't move in Guided yet — still a keyboard user
     await expect(page.locator('.core-wedge[data-emotion="Angry"]')).toBeFocused();
     await expect(page.locator('#wheel-lens .wheel-lens__word')).toHaveText('Angry');
+});
+
+test('an easier view says so in words, with a one-tap way back to the full wheel', async ({
+    page,
+}) => {
+    const status = page.locator('#view-status');
+    await expect(status).toBeHidden();
+    await page.locator('label[for="guided-mode-panel"]').click();
+    await expect(status).toBeVisible();
+    await expect(status).toContainText('Guided view');
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect(status).toContainText('Guided + Simplified');
+
+    await page.locator('#view-status-reset').click();
+    await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+    await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
+    await expect(status).toBeHidden();
+    await expect(page.locator('.wedge[data-guided-rest]')).toHaveCount(0);
+    await expect(page.locator('.tertiary-wedge').first()).toBeAttached();
+    await expect(page.locator('#view-explore .view-title')).toBeFocused();
+});
+
+test('on a phone the status line counts hidden choices in its short form', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(200);
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect(page.locator('.view-status__short')).toHaveText(
+        'Simplified view on. 1 hidden choice.'
+    );
 });

@@ -338,6 +338,29 @@ export class FeelingsWheelApp {
                     ? 'Guided view on. Choose a core feeling to open the next ring.'
                     : 'Guided view off. The full wheel is available.'
             );
+            this.updateViewStatus();
+        });
+
+        // In-copy view suggestions ("Try Guided or Simplified view") act on the real
+        // toggles, only when pressed — the full wheel stays the default.
+        document.querySelectorAll<HTMLButtonElement>('.inline-action[data-toggle]').forEach((btn) =>
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(
+                    btn.dataset.toggle!
+                ) as HTMLInputElement | null;
+                if (input && !input.checked) input.click();
+            })
+        );
+
+        // 'Show full wheel' turns every easier view off (through the real toggles, so
+        // each one announces and updates exactly as if its chip were pressed).
+        document.getElementById('view-status-reset')?.addEventListener('click', () => {
+            for (const id of ['guided-mode-panel', 'simplified-mode-panel']) {
+                const t = document.getElementById(id) as HTMLInputElement | null;
+                if (t?.checked) t.click();
+            }
+            this.announce('Full wheel shown.');
+            this.focusPanelHeading();
         });
 
         // Setup simplified mode toggle
@@ -353,6 +376,7 @@ export class FeelingsWheelApp {
             this.wheelGenerator.setSimplifiedMode(isSimplified);
             this.recreateTilesFromWheelState();
             this.updateInstructionsVisibility();
+            this.updateViewStatus();
 
             const hidden = this.hiddenSelectionCount();
             this.announce(
@@ -418,6 +442,11 @@ export class FeelingsWheelApp {
 
     showView(name: string): void {
         const target = this.views[name] || this.views.explore;
+        const previous = this.currentView;
+        const closing = previous ? this.views[previous] : null;
+        // Was focus inside the view we're about to hide (e.g. its Back button)?
+        const focusWasInClosing =
+            !!closing && closing !== target && closing.contains(document.activeElement);
 
         Object.entries(this.views).forEach(([key, el]) => {
             if (!el) return;
@@ -441,6 +470,14 @@ export class FeelingsWheelApp {
         if (name !== 'explore') {
             const back = target!.querySelector('[data-view-back]') as HTMLElement | null;
             if (back) back.focus();
+        } else if (previous && previous !== 'explore') {
+            // Closing Help/About/Support: return focus to the footer button that opened it
+            // (it was hidden with the view, so focus would otherwise fall to <body>) —
+            // unless the user has already moved on (e.g. chose a feeling on the wheel).
+            const active = document.activeElement;
+            if (focusWasInClosing || !active || active === document.body) {
+                document.querySelector<HTMLElement>(`.hero-btn[data-view="${previous}"]`)?.focus();
+            }
         }
     }
 
@@ -491,26 +528,23 @@ export class FeelingsWheelApp {
             getFamilyColor: (family) => FEELINGS_DATA.getCoreEmotionColor(family),
         });
 
-        const hidden = this.hiddenSelectionCount();
-        if (hidden) {
-            const note = document.createElement('p');
-            note.className = 'hidden-ring-note';
-            note.textContent =
-                hidden === 1
-                    ? 'One of these is in the outer ring, which Simplified view hides. It stays chosen.'
-                    : `${hidden} of these are in the outer ring, which Simplified view hides. They stay chosen.`;
-            container.replaceChildren(note, element);
-        } else {
-            container.replaceChildren(element);
-        }
+        container.replaceChildren(element);
+        // Hidden-but-chosen feelings are named in the view status line.
+        this.updateViewStatus();
     }
 
-    // Chosen feelings that exist but aren't drawn (outer ring while Simplified is on).
+    // Chosen feelings that exist but aren't drawn (outer ring while Simplified is on),
+    // in wheel order.
+    hiddenSelections(): string[] {
+        if (!this.wheelGenerator?.isSimplifiedMode) return [];
+        return [...this.wheelGenerator.selectedWedges]
+            .map((id) => this.wheelGenerator.parseUniqueWedgeId(id))
+            .filter((m) => m.level === 'tertiary')
+            .map((m) => m.emotion);
+    }
+
     hiddenSelectionCount(): number {
-        if (!this.wheelGenerator?.isSimplifiedMode) return 0;
-        return [...this.wheelGenerator.selectedWedges].filter(
-            (id) => this.wheelGenerator.parseUniqueWedgeId(id).level === 'tertiary'
-        ).length;
+        return this.hiddenSelections().length;
     }
 
     isSimplifiedActive(): boolean {
@@ -633,6 +667,46 @@ export class FeelingsWheelApp {
             );
         }
         if (handleArrow) handleArrow.textContent = minimized ? '▲' : '▼';
+    }
+
+    // Say in words which easier view is on (the chips only show it by colour), so the
+    // wheel's current shape is never a puzzle — and offer a one-tap way back.
+    updateViewStatus(): void {
+        const status = document.getElementById('view-status');
+        const text = document.getElementById('view-status-text');
+        if (!status || !text) return;
+        const guided = (document.getElementById('guided-mode-panel') as HTMLInputElement)?.checked;
+        const simplified = this.isSimplifiedActive();
+        status.hidden = !guided && !simplified;
+        const [short, long] =
+            guided && simplified
+                ? [
+                      'Guided + Simplified on.',
+                      'Guided + Simplified: outer ring hidden; rings open as you choose.',
+                  ]
+                : guided
+                  ? ['Guided view on.', 'Guided view: rings open as you choose.']
+                  : simplified
+                    ? [
+                          'Simplified view on.',
+                          'Simplified view: outer ring hidden, simpler meanings.',
+                      ]
+                    : ['', ''];
+        // Name what Simplified is hiding but still counts as chosen, so nothing chosen is
+        // ever invisible without being said.
+        const hidden = this.hiddenSelections();
+        const hiddenLong = hidden.length ? ` Still chosen but hidden: ${hidden.join(', ')}.` : '';
+        const hiddenShort = hidden.length
+            ? ` ${hidden.length} hidden choice${hidden.length === 1 ? '' : 's'}.`
+            : '';
+        // Short form for the cramped phone sheet; the full explanation everywhere else.
+        const s = document.createElement('span');
+        s.className = 'view-status__short';
+        s.textContent = short + hiddenShort;
+        const l = document.createElement('span');
+        l.className = 'view-status__long';
+        l.textContent = long + hiddenLong;
+        text.replaceChildren(s, l);
     }
 
     // Land keyboard/screen-reader focus on the visible panel view's heading, with a

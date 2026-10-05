@@ -226,62 +226,6 @@
     outline: none;
 }
 
-/* Easier-view status: one quiet line under the panel heading while Focused and/or
-   Simplified is on, with a text button back to the full wheel. */
-.view-status {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--space-1) var(--space-3);
-    padding: var(--space-3) var(--space-5);
-    background: var(--color-surface-alt);
-    border-bottom: 1px solid var(--color-border);
-}
-.view-status[hidden] {
-    display: none;
-}
-.view-status__text {
-    flex: 1 1 14rem;
-    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.4;
-    color: var(--color-ink-muted);
-}
-.view-status__short {
-    display: none;
-}
-
-/* Phone bottom sheet: one compact row so the chosen feelings keep their room. */
-@media (max-width: 767px) and (orientation: portrait) {
-    .view-status {
-        flex-wrap: nowrap;
-        align-items: center;
-        padding: var(--space-1) var(--space-5);
-    }
-    .view-status__short {
-        display: inline;
-    }
-    .view-status__long {
-        display: none;
-    }
-    .view-status__text {
-        flex: 1 1 auto;
-    }
-}
-
-.view-status__reset {
-    padding: var(--space-1) 0;
-    font: inherit;
-    font-size: 0.875rem;
-    font-weight: var(--weight-medium);
-    color: var(--color-accent-text);
-    background: none;
-    border: none;
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-    cursor: pointer;
-}
-
 /* Skip-link landing spot: the visible view's heading shows the standard ring. */
 .view-title:focus-visible {
     outline: var(--focus-ring-width) solid var(--color-focus);
@@ -736,6 +680,11 @@ body {
     color: var(--color-ink-muted);
     cursor: pointer;
     transition: background-color var(--motion-fast) var(--ease-soft);
+}
+.view-back:focus-visible {
+    /* Inset ring: hugs the 44px target instead of floating a box around it. */
+    outline-offset: calc(-1 * var(--focus-ring-width));
+    border-radius: var(--radius-md);
 }
 .view-back:hover {
     background: var(--color-surface-alt);
@@ -1193,6 +1142,17 @@ body {
     border-top: 1px solid var(--color-border);
 }
 
+/* Names the chip group, so Focused/Simplified read as views, not feeling words. */
+.footer-label {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: var(--weight-medium);
+    line-height: 1.2;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+}
+
 .view-toggles {
     display: flex;
     flex-wrap: wrap;
@@ -1518,17 +1478,6 @@ body {
     white-space: nowrap;
 }
 
-/* Long-form keyboard detail stays out of the way until asked for. */
-.help-more summary {
-    cursor: pointer;
-    font-weight: var(--weight-medium);
-    color: var(--color-accent-text);
-    padding: var(--space-1) 0;
-}
-.help-more[open] summary {
-    margin-bottom: var(--space-2);
-}
-
 /* Keyboard key — a raised keycap, clearly NOT a control lozenge. */
 .kbd {
     display: inline-flex;
@@ -1579,9 +1528,7 @@ body {
         min-height: 36px;
     }
 
-    /* Short sheet: the Focused/Simplified chips sit right below, so the in-copy
-       suggestion would only be clipped. */
-    .empty-hint__more,
+    /* Short sheet: keep only the one line that says how the wheel works. */
     .empty-hint--aside {
         display: none;
     }

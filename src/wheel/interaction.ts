@@ -7,6 +7,7 @@ import type {
     ScrollPhysics,
     EffectCtx,
 } from '../types.ts';
+import { usingKeyboard } from '../ui/input-modality.ts';
 import { applyFocusedView, FOCUSED_REST_ATTR } from './focused-view.ts';
 import {
     isNavKey,
@@ -298,7 +299,10 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             this.updateRotation();
             this.applySelectedWedges();
 
-            if (focusedId) this.restoreFocusAfterRegenerate(focusedId, focusedMeta);
+            // Keyboard users keep their place; after a click there's no place to keep.
+            if (focusedId && usingKeyboard()) {
+                this.restoreFocusAfterRegenerate(focusedId, focusedMeta);
+            }
 
             // REMOVED REDUNDANT CALL: generate() already handles all responsive scaling
             // this.updateAllResponsiveScaling(); // Not needed - generate() does this

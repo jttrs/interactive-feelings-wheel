@@ -351,7 +351,7 @@
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Chips, Reset, status links."
+        "purpose": "Chips and Reset."
       },
       "lens-word": {
         "displayName": "Lens word",
@@ -460,14 +460,6 @@
       "description": "Read-only family stem with stepped depth and a definition under the chosen word.",
       "html": "<section class=\"ds-family\"><p class=\"ds-f ds-core\">Happy <i></i></p><p class=\"ds-f ds-sec\">Playful <i class=\"ds-open\"></i></p><p class=\"ds-def\">Light, spontaneous, and ready to have fun without taking things too seriously.</p></section><p class=\"ds-hint\">To remove one, choose it again on the wheel.</p>",
       "css": ".ds-family{position:relative;padding-left:16px;font-family:'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;color:#2b2a28}.ds-family::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;border-radius:2px;background:#FFFF99}.ds-f{display:flex;align-items:center;gap:.4em;margin:0 0 6px;line-height:1.2}.ds-core{font-size:1.25rem;font-weight:700}.ds-sec{font-size:1.05rem;font-weight:600;padding-left:16px}.ds-f i{width:.42em;height:.42em;border-right:2px solid #736b5e;border-bottom:2px solid #736b5e;transform:rotate(-45deg)}.ds-f i.ds-open{transform:rotate(45deg);margin-top:-.3em}.ds-def{margin:0 0 0 32px;max-width:42ch;font-size:.85rem;line-height:1.45;color:#5e574c}.ds-hint{margin:12px 0 0;font:400 .8rem/1.4 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;color:#736b5e}"
-    },
-    {
-      "name": "View status line",
-      "kind": "custom",
-      "refersTo": "status-line",
-      "description": "Says which view is on in words, with a way back.",
-      "html": "<div class=\"ds-status\"><p>Simplified view: outer ring hidden, simpler meanings. Still chosen but hidden: Cheeky.</p><button>Show full wheel</button></div>",
-      "css": ".ds-status{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:12px 24px;background:#f2eee7;border-bottom:1px solid #e4ded4;font-family:'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif}.ds-status p{flex:1 1 14rem;margin:0;font-size:.875rem;line-height:1.4;color:#5e574c}.ds-status button{padding:4px 0;font:600 .875rem 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;color:#1f4e4d;background:none;border:none;text-decoration:underline;text-underline-offset:.2em;cursor:pointer}.ds-status button:focus-visible{outline:3px solid #1b4d4c;outline-offset:2px}"
     },
     {
       "name": "Reading lens",

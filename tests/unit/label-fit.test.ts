@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { maxFittingFontSize, ringTargetSize } from '../../src/wheel/label-fit.ts';
 import { initSmallScreenNudge, NUDGE_DISMISSED_KEY } from '../../src/ui/small-screen-nudge.ts';
+import { trackInputModality } from '../../src/ui/input-modality.ts';
 import { createTestWheel } from '../helpers/wheel.ts';
 
 describe('maxFittingFontSize', () => {
@@ -125,15 +126,27 @@ describe('small-screen nudge', () => {
         expect(focused.checked).toBe(false);
     });
 
-    it('dismisses persistently and moves focus to the view options', () => {
+    it('dismisses persistently and, for keyboard users, moves focus to the view options', () => {
+        trackInputModality();
         init();
         fit(true);
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
         dismissButton.click();
         expect(nudge.hidden).toBe(true);
         expect(store.get(NUDGE_DISMISSED_KEY)).toBe('1');
         expect(document.activeElement).toBe(simplified);
         fit(true);
         expect(nudge.hidden).toBe(true);
+    });
+
+    it('leaves focus alone when dismissed by pointer', () => {
+        trackInputModality();
+        init();
+        fit(true);
+        document.dispatchEvent(new Event('pointerdown'));
+        dismissButton.click();
+        expect(nudge.hidden).toBe(true);
+        expect(document.activeElement).not.toBe(simplified);
     });
 
     it('stays dismissed on a later page load', () => {

@@ -107,17 +107,6 @@
                             <div class="view-head">
                                 <h2 class="view-title">How are you feeling?</h2>
                             </div>
-                            <!-- Which view is on, in words, with a one-tap way back to the full wheel. -->
-                            <div class="view-status" id="view-status" hidden>
-                                <p class="view-status__text" id="view-status-text"></p>
-                                <button
-                                    type="button"
-                                    class="view-status__reset"
-                                    id="view-status-reset"
-                                >
-                                    Show full wheel
-                                </button>
-                            </div>
                             <div class="view-body view-body--explore">
                                 <!-- After Reset: a short-lived way to bring the cleared feelings back
                                      (nothing is saved; it's gone after a few seconds or a new choice). -->
@@ -133,11 +122,8 @@
                                 </div>
                                 <div class="panel-empty" id="panel-instructions">
                                     <p class="empty-hint">
-                                        Choose any word on the wheel that feels close.<span
-                                            class="empty-hint__more"
-                                        >
-                                            Pick as many as fit — there are no wrong answers.</span
-                                        >
+                                        Select a word on the wheel to see its definition here.
+                                        Select it again to remove it.
                                     </p>
                                     <p class="empty-hint empty-hint--aside">
                                         <span class="empty-hint__drag"
@@ -246,8 +232,8 @@
                                     </table>
                                 </section>
 
-                                <details class="help-more">
-                                    <summary>Moving around the wheel with a keyboard</summary>
+                                <section class="help-group">
+                                    <h3 class="help-group__title">Keyboard</h3>
                                     <table class="help-keys">
                                         <tbody>
                                             <tr>
@@ -287,7 +273,7 @@
                                             </tr>
                                         </tbody>
                                     </table>
-                                </details>
+                                </section>
                             </div>
                         </div>
 
@@ -393,7 +379,8 @@
                     <!-- Panel Footer: two small chunks. The two views are labelled toggles
                      (they change the wheel itself); actions sit beneath as icons. -->
                     <footer class="panel-footer">
-                        <div class="view-toggles" role="group" aria-label="View options">
+                        <p class="footer-label" id="views-label">Views</p>
+                        <div class="view-toggles" role="group" aria-labelledby="views-label">
                             <input
                                 type="checkbox"
                                 id="focused-mode-panel"

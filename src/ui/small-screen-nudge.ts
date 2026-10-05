@@ -6,6 +6,8 @@
 // are the therapist's choices. It retires (persisted) after the first lens hold,
 // once a view is chosen, or when dismissed.
 
+import { usingKeyboard } from './input-modality.ts';
+
 export const NUDGE_DISMISSED_KEY = 'ifw:small-screen-nudge-dismissed';
 
 export interface SmallScreenNudgeOptions {
@@ -84,7 +86,7 @@ export function initSmallScreenNudge({
     dismissButton.addEventListener('click', () => {
         dismiss();
         // The note's own button vanished; land focus on the view options it pointed to.
-        viewToggles[0]?.focus();
+        if (usingKeyboard()) viewToggles[0]?.focus();
     });
 
     update();

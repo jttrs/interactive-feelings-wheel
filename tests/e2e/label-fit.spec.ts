@@ -23,7 +23,7 @@ async function open(page: Page, width: number, height: number) {
 
 async function collapsePanel(page: Page) {
     const handle = page.locator('#mobile-collapse-handle');
-    const tab = page.locator('#panel-minimize-tab');
+    const tab = page.locator('#panel-hide-btn');
     await ((await handle.isVisible()) ? handle : tab).click();
     await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
     // Let the resize-driven regenerate + refit settle.
@@ -101,7 +101,7 @@ test.describe('small-screen tip', () => {
         await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
         await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
         await expect(page.locator('#wheel-container svg .tertiary-wedge').first()).toBeAttached();
-        await expect(page.locator('#sr-announcer')).toContainText('Simplified or Guided');
+        await expect(page.locator('#sr-announcer')).toContainText('Press and hold any word');
     });
 
     test('is hidden on a desktop wheel', async ({ page }) => {

@@ -41,7 +41,7 @@ export class FeelingsWheelApp {
         // Setup information panel (this will handle all controls now)
         this.setupInformationPanel();
 
-        // Cramped full wheel → gently suggest Simplified/Guided (never switches by itself).
+        // Cramped full wheel → a one-line tip teaching the reading lens (never switches views).
         // Reading lens: large copy of the pressed / hovered-small / keyboard-focused word.
         createWheelLens(document.getElementById('wheel-lens')!, wheelContainer);
 
@@ -145,7 +145,7 @@ export class FeelingsWheelApp {
             // nothing happened instead of failing silently.
             this.announce("Fullscreen isn't available here.");
             const btn = document.getElementById('fullscreen-btn-panel');
-            if (btn) btn.title = "Fullscreen isn't available here";
+            if (btn) btn.dataset.tip = "Fullscreen isn't available here";
         }
     }
 
@@ -195,7 +195,7 @@ export class FeelingsWheelApp {
         if (fullscreenButton) {
             const on = this.isCurrentlyFullscreen();
             fullscreenButton.setAttribute('aria-pressed', String(on));
-            fullscreenButton.title = on ? 'Exit fullscreen (Esc)' : 'Enter fullscreen (F11)';
+            fullscreenButton.dataset.tip = on ? 'Exit fullscreen (Esc)' : 'Fullscreen (F11)';
         }
     }
 
@@ -239,7 +239,7 @@ export class FeelingsWheelApp {
             const key = event.key.toLowerCase();
 
             switch (key) {
-                case 'g':
+                case 'f':
                     event.preventDefault();
                     (document.getElementById('guided-mode-panel') as HTMLInputElement)?.click();
                     break;
@@ -290,13 +290,14 @@ export class FeelingsWheelApp {
         // The selected-feelings tree is rebuilt wholesale from the wheel's selectedWedges
         // (the source of truth) on every change — no per-tile handle map to keep in sync.
 
-        // Setup panel minimization (desktop)
-        const minimizeTab = document.getElementById('panel-minimize-tab')!;
-        minimizeTab.addEventListener('click', () => {
-            this.togglePanelMinimization();
-        });
+        // Desktop / landscape hide (in the panel) and show (screen corner) buttons.
+        for (const id of ['panel-hide-btn', 'panel-show-btn']) {
+            document
+                .getElementById(id)
+                ?.addEventListener('click', () => this.togglePanelMinimization());
+        }
 
-        // Initialize arrow direction based on current panel state
+        // Initialize toggle state based on current panel state
         this.updateArrowDirection();
 
         // Setup mobile collapse handle
@@ -322,8 +323,9 @@ export class FeelingsWheelApp {
     }
 
     setupPanelControls(): void {
-        // Guided view: opt-in spotlight over the full wheel. Purely visual — selections
-        // and rotation are untouched, so switching it off returns the whole wheel as-is.
+        // Focused view: opt-in spotlight over the full wheel, for exploring one ring at a
+        // time with a therapist. Purely visual — selections and rotation are untouched, so
+        // switching it off returns the whole wheel as-is. (Internally still "guided".)
         const guidedToggle = document.getElementById('guided-mode-panel') as HTMLInputElement;
         guidedToggle.checked = false;
         const guidedHint = createGuidedHint(
@@ -335,24 +337,13 @@ export class FeelingsWheelApp {
             guidedHint.setEnabled(guidedToggle.checked);
             this.announce(
                 guidedToggle.checked
-                    ? 'Guided view on. Choose a core feeling to open the next ring.'
-                    : 'Guided view off. The full wheel is available.'
+                    ? 'Focused view on. Choose a core feeling to open the next ring.'
+                    : 'Focused view off. The full wheel is available.'
             );
             this.updateViewStatus();
         });
 
-        // In-copy view suggestions ("Try Guided or Simplified view") act on the real
-        // toggles, only when pressed — the full wheel stays the default.
-        document.querySelectorAll<HTMLButtonElement>('.inline-action[data-toggle]').forEach((btn) =>
-            btn.addEventListener('click', () => {
-                const input = document.getElementById(
-                    btn.dataset.toggle!
-                ) as HTMLInputElement | null;
-                if (input && !input.checked) input.click();
-            })
-        );
-
-        // 'Show full wheel' turns every easier view off (through the real toggles, so
+        // 'Show full wheel' turns Focused and Simplified off (through the real toggles, so
         // each one announces and updates exactly as if its chip were pressed).
         document.getElementById('view-status-reset')?.addEventListener('click', () => {
             for (const id of ['guided-mode-panel', 'simplified-mode-panel']) {
@@ -528,7 +519,15 @@ export class FeelingsWheelApp {
             getFamilyColor: (family) => FEELINGS_DATA.getCoreEmotionColor(family),
         });
 
-        container.replaceChildren(element);
+        // The list is read-only by design: say where removing happens (the wheel).
+        if (selections.length) {
+            const note = document.createElement('p');
+            note.className = 'feelings-remove-hint';
+            note.textContent = 'To remove one, choose it again on the wheel.';
+            container.replaceChildren(element, note);
+        } else {
+            container.replaceChildren(element);
+        }
         // Hidden-but-chosen feelings are named in the view status line.
         this.updateViewStatus();
     }
@@ -602,19 +601,12 @@ export class FeelingsWheelApp {
     }
 
     animateUnwindTiles(): void {
-        // Fade the whole tree out as one calm surface (respecting reduced-motion via CSS),
-        // clear it after the fade, and unwind the wheel rotation concurrently.
-        const container = document.getElementById('emotion-tiles');
-        if (container) {
-            container.classList.add('is-clearing');
-            const FADE = 260;
-            setTimeout(() => {
-                this.clearAllTiles();
-                container.classList.remove('is-clearing');
-            }, FADE);
-        }
-
+        // The panel answers at once: the list clears and the calm empty state fades in
+        // (its own entrance animation) while the wheel unwinds. A lingering old list read
+        // as if Reset hadn't worked.
         this.wheelGenerator.clearSelections();
+        this.clearAllTiles();
+        this.updateViewStatus();
         this.animateUnwindRotation();
     }
 
@@ -640,20 +632,11 @@ export class FeelingsWheelApp {
 
     updateArrowDirection(): void {
         const panel = document.querySelector('.info-panel');
-        const arrow = document.querySelector('.minimize-arrow');
-        const tab = document.getElementById('panel-minimize-tab');
-
-        if (!panel || !arrow) return;
+        if (!panel) return;
 
         const minimized = panel.classList.contains('minimized');
-        // Arrow points toward the action: ◀ reveals (when hidden), ▶ collapses.
-        arrow.textContent = minimized ? '◀' : '▶';
-        if (tab) {
-            tab.setAttribute('aria-expanded', String(!minimized));
-            tab.setAttribute(
-                'aria-label',
-                minimized ? 'Show feelings panel' : 'Hide feelings panel'
-            );
+        for (const id of ['panel-hide-btn', 'panel-show-btn']) {
+            document.getElementById(id)?.setAttribute('aria-expanded', String(!minimized));
         }
 
         // Mobile sheet handle: ▲ reveals the sheet, ▼ tucks it away.
@@ -669,7 +652,7 @@ export class FeelingsWheelApp {
         if (handleArrow) handleArrow.textContent = minimized ? '▲' : '▼';
     }
 
-    // Say in words which easier view is on (the chips only show it by colour), so the
+    // Say in words which view is on (the chips only show it by colour), so the
     // wheel's current shape is never a puzzle — and offer a one-tap way back.
     updateViewStatus(): void {
         const status = document.getElementById('view-status');
@@ -681,11 +664,11 @@ export class FeelingsWheelApp {
         const [short, long] =
             guided && simplified
                 ? [
-                      'Guided + Simplified on.',
-                      'Guided + Simplified: outer ring hidden; rings open as you choose.',
+                      'Focused + Simplified on.',
+                      'Focused + Simplified: outer ring hidden; rings open as feelings are chosen.',
                   ]
                 : guided
-                  ? ['Guided view on.', 'Guided view: rings open as you choose.']
+                  ? ['Focused view on.', 'Focused view: rings open as feelings are chosen.']
                   : simplified
                     ? [
                           'Simplified view on.',
@@ -726,7 +709,8 @@ export class FeelingsWheelApp {
         const before = this.wheelRect();
         const focusWasInside =
             document.activeElement instanceof Element &&
-            !!document.activeElement.closest('.panel-content, .panel-footer');
+            !!document.activeElement.closest('.panel-content, .panel-footer, .panel-hide-btn');
+        const fromShowButton = document.activeElement?.id === 'panel-show-btn';
 
         const minimized = panel.classList.toggle('minimized');
         mainLayout.classList.toggle('panel-minimized'); // For wheel centering
@@ -734,15 +718,17 @@ export class FeelingsWheelApp {
 
         // A tucked-away panel (slid off-screen on desktop) must not keep tab stops, and
         // focus must never be stranded inside it: hand it to the visible reopen control.
-        for (const sel of ['.panel-content', '.panel-footer']) {
+        for (const sel of ['.panel-content', '.panel-footer', '.panel-hide-btn']) {
             const el = panel.querySelector<HTMLElement>(sel);
             if (el) el.inert = minimized;
         }
+        // Hand focus to whichever toggle is now visible, so it's never stranded.
+        const handle = document.getElementById('mobile-collapse-handle');
+        const onSheet = !!handle && handle.offsetParent !== null;
         if (minimized && focusWasInside) {
-            const handle = document.getElementById('mobile-collapse-handle');
-            const tab = document.getElementById('panel-minimize-tab');
-            const reopen = handle && handle.offsetParent !== null ? handle : tab;
-            reopen?.focus();
+            (onSheet ? handle : document.getElementById('panel-show-btn'))?.focus();
+        } else if (!minimized && fromShowButton) {
+            document.getElementById('panel-hide-btn')?.focus();
         }
 
         // Glide the wheel to its new centre/size with a transform (FLIP) rather than

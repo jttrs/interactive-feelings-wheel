@@ -493,48 +493,83 @@ body {
 
 /* ===== INFORMATION PANEL COMPONENTS ===== */
 
-/* Modern Floating Panel Minimization Tab - Desktop Only */
-/* UNIFIED BUTTON POSITIONING - Both buttons use same method for perfect alignment */
-/* Collapse tab — a small handle riding the panel's left edge. */
-/* Collapse tab — a small handle riding the panel's left edge. It is a SIBLING of
-   the panel (not a descendant), so the panel's minimized translateX doesn't become
-   this fixed element's containing block and shove it off-screen. It slides in step
-   with the panel via the same duration. */
-.panel-minimize-tab {
-    position: fixed;
-    right: var(--panel-width);
-    top: 50%;
-    transform: translateY(-50%);
-    width: 32px;
-    height: 64px;
-
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-right: none;
-    border-radius: var(--radius-md) 0 0 var(--radius-md);
-
-    color: var(--color-ink-muted);
-    cursor: pointer;
-    display: flex;
+/* ===== PANEL HIDE / SHOW (desktop + landscape) =====
+   The familiar sidebar toggle pair. "Hide" sits in the panel's top-right corner,
+   level with the heading; while the panel is hidden, "Show" sits in the screen's
+   top-right corner. A circular wheel never reaches the corners of its area, so
+   neither ever covers a word (the old mid-edge tab sat right on the wheel's widest
+   point). The phone bottom sheet keeps its grab handle instead. */
+.panel-hide-btn,
+.panel-show-btn {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    z-index: 120;
-
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    color: var(--color-ink-muted);
+    border-radius: var(--radius-md);
+    cursor: pointer;
     transition:
         background-color var(--motion-fast) var(--ease-soft),
-        color var(--motion-fast) var(--ease-soft),
-        transform var(--motion-panel) var(--ease-soft);
-    box-shadow: -4px 0 12px rgba(43, 42, 40, 0.04);
+        color var(--motion-fast) var(--ease-soft);
 }
 
-.panel-minimize-tab:hover {
-    background: var(--color-surface-alt);
-    color: var(--color-accent-text);
+.panel-hide-btn .hero-ic,
+.panel-show-btn .hero-ic {
+    width: 20px;
+    height: 20px;
 }
 
-.minimize-arrow {
-    font-weight: 700;
-    font-size: 0.9rem;
+.panel-hide-btn {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    z-index: 3;
+    background: transparent;
+    border: none;
+}
+
+/* Keep view titles clear of the hide button. */
+.info-panel .view-head {
+    padding-right: calc(var(--space-2) + 40px + var(--space-2));
+}
+
+.panel-show-btn {
+    position: fixed;
+    top: max(var(--space-3), env(safe-area-inset-top));
+    right: max(var(--space-3), env(safe-area-inset-right));
+    z-index: 120;
+    display: none;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--elev-1);
+}
+
+.main-layout.panel-minimized .panel-show-btn {
+    display: inline-flex;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .main-layout.panel-minimized .panel-show-btn {
+        animation: fadeIn var(--motion-base) var(--ease-soft) var(--motion-fast) both;
+    }
+}
+
+@media (hover: hover) {
+    .panel-hide-btn:hover,
+    .panel-show-btn:hover {
+        background: var(--color-surface-alt);
+        color: var(--color-accent-text);
+    }
+}
+
+@media (pointer: coarse) {
+    .panel-hide-btn,
+    .panel-show-btn {
+        width: var(--touch-target-min);
+        height: var(--touch-target-min);
+    }
 }
 
 /* Desktop Minimized state — the whole populated panel slides off-screen as one
@@ -547,10 +582,6 @@ body {
         transform: translateX(100%);
         box-shadow: none;
     }
-}
-
-.main-layout.panel-minimized .panel-minimize-tab {
-    transform: translate(var(--panel-width), -50%);
 }
 
 /* Mobile sheet handle — a real button. 28px visual tab with an invisible
@@ -615,14 +646,20 @@ body {
     }
 }
 
-/* Mobile: Show collapse handle and hide desktop tab */
+/* Mobile: the sheet's grab handle replaces the hide/show buttons */
 @media (max-width: 767px) and (orientation: portrait) {
     .mobile-collapse-handle {
         display: flex;
     }
 
-    .panel-minimize-tab {
-        display: none; /* Hide desktop tab on mobile */
+    .panel-hide-btn,
+    .panel-show-btn,
+    .main-layout.panel-minimized .panel-show-btn {
+        display: none; /* the sheet's grab handle does this on phones */
+    }
+
+    .info-panel .view-head {
+        padding-right: var(--space-4);
     }
 }
 
@@ -813,6 +850,7 @@ body {
 }
 .screen-nudge__text {
     margin: 0;
+    text-wrap: balance;
     font-size: 0.85rem;
     line-height: 1.35;
     color: var(--color-ink-muted);
@@ -856,23 +894,23 @@ body {
     color: var(--color-ink-faint);
 }
 
-/* A suggestion you can act on in place: reads as part of the sentence, behaves as a
-   button (toggles the real view chip). */
-.inline-action {
-    padding: 0;
-    font: inherit;
-    font-weight: var(--weight-medium);
-    color: var(--color-accent-text);
-    background: none;
-    border: none;
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-    cursor: pointer;
+/* Keyboard entry, shown where a keyboard is likely (fine pointer). */
+.empty-hint__keys {
+    display: block;
+    margin-top: var(--space-2);
+}
+@media (pointer: coarse) {
+    .empty-hint__keys {
+        display: none;
+    }
 }
 
-/* Once a view is on, the status line takes over — no need to suggest it again. */
-.panel-view--explore:has(#view-status:not([hidden])) .empty-hint--aside {
-    display: none;
+/* Read-only list: one quiet line saying where removing happens. */
+.feelings-remove-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--color-ink-faint);
 }
 
 /* The bottom sheet is short: keep the invitation compact so it never crowds the footer. */
@@ -895,12 +933,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-}
-
-/* Fade the whole tree as one surface during an animated reset. */
-.emotion-tiles.is-clearing {
-    opacity: 0;
-    transition: opacity var(--motion-base) var(--ease-soft);
 }
 
 .feelings-tree {
@@ -1092,7 +1124,6 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
     .feeling-family,
-    .emotion-tiles.is-clearing,
     .feeling-def-wrap {
         animation: none;
         transition: none;
@@ -1160,8 +1191,7 @@ body {
     }
 }
 
-.hero-toggle-input:checked + .view-chip,
-.view-chip[aria-pressed='true'] {
+.hero-toggle-input:checked + .view-chip {
     background: var(--color-accent);
     border-color: var(--color-accent);
     color: var(--color-on-accent);
@@ -1225,6 +1255,12 @@ body {
 
 .hero-btn:active {
     background: var(--color-border);
+}
+
+/* Toggle-state icon buttons (Fullscreen): filled while on. */
+.hero-btn[aria-pressed='true'] {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
 }
 
 .hero-btn--labelled {
@@ -1486,6 +1522,39 @@ body {
            width-bound there, so it doesn't shrink. Short screens are capped below. */
         height: max(280px, min(45vh, 420px));
         border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+    }
+}
+
+/* Very short portrait phones (e.g. 320x568): the sheet "peeks" — compact heading,
+   tighter chrome — so the wheel gets most of the height. Defined after the <=480px
+   rule so this height wins. Choosing feelings still scrolls inside the sheet, and the
+   handle opens/closes it as usual. */
+@media (max-width: 767px) and (max-height: 600px) and (orientation: portrait) {
+    .info-panel {
+        height: 236px;
+        min-height: 0;
+        max-height: 236px;
+    }
+
+    .panel-content {
+        padding-top: 26px;
+    }
+
+    .view-head {
+        padding: var(--space-2) var(--space-4);
+    }
+
+    .view-title {
+        font-size: 1.15rem;
+    }
+
+    .panel-empty {
+        padding: var(--space-2) var(--space-4);
+    }
+
+    .panel-footer {
+        gap: var(--space-1);
+        padding-top: var(--space-2);
     }
 }
 
@@ -1765,7 +1834,7 @@ svg.animating {
     .view-chip,
     .mobile-collapse-handle,
     .info-panel,
-    .panel-minimize-tab,
+    .panel-show-btn,
     #wheel-container,
     .guided-hint,
     svg.guided-core-cue .core-wedge,

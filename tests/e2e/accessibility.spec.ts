@@ -549,3 +549,31 @@ test('Help leads with views and start-up links; keyboard keys are always shown',
     await expect(help.locator('details')).toHaveCount(0);
     await expect(help.getByText('Step out to more specific feelings')).toBeVisible();
 });
+
+test('short phones show the one-line instruction, never cut off by the footer', async ({
+    page,
+}) => {
+    for (const [width, height] of [
+        [320, 568],
+        [375, 667],
+    ]) {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(400);
+        const shown = await page
+            .locator('.empty-hint')
+            .first()
+            .evaluate((el) => (el as HTMLElement).innerText.trim());
+        expect(shown).toBe('Select a word to see its definition.');
+        const hint = (await page.locator('.empty-hint').first().boundingBox())!;
+        const footer = (await page.locator('.panel-footer').boundingBox())!;
+        expect(hint.y + hint.height).toBeLessThanOrEqual(footer.y);
+    }
+});
+
+test('the wheel keeps one-finger drags for spinning but allows pinch-zoom', async ({ page }) => {
+    const ta = await page
+        .locator('#wheel-container svg')
+        .first()
+        .evaluate((el) => getComputedStyle(el).touchAction);
+    expect(ta).toBe('pinch-zoom');
+});

@@ -1661,6 +1661,14 @@ body {
     }
 }
 
+/* Short portrait phones (up to iPhone SE height): the instruction in its one-line
+   form, so the footer never cuts it off mid-sentence. */
+@media (max-width: 767px) and (max-height: 700px) and (orientation: portrait) {
+    .empty-hint__long {
+        display: none;
+    }
+}
+
 /* ===== SVG ANTI-ALIASING & RENDERING OPTIMIZATION ===== */
 
 /* Root SVG container - enable high-quality rendering */
@@ -1746,9 +1754,12 @@ svg text {
 
 /* Focused view (opt-in): rings the user hasn't reached rest in the background —
    still visible as the wheel's map, but quiet and inert until a choice opens them. */
-/* Touch drags rotate the wheel (pointer events) instead of panning/zooming the page. */
+/* One-finger drags rotate the wheel (pointer events) instead of panning the page.
+   Two-finger pinch still zooms the page, so small outer words can be enlarged on a
+   phone (WCAG 1.4.4). Browsers without pinch-zoom keep the 'none' fallback. */
 #wheel-container svg {
     touch-action: none;
+    touch-action: pinch-zoom;
 }
 
 #wheel-container svg text {

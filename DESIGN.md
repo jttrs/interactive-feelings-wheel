@@ -216,6 +216,7 @@ The wheel is always the centrepiece. It's a circle sized to the largest square t
 - **Corners are for chrome.** A circle never reaches the corners of its square, so the panel's hide button (in the panel's top-right corner) and the show button (in the screen's top-right corner) can never cover a word. Transient overlays (Focused hint, reading lens, small-screen tip) sit on the top or bottom edge, away from the word being read.
 - **Spacing rhythm:** a 4px-based scale (0.25, 0.5, 0.75, 1, 1.5, 2rem). Tight inside a group, generous between groups.
 - **Touch targets:** at least 44px on coarse pointers (`--touch-target-min`).
+- **Large text (WCAG 1.4.4):** when the user's text size outgrows the panel (a `rem`-based container query on `.info-panel`, `max-width: 17rem`, which never fires at default size), the footer reflows instead of clipping: the Reset hairline becomes a line break (Reset on its own row, the 44px icons on the next), the view chips drop their icons so they can share a row, and the phone sheet gets a `rem` height floor (`min(17rem, 68dvh)`) so the chosen feelings keep room.
 
 ### Named Rules
 

@@ -401,7 +401,9 @@ body {
         /* Tall phones: the wheel is width-bound, so the sheet can take up to 45% of
            the height, or every pixel the wheel can't use (height minus width), for more
            chosen-feelings room without shrinking the wheel. */
-        max-height: max(350px, min(45vh, 420px), calc(100dvh - 100vw - 60px));
+        /* The rem term never binds at default text size; at large text it lets the
+           sheet grow so the chosen feelings keep room above the taller footer. */
+        max-height: max(350px, min(45vh, 420px), calc(100dvh - 100vw - 60px), min(17rem, 68dvh));
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         margin: 0;
         border: none;
@@ -1299,6 +1301,47 @@ body {
     }
 }
 
+/* Large text (WCAG 1.4.4): measured in rem, so this only fires when the user's text
+   size outgrows the panel (never at default size, where every panel is >= 17.5rem).
+   The hairline becomes a line break — Reset keeps its own row, still set apart, and
+   the icons sit on the next row at full size instead of squeezing off the edge. */
+@container (max-width: 17rem) {
+    .view-head {
+        padding-top: var(--space-3);
+    }
+    /* The explore view scrolls as one; this keeps the chosen feelings from being
+       squeezed to nothing between the heading and the footer. */
+    .view-body--explore {
+        min-height: 3rem;
+    }
+    .panel-footer {
+        gap: var(--space-1);
+        padding-top: var(--space-2);
+        padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+    }
+    /* Words over icons, so both views can share a row wherever they fit. */
+    .view-chip {
+        padding: 0 var(--space-2);
+    }
+    .view-chip .hero-ic {
+        display: none;
+    }
+    .hero-actions {
+        flex-wrap: wrap;
+        row-gap: var(--space-1);
+    }
+    .hero-btn {
+        flex-shrink: 0;
+    }
+    .hero-actions__sep {
+        flex-basis: 100%;
+        width: auto;
+        height: 0;
+        margin: 0;
+        background: none;
+    }
+}
+
 .hero-spacer {
     flex: 1;
 }
@@ -1710,7 +1753,7 @@ body {
         width: 100% !important;
         /* Height-aware: taller phones give the chosen feelings more room — up to every
            pixel the width-bound wheel can't use. Short screens are capped below. */
-        height: max(280px, min(45vh, 420px), calc(100dvh - 100vw - 60px));
+        height: max(280px, min(45vh, 420px), calc(100dvh - 100vw - 60px), min(17rem, 68dvh));
     }
 }
 
@@ -1720,9 +1763,9 @@ body {
    handle opens/closes it as usual. */
 @media (max-width: 767px) and (max-height: 600px) and (orientation: portrait) {
     .info-panel {
-        height: 236px;
+        height: max(236px, min(14.5rem, 62dvh));
         min-height: 0;
-        max-height: 236px;
+        max-height: max(236px, min(14.5rem, 62dvh));
     }
 
     .panel-content {
@@ -1759,8 +1802,8 @@ body {
     /* Once feelings are chosen the record matters more: the sheet grows one step
        (the wheel re-fits above it), so several feelings read without scrolling. */
     .info-panel:not(.minimized):has(.feeling-node) {
-        height: min(52vh, 360px);
-        max-height: min(52vh, 360px);
+        height: max(min(52vh, 360px), min(14.5rem, 62dvh));
+        max-height: max(min(52vh, 360px), min(14.5rem, 62dvh));
     }
 
     #view-explore:has(.feeling-node) .view-head {

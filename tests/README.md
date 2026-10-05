@@ -2,12 +2,12 @@
 
 Three layers, run locally and in CI (`.github/workflows/ci.yml`):
 
-| Layer | Location | Runner | Env | Purpose |
-| --- | --- | --- | --- | --- |
-| Unit | `tests/unit/` | Vitest | jsdom | Pin pure logic (geometry, sizing, color, easing, data integrity) + jsdom DOM behavior |
-| Behavioral e2e | `tests/e2e/behavior.spec.js` | Playwright | Chromium | Selection, tiles, reset, mode switch — OS-independent |
-| Accessibility e2e | `tests/e2e/accessibility.spec.js` | Playwright | Chromium | Keyboard nav, ARIA, live announcements — OS-independent |
-| Visual e2e | `tests/e2e/visual.spec.js` | Playwright | Chromium | Pixel snapshots of canonical states — **OS-specific** |
+| Layer             | Location                          | Runner     | Env      | Purpose                                                                               |
+| ----------------- | --------------------------------- | ---------- | -------- | ------------------------------------------------------------------------------------- |
+| Unit              | `tests/unit/`                     | Vitest     | jsdom    | Pin pure logic (geometry, sizing, color, easing, data integrity) + jsdom DOM behavior |
+| Behavioral e2e    | `tests/e2e/behavior.spec.js`      | Playwright | Chromium | Selection, tiles, reset, mode switch — OS-independent                                 |
+| Accessibility e2e | `tests/e2e/accessibility.spec.js` | Playwright | Chromium | Keyboard nav, ARIA, live announcements — OS-independent                               |
+| Visual e2e        | `tests/e2e/visual.spec.js`        | Playwright | Chromium | Pixel snapshots of canonical states — **OS-specific**                                 |
 
 ## Commands
 
@@ -39,11 +39,11 @@ Because snapshots must be byte-generated on the target OS, do one of:
    `*-chromium-linux.png`, drop them next to the darwin baselines in
    `tests/e2e/visual.spec.js-snapshots/`, and commit. The `visual` CI step then passes.
 2. **In the official Playwright container** (if you have Docker):
-   ```bash
-   docker run --rm -v "$PWD":/work -w /work mcr.microsoft.com/playwright:v1.62.1-noble \
-     bash -c "npm ci && npx playwright test tests/e2e/visual.spec.js --update-snapshots"
-   git add tests/e2e/**/**-linux.png && git commit -m "test: add Linux visual baselines"
-   ```
+    ```bash
+    docker run --rm -v "$PWD":/work -w /work mcr.microsoft.com/playwright:v1.62.1-noble \
+      bash -c "npm ci && npx playwright test tests/e2e/visual.spec.js --update-snapshots"
+    git add tests/e2e/**/**-linux.png && git commit -m "test: add Linux visual baselines"
+    ```
 
 Once Linux baselines are committed you may flip the CI `visual` step to a hard gate
 (remove `continue-on-error`).

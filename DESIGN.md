@@ -197,7 +197,7 @@ The seven families keep the source wheel's hue for each feeling but are muted to
 - **Body** (400, 0.95rem, 1.5): empty-state instructions and Help text.
 - **Definition** (400, 0.85rem, 1.45, max 42ch): the meaning under a chosen feeling, in Muted Ink.
 - **Label** (600, 0.85rem): view chips and Reset.
-- **Group label** (600, 0.85rem, sentence case, Muted Ink): the "Views" label over the view chips, so Focused and Simplified don't read as feeling words.
+- **Group label** (600, 0.85rem, sentence case, Muted Ink): the "Views" label over the view chips, so Focused and Simplified don't read as feeling words. The current view follows in 400 Faint Ink ("· Full wheel", "· Focused + Simplified"), so the default and the combined state are named rather than inferred. On short phones the label sits beside the chips.
 - **Lens word** (700, 1.75rem, 1.15): the enlarged word in the reading lens.
 - **Wheel labels**: sized per wedge in code so each word fits its wedge (never a fixed size), bold when selected.
 

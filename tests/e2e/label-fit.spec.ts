@@ -95,7 +95,7 @@ test.describe('small-screen tip', () => {
         await open(page, 320, 568);
         const nudge = page.locator('#screen-nudge');
         await expect(nudge).toBeVisible();
-        await expect(nudge).toContainText('to read it');
+        await expect(nudge).toContainText('to see it larger');
         // It sits on the wheel it's about, not in the panel.
         await expect(page.locator('.wheel-container #screen-nudge')).toHaveCount(1);
         await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();

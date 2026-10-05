@@ -68,7 +68,8 @@ export function initSmallScreenNudge({
 
     // Mouse users read small words by pointing, not pressing.
     const how = nudge.querySelector<HTMLElement>('.screen-nudge__how');
-    if (how && window.matchMedia?.('(pointer: fine)').matches) how.textContent = 'Point at one';
+    if (how && window.matchMedia?.('(pointer: fine)').matches)
+        how.textContent = 'Point at any word';
 
     // First successful press-and-hold read: the lesson landed.
     container.addEventListener('wheel:lens-hold', () => {

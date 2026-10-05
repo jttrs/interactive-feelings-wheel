@@ -10,7 +10,7 @@ web
 
 - **Primary: therapists, in session with a client.** The therapist uses the wheel with the client to explore and name the client's feelings. The tool is never meant to be used by a client alone.
 - **Clients, alongside their therapist.** Adults use the full wheel. **Younger clients (mostly children)** use Simplified view, which the therapist chooses up front because children don't yet have the nuance for the outer-ring words.
-- _Inferred, unconfirmed:_ sessions happen both in the room (laptop or tablet shared between therapist and client) and over telehealth (the therapist's screen shared to the client). Who drives the device varies.
+- Sessions happen both in the room (laptop or tablet shared between therapist and client) and over telehealth (the therapist's screen shared to the client). Who drives the device varies.
 
 ## Product Purpose
 
@@ -24,7 +24,8 @@ A faithful, calm, structural tool, deliberately **not** a self-help or "insight"
 
 - Used live in therapy sessions; the therapist decides which view to use (full wheel, Simplified for younger clients, Focused to go one ring at a time).
 - Runs entirely in the browser as a single page with no accounts or backend; nothing about a session is sent anywhere.
-- _Undecided:_ whether therapists need to save, print or share the chosen feelings after a session.
+- Therapists can open a session straight into a setup from the URL (`?view=simplified`, `?view=focused`, `&panel=hidden`), and the address keeps the current view so it can be bookmarked.
+- **Deferred:** saving, printing or sharing a session's chosen feelings (including putting them in the URL). Not in scope for now.
 
 ## Capabilities and Constraints
 

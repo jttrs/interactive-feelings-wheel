@@ -852,3 +852,47 @@ test('the phone tip teaches the reading lens only — it never pitches a view', 
     await expect(tip).not.toContainText('Focused');
     await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
 });
+
+// A therapist can start straight into a setup from the URL (e.g. a child's session),
+// and the address bar keeps up as views change so the setup can be bookmarked.
+test('?view=simplified starts in Simplified view, quietly', async ({ page }) => {
+    await page.goto('/index.html?view=simplified');
+    await page.waitForSelector('#wheel-container svg .wedge');
+    await expect(page.locator('#simplified-mode-panel')).toBeChecked();
+    await expect(page.locator('.tertiary-wedge')).toHaveCount(0);
+    await expect(page.locator('#view-status')).toContainText('Simplified view');
+    await expect(page.locator('#sr-announcer')).toHaveText(''); // no announcement on load
+    expect(new URL(page.url()).search).toBe('?view=simplified');
+});
+
+test('?view=simplified,focused&panel=hidden starts with both views and the panel hidden', async ({
+    page,
+}) => {
+    await page.goto('/index.html?view=simplified,focused&panel=hidden');
+    await page.waitForSelector('#wheel-container svg .wedge');
+    await expect(page.locator('#simplified-mode-panel')).toBeChecked();
+    await expect(page.locator('#focused-mode-panel')).toBeChecked();
+    await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
+    await expect(page.locator('#panel-show-btn')).toBeVisible();
+    await expect(page.locator('.wedge:not(.shadow-wedge):not([data-focused-rest])')).toHaveCount(7);
+});
+
+test('the address bar follows view changes, with no history entries', async ({ page }) => {
+    const before = await page.evaluate(() => history.length);
+    await page.locator('label[for="focused-mode-panel"]').click();
+    await expect.poll(() => new URL(page.url()).search).toBe('?view=focused');
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect.poll(() => new URL(page.url()).search).toBe('?view=simplified,focused');
+    await page.locator('#panel-hide-btn').click();
+    await expect
+        .poll(() => new URL(page.url()).search)
+        .toBe('?view=simplified,focused&panel=hidden');
+    await page.locator('#panel-show-btn').click();
+    await page.locator('#view-status-reset').click();
+    await expect.poll(() => new URL(page.url()).search).toBe('');
+    expect(await page.evaluate(() => history.length)).toBe(before);
+
+    // Chosen feelings are not stored in the URL.
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    expect(new URL(page.url()).search).toBe('');
+});

@@ -6,6 +6,7 @@ import { renderFeelingsTree } from './src/ui/feelings-tree.ts';
 import { createFocusedHint } from './src/ui/focused-hint.ts';
 import { initSmallScreenNudge } from './src/ui/small-screen-nudge.ts';
 import { createWheelLens } from './src/ui/wheel-lens.ts';
+import { readUrlOptions, writeUrlOptions } from './src/ui/url-options.ts';
 import type { Selection, EmotionSelectedDetail } from './src/types.ts';
 
 export class FeelingsWheelApp {
@@ -13,6 +14,8 @@ export class FeelingsWheelApp {
     currentView!: string;
     views!: Record<string, HTMLElement | null>;
     isResetting = false;
+    // True while applying start-up options from the URL: no announcements or animation.
+    quiet = false;
 
     constructor() {
         this.init();
@@ -40,6 +43,11 @@ export class FeelingsWheelApp {
 
         // Setup information panel (this will handle all controls now)
         this.setupInformationPanel();
+
+        // Start in the view the link asks for (e.g. ?view=simplified for a child's session).
+        // Before the small-screen tip starts listening, so a link-chosen view isn't taken
+        // as "the user tried a view" (which would retire the tip for good).
+        this.applyUrlOptions();
 
         // Cramped full wheel → a one-line tip teaching the reading lens (never switches views).
         // Reading lens: large copy of the pressed / hovered-small / keyboard-focused word.
@@ -333,6 +341,7 @@ export class FeelingsWheelApp {
             document.getElementById('wheel-container')!
         );
         focusedToggle.addEventListener('change', () => {
+            this.syncUrl();
             this.wheelGenerator.setFocusedMode(focusedToggle.checked);
             focusedHint.setEnabled(focusedToggle.checked);
             this.announce(
@@ -360,6 +369,7 @@ export class FeelingsWheelApp {
         ) as HTMLInputElement;
         simplifiedModeToggle.addEventListener('change', (event) => {
             const isSimplified = (event.target as HTMLInputElement).checked;
+            this.syncUrl();
 
             // One shared selection across views: the engine only changes which rings it
             // draws, so the panel is simply re-rendered (with simpler meanings).
@@ -495,6 +505,7 @@ export class FeelingsWheelApp {
 
     // Announce a message to screen readers via the polite live region.
     announce(message: string): void {
+        if (this.quiet) return;
         const region = document.getElementById('sr-announcer');
         if (region) region.textContent = message;
     }
@@ -693,6 +704,43 @@ export class FeelingsWheelApp {
         text.replaceChildren(s, l);
     }
 
+    // Apply ?view= / ?panel= on load through the real controls (so every view behaves
+    // exactly as if its chip were pressed), silently and without animation.
+    applyUrlOptions(): void {
+        const options = readUrlOptions(window.location.search);
+        if (!options.simplified && !options.focused && !options.panelHidden) return;
+        this.quiet = true;
+        const panel = document.getElementById('info-panel');
+        if (panel) panel.style.transition = 'none';
+        try {
+            const check = (id: string) => {
+                const input = document.getElementById(id) as HTMLInputElement | null;
+                if (input && !input.checked) input.click();
+            };
+            if (options.simplified) check('simplified-mode-panel');
+            if (options.focused) check('focused-mode-panel');
+            if (options.panelHidden) this.togglePanelMinimization();
+        } finally {
+            this.quiet = false;
+            requestAnimationFrame(() => {
+                if (panel) panel.style.transition = '';
+            });
+        }
+    }
+
+    // Keep the address bar in step with the current setup so it can be bookmarked.
+    syncUrl(): void {
+        if (this.quiet) return;
+        const isChecked = (id: string) =>
+            !!(document.getElementById(id) as HTMLInputElement | null)?.checked;
+        const next = writeUrlOptions(window.location.href, {
+            simplified: isChecked('simplified-mode-panel'),
+            focused: isChecked('focused-mode-panel'),
+            panelHidden: !!document.getElementById('info-panel')?.classList.contains('minimized'),
+        });
+        if (next !== window.location.href) history.replaceState(history.state, '', next);
+    }
+
     // Land keyboard/screen-reader focus on the visible panel view's heading, with a
     // visible ring, so arriving in the panel is announced and seen.
     focusPanelHeading(): void {
@@ -716,6 +764,7 @@ export class FeelingsWheelApp {
         const minimized = panel.classList.toggle('minimized');
         mainLayout.classList.toggle('panel-minimized'); // For wheel centering
         this.syncSheetHeight(); // mobile: reserve the new sheet height before measuring
+        this.syncUrl();
 
         // A tucked-away panel (slid off-screen on desktop) must not keep tab stops, and
         // focus must never be stranded inside it: hand it to the visible reopen control.
@@ -736,7 +785,7 @@ export class FeelingsWheelApp {
         // animating layout: the box snaps to its final layout, then we play the
         // difference back from where it was.
         const after = this.wheelRect();
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const reduce = this.quiet || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (wheelBox && before && after && after.width > 0 && !reduce) {
             const c = wheelBox.getBoundingClientRect();
             const k = before.width / after.width;

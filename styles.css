@@ -1543,6 +1543,37 @@ body {
     }
 }
 
+/* Short landscape screens (phones on their side, small split windows). The wheel
+   is height-bound here, so panel width doesn't limit it; instead, trim the panel's
+   vertical chrome so the chosen-feelings list keeps room. Touch targets stay 44px.
+   (Small outer words are handled by the reading lens + its tip.) */
+@media (orientation: landscape) and (max-height: 500px) {
+    /* Header row is exactly one control tall so the title and hide button line up. */
+    .info-panel .view-head {
+        min-height: var(--touch-target-min);
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .panel-hide-btn {
+        top: 0;
+    }
+
+    .view-title {
+        font-size: 1.1rem;
+    }
+
+    .panel-empty {
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .panel-footer {
+        gap: var(--space-1);
+        padding-top: var(--space-2);
+        padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+    }
+}
+
 /* ===== END INFORMATION PANEL COMPONENTS ===== */
 
 /* Wheel Container - fill main content area */

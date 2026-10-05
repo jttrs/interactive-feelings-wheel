@@ -896,3 +896,35 @@ test('the address bar follows view changes, with no history entries', async ({ p
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     expect(new URL(page.url()).search).toBe('');
 });
+
+test('short landscape screens trim the panel header without shrinking touch targets', async ({
+    browser,
+}) => {
+    const ctx = await browser.newContext({
+        viewport: { width: 844, height: 390 },
+        hasTouch: true,
+        isMobile: true,
+    });
+    const page = await ctx.newPage();
+    await page.goto('/index.html');
+    await page.waitForSelector('#wheel-container svg .wedge');
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(300);
+    const r = await page.evaluate(() => {
+        const t = document.querySelector('#view-explore .view-title')!.getBoundingClientRect();
+        const h = document.getElementById('panel-hide-btn')!.getBoundingClientRect();
+        const sizes = [
+            ...document.querySelectorAll('.panel-footer button, .panel-footer label'),
+        ].map((e) => {
+            const b = e.getBoundingClientRect();
+            return Math.min(b.width, b.height);
+        });
+        return {
+            misalign: Math.abs(t.top + t.height / 2 - (h.top + h.height / 2)),
+            minTarget: Math.min(...sizes),
+        };
+    });
+    expect(r.misalign).toBeLessThanOrEqual(3);
+    expect(r.minTarget).toBeGreaterThanOrEqual(44);
+    await ctx.close();
+});

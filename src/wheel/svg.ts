@@ -174,6 +174,9 @@ export function text({
         'font-weight': 'normal',
         fill: 'currentColor',
         'pointer-events': 'none',
+        // Visual only: the wedge it sits on carries the accessible name, so a screen
+        // reader would otherwise read every word on the wheel twice.
+        'aria-hidden': 'true',
         class: className || undefined,
     }) as SVGTextElement;
     for (const [key, value] of Object.entries(dataset)) {

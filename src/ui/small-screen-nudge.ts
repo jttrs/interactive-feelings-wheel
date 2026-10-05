@@ -4,11 +4,13 @@
 // dismissible tip on the wheel teaching the reading lens ("hold a word to read it").
 // It never suggests or switches a view: Simplified (for younger clients) and Focused
 // are the therapist's choices. It retires (persisted) after the first lens hold,
-// once a view is chosen, or when dismissed.
+// once a view is chosen, or when dismissed. After a lens read it lingers, then fades.
 
 import { usingKeyboard } from './input-modality.ts';
 
 export const NUDGE_DISMISSED_KEY = 'ifw:small-screen-nudge-dismissed';
+export const NUDGE_LINGER_MS = 1200;
+const NUDGE_FADE_MS = 400; // matches .screen-nudge--leaving in styles.css
 
 export interface SmallScreenNudgeOptions {
     container: HTMLElement; // the wheel container (emits wheel:labelfit)
@@ -68,11 +70,25 @@ export function initSmallScreenNudge({
 
     // Mouse users read small words by pointing, not pressing.
     const how = nudge.querySelector<HTMLElement>('.screen-nudge__how');
-    if (how && window.matchMedia?.('(pointer: fine)').matches) how.textContent = 'Point at one';
+    if (how && window.matchMedia?.('(pointer: fine)').matches)
+        how.textContent = 'Point at any word';
 
-    // First successful press-and-hold read: the lesson landed.
+    // First word read in the lens (held on touch, pointed at with a mouse): the lesson
+    // landed. Linger a moment so the tip is seen to have worked, then fade away.
+    let retiring = false;
     container.addEventListener('wheel:lens-hold', () => {
-        if (!nudge.hidden) dismiss();
+        if (nudge.hidden || retiring) return;
+        retiring = true;
+        setTimeout(() => {
+            nudge.classList.add('screen-nudge--leaving');
+            const done = () => {
+                nudge.classList.remove('screen-nudge--leaving');
+                dismiss();
+            };
+            const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            if (reduce) done();
+            else setTimeout(done, NUDGE_FADE_MS);
+        }, NUDGE_LINGER_MS);
     });
 
     viewToggles.forEach((toggle) =>

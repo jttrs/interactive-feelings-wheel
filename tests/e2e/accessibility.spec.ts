@@ -536,16 +536,82 @@ test('switching views or hiding the panel by shortcut keeps keyboard focus on th
     await expect(page.locator('.wedge:focus')).toHaveCount(1);
 });
 
-test('Help leads with views and start-up links; keyboard keys are always shown', async ({
+test('Help is in two parts: during a session, then setting up; keys always shown', async ({
     page,
 }) => {
     await page.locator('#help-btn-panel').click();
     const help = page.locator('#view-help');
+    expect(await help.locator('.help-part__title').allInnerTexts()).toEqual([
+        'During a session',
+        'Setting up',
+    ]);
     const titles = await help.locator('.help-group__title').allInnerTexts();
-    expect(titles.slice(0, 3)).toEqual(['Using the wheel', 'Views', 'Start a session in a view']);
+    expect(titles).toEqual([
+        'Using the wheel',
+        'Views',
+        'Keyboard',
+        'Start a session in a view',
+        'Shortcuts',
+    ]);
     await expect(help).toContainText('For younger clients');
     await expect(help).toContainText('?view=simplified');
     expect(titles).toContain('Keyboard');
     await expect(help.locator('details')).toHaveCount(0);
     await expect(help.getByText('Step out to more specific feelings')).toBeVisible();
+});
+
+test('short phones show the one-line instruction, never cut off by the footer', async ({
+    page,
+}) => {
+    for (const [width, height] of [
+        [320, 568],
+        [375, 667],
+    ]) {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(400);
+        const shown = await page
+            .locator('.empty-hint')
+            .first()
+            .evaluate((el) => (el as HTMLElement).innerText.trim());
+        expect(shown).toBe('Select a word to see its definition.');
+        const hint = (await page.locator('.empty-hint').first().boundingBox())!;
+        const footer = (await page.locator('.panel-footer').boundingBox())!;
+        expect(hint.y + hint.height).toBeLessThanOrEqual(footer.y);
+    }
+});
+
+test('the wheel keeps one-finger drags for spinning but allows pinch-zoom', async ({ page }) => {
+    const ta = await page
+        .locator('#wheel-container svg')
+        .first()
+        .evaluate((el) => getComputedStyle(el).touchAction);
+    expect(ta).toBe('pinch-zoom');
+});
+
+test('wheel word labels are hidden from screen readers (the wedge carries the name)', async ({
+    page,
+}) => {
+    const visible = await page.evaluate(
+        () =>
+            [...document.querySelectorAll('#wheel-container svg text')].filter(
+                (t) => t.getAttribute('aria-hidden') !== 'true'
+            ).length
+    );
+    expect(visible).toBe(0);
+    await expect(page.locator('.core-wedge[data-emotion="Happy"]')).toHaveAccessibleName(/Happy/);
+});
+
+test('short phones give the chosen list the sheet: no repeated question, Views beside chips', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.waitForTimeout(400);
+    await page.locator('.core-wedge[data-emotion="Sad"]').click();
+    await expect(page.locator('#view-explore .view-head')).toHaveCSS('position', 'absolute');
+    await expect(page.locator('#view-explore .view-title')).toHaveText('How are you feeling?');
+    const label = (await page.locator('.footer-label').boundingBox())!;
+    const chip = (await page.locator('label[for="focused-mode-panel"]').boundingBox())!;
+    expect(Math.abs(label.y + label.height / 2 - (chip.y + chip.height / 2))).toBeLessThan(4);
+    const body = (await page.locator('.view-body--explore').boundingBox())!;
+    expect(body.height).toBeGreaterThanOrEqual(90);
 });

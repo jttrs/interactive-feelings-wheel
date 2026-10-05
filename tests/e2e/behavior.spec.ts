@@ -780,13 +780,27 @@ test('the reading lens shows when a key is pressed on a wedge focused by script'
     await expect(page.locator('#wheel-lens .wheel-lens__word')).toHaveText('Angry');
 });
 
-test('no status banner: views are shown by their pressed chips alone', async ({ page }) => {
+test('the current view is named beside Views — including Full wheel and the combination', async ({
+    page,
+}) => {
+    const current = page.locator('#views-current');
+    await expect(current).toHaveText('· Full wheel');
     await page.locator('label[for="focused-mode-panel"]').click();
+    await expect(current).toHaveText('· Focused');
     await page.locator('label[for="simplified-mode-panel"]').click();
-    await expect(page.locator('#view-status')).toHaveCount(0);
-    await expect(page.locator('#focused-mode-panel')).toBeChecked();
-    await expect(page.locator('#simplified-mode-panel')).toBeChecked();
-    await expect(page.locator('.view-toggles')).toHaveAccessibleName('Views');
+    await expect(current).toHaveText('· Focused + Simplified');
+    await expect(page.locator('#view-status')).toHaveCount(0); // no banner
+    await expect(page.locator('.view-toggles')).toHaveAccessibleName(
+        'Views · Focused + Simplified'
+    );
+    await page.locator('label[for="focused-mode-panel"]').click();
+    await expect(current).toHaveText('· Simplified');
+});
+
+test('?view= start-up names the view without announcing', async ({ page }) => {
+    await page.goto('/index.html?view=focused,simplified');
+    await page.waitForSelector('#wheel-container svg .wedge');
+    await expect(page.locator('#views-current')).toHaveText('· Focused + Simplified');
 });
 
 test('Reset clears the list at once (the wheel unwinds after)', async ({ page }) => {
@@ -825,7 +839,7 @@ test('the phone tip teaches the reading lens only — it never pitches a view', 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(400);
     const tip = page.locator('#screen-nudge');
-    await expect(tip).toContainText('to read it');
+    await expect(tip).toContainText('to see it larger');
     await expect(tip).not.toContainText('Simplified');
     await expect(tip).not.toContainText('Focused');
     await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();

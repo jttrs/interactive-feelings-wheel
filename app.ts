@@ -725,15 +725,32 @@ export class FeelingsWheelApp {
 
     // Keep the address bar in step with the current setup so it can be bookmarked.
     syncUrl(): void {
-        if (this.quiet) return;
         const isChecked = (id: string) =>
             !!(document.getElementById(id) as HTMLInputElement | null)?.checked;
+        this.updateViewsLabel(isChecked('focused-mode-panel'), isChecked('simplified-mode-panel'));
+        if (this.quiet) return;
         const next = writeUrlOptions(window.location.href, {
             simplified: isChecked('simplified-mode-panel'),
             focused: isChecked('focused-mode-panel'),
             panelHidden: !!document.getElementById('info-panel')?.classList.contains('minimized'),
         });
         if (next !== window.location.href) history.replaceState(history.state, '', next);
+    }
+
+    // Name the current view beside "Views", so the default (Full wheel) and the combined
+    // Focused + Simplified state are stated, not inferred from which chips are filled.
+    updateViewsLabel(focused: boolean, simplified: boolean): void {
+        const el = document.getElementById('views-current');
+        if (!el) return;
+        const name =
+            focused && simplified
+                ? 'Focused + Simplified'
+                : focused
+                  ? 'Focused'
+                  : simplified
+                    ? 'Simplified'
+                    : 'Full wheel';
+        el.textContent = ` · ${name}`;
     }
 
     // Land keyboard/screen-reader focus on the visible panel view's heading, with a

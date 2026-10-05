@@ -780,3 +780,23 @@ test('the reading lens shows when a key is pressed on a wedge focused by script'
     await expect(page.locator('.core-wedge[data-emotion="Angry"]')).toBeFocused();
     await expect(page.locator('#wheel-lens .wheel-lens__word')).toHaveText('Angry');
 });
+
+test('an easier view says so in words, with a one-tap way back to the full wheel', async ({
+    page,
+}) => {
+    const status = page.locator('#view-status');
+    await expect(status).toBeHidden();
+    await page.locator('label[for="guided-mode-panel"]').click();
+    await expect(status).toBeVisible();
+    await expect(status).toContainText('Guided view');
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect(status).toContainText('Guided + Simplified');
+
+    await page.locator('#view-status-reset').click();
+    await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+    await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
+    await expect(status).toBeHidden();
+    await expect(page.locator('.wedge[data-guided-rest]')).toHaveCount(0);
+    await expect(page.locator('.tertiary-wedge').first()).toBeAttached();
+    await expect(page.locator('#view-explore .view-title')).toBeFocused();
+});

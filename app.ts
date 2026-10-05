@@ -338,6 +338,18 @@ export class FeelingsWheelApp {
                     ? 'Guided view on. Choose a core feeling to open the next ring.'
                     : 'Guided view off. The full wheel is available.'
             );
+            this.updateViewStatus();
+        });
+
+        // 'Show full wheel' turns every easier view off (through the real toggles, so
+        // each one announces and updates exactly as if its chip were pressed).
+        document.getElementById('view-status-reset')?.addEventListener('click', () => {
+            for (const id of ['guided-mode-panel', 'simplified-mode-panel']) {
+                const t = document.getElementById(id) as HTMLInputElement | null;
+                if (t?.checked) t.click();
+            }
+            this.announce('Full wheel shown.');
+            this.focusPanelHeading();
         });
 
         // Setup simplified mode toggle
@@ -353,6 +365,7 @@ export class FeelingsWheelApp {
             this.wheelGenerator.setSimplifiedMode(isSimplified);
             this.recreateTilesFromWheelState();
             this.updateInstructionsVisibility();
+            this.updateViewStatus();
 
             const hidden = this.hiddenSelectionCount();
             this.announce(
@@ -633,6 +646,39 @@ export class FeelingsWheelApp {
             );
         }
         if (handleArrow) handleArrow.textContent = minimized ? '▲' : '▼';
+    }
+
+    // Say in words which easier view is on (the chips only show it by colour), so the
+    // wheel's current shape is never a puzzle — and offer a one-tap way back.
+    updateViewStatus(): void {
+        const status = document.getElementById('view-status');
+        const text = document.getElementById('view-status-text');
+        if (!status || !text) return;
+        const guided = (document.getElementById('guided-mode-panel') as HTMLInputElement)?.checked;
+        const simplified = this.isSimplifiedActive();
+        status.hidden = !guided && !simplified;
+        const [short, long] =
+            guided && simplified
+                ? [
+                      'Guided + Simplified on.',
+                      'Guided + Simplified: outer ring hidden; rings open as you choose.',
+                  ]
+                : guided
+                  ? ['Guided view on.', 'Guided view: rings open as you choose.']
+                  : simplified
+                    ? [
+                          'Simplified view on.',
+                          'Simplified view: outer ring hidden, simpler meanings.',
+                      ]
+                    : ['', ''];
+        // Short form for the cramped phone sheet; the full explanation everywhere else.
+        const s = document.createElement('span');
+        s.className = 'view-status__short';
+        s.textContent = short;
+        const l = document.createElement('span');
+        l.className = 'view-status__long';
+        l.textContent = long;
+        text.replaceChildren(s, l);
     }
 
     // Land keyboard/screen-reader focus on the visible panel view's heading, with a

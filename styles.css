@@ -226,6 +226,62 @@
     outline: none;
 }
 
+/* Easier-view status: one quiet line under the panel heading while Guided and/or
+   Simplified is on, with a text button back to the full wheel. */
+.view-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-3) var(--space-5);
+    background: var(--color-surface-alt);
+    border-bottom: 1px solid var(--color-border);
+}
+.view-status[hidden] {
+    display: none;
+}
+.view-status__text {
+    flex: 1 1 14rem;
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--color-ink-muted);
+}
+.view-status__short {
+    display: none;
+}
+
+/* Phone bottom sheet: one compact row so the chosen feelings keep their room. */
+@media (max-width: 767px) and (orientation: portrait) {
+    .view-status {
+        flex-wrap: nowrap;
+        align-items: center;
+        padding: var(--space-1) var(--space-5);
+    }
+    .view-status__short {
+        display: inline;
+    }
+    .view-status__long {
+        display: none;
+    }
+    .view-status__text {
+        flex: 1 1 auto;
+    }
+}
+
+.view-status__reset {
+    padding: var(--space-1) 0;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: var(--weight-medium);
+    color: var(--color-accent-text);
+    background: none;
+    border: none;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+}
+
 /* Skip-link landing spot: the visible view's heading shows the standard ring. */
 .view-title:focus-visible {
     outline: var(--focus-ring-width) solid var(--color-focus);
@@ -387,7 +443,9 @@ body {
         max-width: none;
         height: auto;
         min-height: 280px;
-        max-height: 350px;
+        /* Tall phones: the wheel is width-bound, so the sheet can take up to 45% of
+           the height (more room for chosen feelings) without shrinking the wheel. */
+        max-height: max(350px, min(45vh, 420px));
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         margin: 0;
         border: none;
@@ -1405,7 +1463,9 @@ body {
         left: 0;
         right: 0;
         width: 100% !important;
-        height: var(--panel-width);
+        /* Height-aware: taller phones give the chosen feelings more room; the wheel is
+           width-bound there, so it doesn't shrink. Short screens are capped below. */
+        height: max(280px, min(45vh, 420px));
         border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
     }
 }

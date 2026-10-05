@@ -1312,8 +1312,18 @@ body {
 }
 
 /* CSS-only tooltip from data-tip. Appears above the button on hover/focus. */
-.hero-btn[data-tip]::after {
+/* Shared by icon buttons, view chips, Reset and the panel toggles, so every
+   control shows its name + shortcut on hover AND keyboard focus (native title
+   tooltips are slow and never show on focus). */
+.view-chip[data-tip] {
+    position: relative; /* anchor for the tooltip (the panel toggles are already positioned) */
+}
+.hero-btn[data-tip]::after,
+.view-chip[data-tip]::after,
+.panel-hide-btn[data-tip]::after,
+.panel-show-btn[data-tip]::after {
     content: attr(data-tip);
+    z-index: 5;
     position: absolute;
     bottom: calc(100% + 8px);
     left: 50%;
@@ -1333,9 +1343,38 @@ body {
 }
 
 .hero-btn[data-tip]:hover::after,
-.hero-btn[data-tip]:focus-visible::after {
+.hero-btn[data-tip]:focus-visible::after,
+.view-chip[data-tip]:hover::after,
+.hero-toggle-input:focus-visible + .view-chip[data-tip]::after {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+}
+
+/* Panel toggles sit at the top edge: their tooltips drop below, aligned right. */
+.panel-hide-btn[data-tip]::after,
+.panel-show-btn[data-tip]::after {
+    top: calc(100% + 8px);
+    bottom: auto;
+    left: auto;
+    right: 0;
+    transform: translateY(-4px);
+}
+.panel-hide-btn[data-tip]:hover::after,
+.panel-hide-btn[data-tip]:focus-visible::after,
+.panel-show-btn[data-tip]:hover::after,
+.panel-show-btn[data-tip]:focus-visible::after {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Tooltips are for pointers and keyboards; touch has no hover and the label is
+   already visible on the chips. */
+@media (hover: none) {
+    .view-chip[data-tip]::after,
+    .panel-hide-btn[data-tip]::after,
+    .panel-show-btn[data-tip]::after {
+        display: none;
+    }
 }
 
 .refs-text {
@@ -1843,6 +1882,9 @@ svg.animating {
     .selected,
     .hero-btn,
     .hero-btn[data-tip]::after,
+    .view-chip[data-tip]::after,
+    .panel-hide-btn[data-tip]::after,
+    .panel-show-btn[data-tip]::after,
     .view-chip,
     .mobile-collapse-handle,
     .info-panel,

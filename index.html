@@ -119,6 +119,18 @@
                                 </button>
                             </div>
                             <div class="view-body view-body--explore">
+                                <!-- After Reset: a short-lived way to bring the cleared feelings back
+                                     (nothing is saved; it's gone after a few seconds or a new choice). -->
+                                <div class="reset-undo" id="reset-undo" hidden>
+                                    <span class="reset-undo__text">Cleared.</span>
+                                    <button
+                                        type="button"
+                                        class="reset-undo__btn"
+                                        id="reset-undo-btn"
+                                    >
+                                        Undo
+                                    </button>
+                                </div>
                                 <div class="panel-empty" id="panel-instructions">
                                     <p class="empty-hint">
                                         Choose any word on the wheel that feels close.<span

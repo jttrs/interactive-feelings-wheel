@@ -928,3 +928,60 @@ test('short landscape screens trim the panel header without shrinking touch targ
     expect(r.minTarget).toBeGreaterThanOrEqual(44);
     await ctx.close();
 });
+
+test('after the mouse reads a word, the lens returns to the keyboard-focused feeling', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.waitForTimeout(400);
+    await page.locator('.core-wedge[data-emotion="Angry"]').focus();
+    await page.keyboard.press('ArrowRight');
+    const focused = (await page.evaluate(() =>
+        document.activeElement?.getAttribute('data-emotion')
+    ))!;
+    const word = page.locator('#wheel-lens .wheel-lens__word');
+    await expect(word).toHaveText(focused);
+
+    const box = (await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(word).toHaveText('Cheeky');
+    await page.mouse.move(2, 2); // off the wheel
+    await expect(page.locator('#wheel-lens')).toBeVisible();
+    await expect(word).toHaveText(focused);
+});
+
+// Reset is easy to hit mid-session: a brief, in-memory Undo brings the choices back.
+test('Undo after Reset restores every chosen feeling, including ones hidden by Simplified', async ({
+    page,
+}) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
+    await page.locator('label[for="simplified-mode-panel"]').click(); // Cheeky now hidden
+    await page.locator('#reset-btn-panel').click();
+    const undo = page.locator('#reset-undo');
+    await expect(undo).toBeVisible();
+    await expect(page.locator('.feeling-node')).toHaveCount(0);
+
+    await page.waitForTimeout(1200); // let the unwind finish
+    await page.locator('#reset-undo-btn').click();
+    await expect(undo).toBeHidden();
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(3);
+    await expect(page.locator('#view-status')).toContainText('Still chosen but hidden: Cheeky.');
+    await expect(page.locator('#sr-announcer')).toHaveText('Restored 3 chosen feelings.');
+
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect(page.locator('.tertiary-wedge[data-emotion="Cheeky"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    );
+});
+
+test('the Undo offer ends with a new choice', async ({ page }) => {
+    await page.locator('.core-wedge[data-emotion="Sad"]').click();
+    await page.locator('#reset-btn-panel').click();
+    await expect(page.locator('#reset-undo')).toBeVisible();
+    await page.waitForTimeout(1200);
+    await page.locator('.core-wedge[data-emotion="Angry"]').click();
+    await expect(page.locator('#reset-undo')).toBeHidden();
+});

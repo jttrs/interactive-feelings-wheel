@@ -189,7 +189,9 @@ test('simplified view: the middle ring is the outer edge', async ({ page }) => {
 test('reset is announced to screen readers', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
     await page.locator('#reset-btn-panel').click();
-    await expect(page.locator('#sr-announcer')).toHaveText('Cleared all selected feelings.');
+    await expect(page.locator('#sr-announcer')).toHaveText(
+        'Cleared all selected feelings. Undo is available for a few seconds.'
+    );
 });
 
 test('control buttons have accessible names', async ({ page }) => {

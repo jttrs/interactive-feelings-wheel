@@ -14,6 +14,9 @@ export class FeelingsWheelApp {
     currentView!: string;
     views!: Record<string, HTMLElement | null>;
     isResetting = false;
+    // Reset's undo: the cleared selection, kept only briefly and only in memory.
+    undoIds: string[] = [];
+    undoTimer: ReturnType<typeof setTimeout> | null = null;
     // True while applying start-up options from the URL: no announcements or animation.
     quiet = false;
 
@@ -352,6 +355,10 @@ export class FeelingsWheelApp {
             this.updateViewStatus();
         });
 
+        document
+            .getElementById('reset-undo-btn')
+            ?.addEventListener('click', () => this.undoReset());
+
         // 'Show full wheel' turns Focused and Simplified off (through the real toggles, so
         // each one announces and updates exactly as if its chip were pressed).
         document.getElementById('view-status-reset')?.addEventListener('click', () => {
@@ -485,6 +492,9 @@ export class FeelingsWheelApp {
     handleEmotionSelection(detail: EmotionSelectedDetail): void {
         const { emotion, selected } = detail;
 
+        // A new choice after Reset starts fresh: the old selection can't be restored.
+        this.dismissUndo();
+
         // Selecting an emotion always brings the Explore view forward.
         if (this.currentView && this.currentView !== 'explore') {
             this.showView('explore');
@@ -602,13 +612,50 @@ export class FeelingsWheelApp {
         if (this.isResetting) return;
         this.isResetting = true;
 
+        // Reset is quick to hit in a live session: keep what it clears so it can be undone.
+        const cleared = [...this.wheelGenerator.selectedWedges];
+
         // Mark wheel as animating to prevent user interaction
         this.wheelGenerator.isAnimating = true;
 
-        this.announce('Cleared all selected feelings.');
+        this.announce('Cleared all selected feelings. Undo is available for a few seconds.');
 
         // RESTORED: Full reset animation with tile unwinding + wheel rotation
         this.animateUnwindTiles();
+        if (cleared.length) this.offerUndo(cleared);
+    }
+
+    offerUndo(ids: string[]): void {
+        this.undoIds = ids;
+        const bar = document.getElementById('reset-undo');
+        if (bar) bar.hidden = false;
+        if (this.undoTimer) clearTimeout(this.undoTimer);
+        this.undoTimer = setTimeout(() => this.dismissUndo(), 8000);
+    }
+
+    dismissUndo(): void {
+        this.undoIds = [];
+        if (this.undoTimer) clearTimeout(this.undoTimer);
+        this.undoTimer = null;
+        const bar = document.getElementById('reset-undo');
+        if (!bar || bar.hidden) return;
+        // Don't strand keyboard focus on a button that's about to disappear.
+        if (bar.contains(document.activeElement)) this.focusPanelHeading();
+        bar.hidden = true;
+    }
+
+    undoReset(): void {
+        const ids = this.undoIds;
+        if (!ids.length || this.isResetting) return;
+        this.dismissUndo();
+        this.wheelGenerator.restoreSelections(ids);
+        this.renderFeelings();
+        this.updateInstructionsVisibility();
+        this.announce(
+            ids.length === 1
+                ? 'Restored 1 chosen feeling.'
+                : `Restored ${ids.length} chosen feelings.`
+        );
     }
 
     animateUnwindTiles(): void {

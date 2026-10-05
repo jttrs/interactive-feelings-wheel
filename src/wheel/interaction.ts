@@ -733,6 +733,18 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             if (this.isFocusedMode) this.refreshFocusedView();
         }
 
+        // Re-choose a set of feelings (Reset's undo). Drawn wedges get every selection
+        // effect; ones not drawn right now (outer ring in Simplified) just rejoin the set
+        // and are painted when their ring returns.
+        restoreSelections(ids: string[]): void {
+            for (const id of ids) {
+                if (this.selectedWedges.has(id)) continue;
+                const ctx = this.effectCtx(id);
+                if (ctx) this.applySelectionEffects(ctx);
+                else this.selectedWedges.add(id);
+            }
+        }
+
         selectWedge(wedgeId: string, wedge: SVGElement): void {
             const ctx = this.effectCtx(wedgeId, wedge);
             if (ctx) this.applySelectionEffects(ctx);

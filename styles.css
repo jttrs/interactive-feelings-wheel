@@ -799,6 +799,19 @@ body {
 .screen-nudge[hidden] {
     display: none;
 }
+/* Retiring after its lesson landed: a slow fade, so it leaves rather than vanishes. */
+.screen-nudge {
+    transition: opacity 0.4s var(--ease-soft);
+}
+.screen-nudge--leaving {
+    opacity: 0;
+    pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .screen-nudge {
+        transition: none;
+    }
+}
 .screen-nudge__text {
     margin: 0;
     text-wrap: balance;

@@ -13,6 +13,9 @@ export const LENS_KEYS_KEY = 'ifw:lens-key-hints-shown';
 export const LENS_KEYS_TIMES = 6;
 const TAP_LINGER_MS = 1400;
 const DRAG_CANCEL_PX = 10;
+// Pointing must rest on a small word this long to count as reading it (so sweeping
+// the mouse across the wheel on the way somewhere else doesn't).
+const POINT_READ_MS = 500;
 
 export interface LensWord {
     word: string;
@@ -76,6 +79,13 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
     let keysPinned = false;
     let hideTimer: ReturnType<typeof setTimeout> | null = null;
     let down: { x: number; y: number; wedge: SVGElement } | null = null;
+    let pointReadTimer: ReturnType<typeof setTimeout> | null = null;
+    const cancelPointRead = () => {
+        if (pointReadTimer) clearTimeout(pointReadTimer);
+        pointReadTimer = null;
+    };
+    // Tells the small-screen tip its lesson landed (a word was read in the lens).
+    const reportRead = () => wheelRoot.dispatchEvent(new CustomEvent('wheel:lens-hold'));
 
     const show = (wedge: SVGElement, viaKeyboard = false) => {
         const content = lensWordFor(wedge.dataset);
@@ -132,11 +142,17 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
     const onOver = (e: PointerEvent) => {
         if (e.pointerType !== 'mouse' || down) return;
         const w = wedgeFrom(e.target);
-        if (w && small(w)) show(w);
-        else backToFocus();
+        cancelPointRead();
+        if (w && small(w)) {
+            show(w);
+            pointReadTimer = setTimeout(reportRead, POINT_READ_MS);
+        } else backToFocus();
     };
     const onLeave = (e: PointerEvent) => {
-        if (e.pointerType === 'mouse' && !down) backToFocus();
+        if (e.pointerType === 'mouse' && !down) {
+            cancelPointRead();
+            backToFocus();
+        }
     };
     const onDown = (e: PointerEvent) => {
         const w = wedgeFrom(e.target);
@@ -145,9 +161,7 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
         if (e.pointerType !== 'mouse' || small(w)) {
             show(w);
             // Lets the small-screen tip know its lesson ("press and hold") landed.
-            if (e.pointerType !== 'mouse') {
-                wheelRoot.dispatchEvent(new CustomEvent('wheel:lens-hold'));
-            }
+            if (e.pointerType !== 'mouse') reportRead();
         }
     };
     const onMove = (e: PointerEvent) => {

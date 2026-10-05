@@ -170,6 +170,35 @@ test.describe('small-screen tip', () => {
         await ctx.close();
     });
 
+    test('with a mouse, resting on a word retires the tip after a pause; a quick sweep does not', async ({
+        page,
+    }) => {
+        await open(page, 390, 844);
+        await page.emulateMedia({ reducedMotion: 'no-preference' }); // see the fade
+        const nudge = page.locator('#screen-nudge');
+        await expect(nudge).toBeVisible();
+        await expect(nudge).toContainText('Point at any word');
+        const at = async (emotion: string) => {
+            const b = (await page
+                .locator(`.tertiary-wedge[data-emotion="${emotion}"]`)
+                .boundingBox())!;
+            await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+        };
+        // Sweep across a word without resting: the tip stays.
+        await at('Cheeky');
+        await page.waitForTimeout(150);
+        await page.mouse.move(5, 5);
+        await page.waitForTimeout(1800);
+        await expect(nudge).toBeVisible();
+        // Rest on a word: the lens shows it, the tip lingers a moment, then fades out.
+        await at('Cheeky');
+        await expect(page.locator('#wheel-lens')).toBeVisible();
+        await page.waitForTimeout(900);
+        await expect(nudge).toBeVisible();
+        await expect(nudge).toHaveClass(/screen-nudge--leaving/, { timeout: 2000 });
+        await expect(nudge).toBeHidden({ timeout: 2000 });
+    });
+
     test('hides while Simplified is on', async ({ page }) => {
         await open(page, 390, 844);
         await expect(page.locator('#screen-nudge')).toBeVisible();

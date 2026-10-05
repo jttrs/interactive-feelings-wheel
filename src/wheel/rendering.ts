@@ -537,7 +537,7 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             this.svg.setAttribute('role', 'group');
             this.svg.setAttribute(
                 'aria-label',
-                'Feelings wheel. Use the arrow keys to move between feelings, and Enter or Space to choose one.'
+                'Feelings wheel. Left and Right arrows move around a ring. Down moves out to more specific feelings, Up back to broader ones. Page Up and Page Down jump between families. Enter or Space chooses a feeling.'
             );
 
             // Create four layers for proper rendering (via the guarded group() helper).

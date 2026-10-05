@@ -8,6 +8,51 @@ import type {
     EffectCtx,
 } from '../types.ts';
 import { applyGuidedFocus, GUIDED_REST_ATTR } from './guided.ts';
+import {
+    isNavKey,
+    parentKey,
+    resolveNavMove,
+    siblingPositions,
+    type NavLevel,
+    type NavNode,
+} from './keyboard-nav.ts';
+
+// Per-wheel "last child visited" memory for ↓ (parentKey → wedge id). Kept outside the
+// mixin class so it needs no engine-wide field declaration.
+const navMemory = new WeakMap<object, Map<string, string>>();
+
+function toNavNode(w: Element): NavNode {
+    const level = w.getAttribute('data-level') as NavLevel;
+    const emotion = w.getAttribute('data-emotion') ?? '';
+    const parent = w.getAttribute('data-parent');
+    const family =
+        level === 'core'
+            ? emotion
+            : level === 'secondary'
+              ? (parent ?? '')
+              : (w.getAttribute('data-grandparent') ?? '');
+    return {
+        id: w.getAttribute('data-wedge-id') ?? '',
+        level,
+        emotion,
+        parent: level === 'core' ? null : parent,
+        family,
+        reachable: !w.hasAttribute(GUIDED_REST_ATTR),
+    };
+}
+
+function announceNav(message: string): void {
+    const region = document.getElementById('sr-announcer');
+    if (!region) return;
+    // Identical text isn't re-read by screen readers; blank it first so a repeated
+    // edge press is still heard.
+    if (region.textContent === message) {
+        region.textContent = '';
+        setTimeout(() => (region.textContent = message), 50);
+    } else {
+        region.textContent = message;
+    }
+}
 
 // ===== SELECTION EFFECTS — THE SINGLE SOURCE OF TRUTH =====
 //
@@ -316,10 +361,10 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 }
             });
 
-            // Keyboard support: Enter/Space selects the focused wedge; Arrow keys move
-            // focus between wedges (roving tabindex). Arrow handling is scoped to when a
-            // wedge is focused and stops propagation so it does not also rotate the wheel
-            // via the app's global arrow-key shortcut — mouse/scroll behavior is unchanged.
+            // Keyboard support: Enter/Space selects the focused wedge; the structured nav
+            // keys (keyboard-nav.ts) move focus by ring/family (roving tabindex). Scoped to
+            // when a wedge is focused and stops propagation so arrows don't also rotate the
+            // wheel via the global arrow-key spin — mouse/scroll behavior is unchanged.
             svg.addEventListener('keydown', (e: KeyboardEvent) => {
                 const target = e.target as Element | null;
                 if (!target || !target.classList || !target.classList.contains('wedge')) return;
@@ -331,11 +376,7 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                     return;
                 }
 
-                if (
-                    ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(
-                        e.key
-                    )
-                ) {
+                if (isNavKey(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
                     e.preventDefault();
                     e.stopPropagation();
                     this.moveWedgeFocus(target, e.key);
@@ -464,30 +505,77 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             );
         }
 
-        // Make exactly one wedge part of the tab order so the wheel is a single tab-stop.
+        // Make exactly one wedge part of the tab order so the wheel is a single tab-stop,
+        // and give every wedge its position among siblings ("Playful, under Happy, 1 of 6")
+        // so screen-reader users hear where they are without a separate announcement.
         initRovingTabindex(): void {
             const wedges = this.getFocusableWedges();
             wedges.forEach((w) => w.setAttribute('tabindex', '-1'));
             if (wedges.length) wedges[0].setAttribute('tabindex', '0');
+
+            const all = this.getNavWedges();
+            const positions = siblingPositions(all.map(toNavNode));
+            for (const w of all) {
+                const pos = positions.get(w.getAttribute('data-wedge-id') ?? '');
+                const label = w.getAttribute('aria-label');
+                if (pos && label && !/, \d+ of \d+$/.test(label)) {
+                    w.setAttribute('aria-label', `${label}, ${pos.index} of ${pos.total}`);
+                }
+            }
         }
 
-        // Move keyboard focus among wedges, updating the roving tabindex.
-        moveWedgeFocus(current: Element, key: string): void {
-            const wedges = this.getFocusableWedges();
-            const i = wedges.indexOf(current);
-            if (i === -1) return;
+        // Every real wedge (rested ones included) in stable nav-index order — the
+        // structure the keyboard model reasons over.
+        getNavWedges(): Element[] {
+            return Array.from(this.container.querySelectorAll('.wedge:not(.shadow-wedge)')).sort(
+                (a, b) =>
+                    Number(a.getAttribute('data-nav-index')) -
+                    Number(b.getAttribute('data-nav-index'))
+            );
+        }
 
-            let next: number;
-            if (key === 'Home') next = 0;
-            else if (key === 'End') next = wedges.length - 1;
-            else {
-                const forward = key === 'ArrowRight' || key === 'ArrowDown';
-                next = (i + (forward ? 1 : -1) + wedges.length) % wedges.length;
+        // Move keyboard focus by ring/family (see keyboard-nav.ts), updating the roving
+        // tabindex. Edge presses that can't move are announced briefly instead.
+        moveWedgeFocus(current: Element, key: string): void {
+            const wedges = this.getNavWedges();
+            const nodes = wedges.map(toNavNode);
+            const currentId = current.getAttribute('data-wedge-id') ?? '';
+            let memory = navMemory.get(this);
+            if (!memory) navMemory.set(this, (memory = new Map()));
+
+            const result = resolveNavMove(nodes, currentId, key, memory);
+            if (result.kind === 'blocked') {
+                announceNav(
+                    result.reason === 'center'
+                        ? 'This is the center ring.'
+                        : result.reason === 'outer'
+                          ? 'This is the outer ring.'
+                          : `Choose ${result.emotion} to open its more specific feelings.`
+                );
+                return;
+            }
+            if (result.kind !== 'move') return;
+
+            const targetIndex = nodes.findIndex((n) => n.id === result.id);
+            const target = wedges[targetIndex] as SVGElement | undefined;
+            if (!target) return;
+
+            // Remember the child we land on under its parent, so ↑ then ↓ returns here.
+            const landed = nodes[targetIndex];
+            if (landed.level !== 'core') {
+                const parentLevel = landed.level === 'secondary' ? 'core' : 'secondary';
+                const parent = nodes.find(
+                    (p) =>
+                        p.level === parentLevel &&
+                        p.family === landed.family &&
+                        p.emotion === landed.parent
+                );
+                if (parent) memory.set(parentKey(parent), landed.id);
             }
 
-            current.setAttribute('tabindex', '-1');
-            const target = wedges[next] as SVGElement | HTMLElement;
-            target.setAttribute('tabindex', '0');
+            // Reset every wedge, not just `current`: focus can arrive on a non-tab-stop
+            // wedge (a click, programmatic focus), and there must only ever be one stop.
+            wedges.forEach((w) => w.setAttribute('tabindex', w === target ? '0' : '-1'));
             target.focus();
         }
 

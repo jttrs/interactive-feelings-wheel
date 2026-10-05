@@ -4,6 +4,7 @@ import { FeelingsWheelGenerator } from './feelings-wheel-engine.ts';
 import { FEELINGS_DATA } from './feelings-data.ts';
 import { renderFeelingsTree } from './src/ui/feelings-tree.ts';
 import { createGuidedHint } from './src/ui/guided-hint.ts';
+import { initSmallScreenNudge } from './src/ui/small-screen-nudge.ts';
 import type { Selection, EmotionSelectedDetail } from './src/types.ts';
 
 export class FeelingsWheelApp {
@@ -38,6 +39,17 @@ export class FeelingsWheelApp {
 
         // Setup information panel (this will handle all controls now)
         this.setupInformationPanel();
+
+        // Cramped full wheel → gently suggest Simplified/Guided (never switches by itself).
+        initSmallScreenNudge({
+            container: wheelContainer,
+            nudge: document.getElementById('screen-nudge')!,
+            dismissButton: document.getElementById('screen-nudge-dismiss') as HTMLButtonElement,
+            viewToggles: ['simplified-mode-panel', 'guided-mode-panel'].map(
+                (id) => document.getElementById(id) as HTMLInputElement
+            ),
+            announce: (message) => this.announce(message),
+        });
 
         // Setup fullscreen functionality
         this.setupFullscreenFeature();

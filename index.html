@@ -47,6 +47,18 @@
                         <div class="view-body view-body--explore">
                             <div class="panel-empty" id="panel-instructions">
                                 <p class="empty-hint">Choose any word on the wheel that feels close.<span class="empty-hint__more"> Pick as many as fit — there are no wrong answers.</span></p>
+                                <!-- Shown only when the full wheel's words render too small to read
+                                     comfortably. A suggestion only — the view chips are the action. -->
+                                <div class="screen-nudge" id="screen-nudge" hidden
+                                     data-announce="Small screen? Simplified or Guided view can make words easier to read.">
+                                    <p class="screen-nudge__text">Small screen? Try Simplified or Guided.</p>
+                                    <button type="button" class="screen-nudge__dismiss" id="screen-nudge-dismiss"
+                                            aria-label="Dismiss tip">
+                                        <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M6 6l12 12M18 6L6 18"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                             <div class="emotion-tiles" id="emotion-tiles">
                                 <!-- The selected-feelings tree is rendered here dynamically -->

@@ -714,6 +714,77 @@ body {
     line-height: 1.5;
 }
 
+/* Small-screen tip: a quiet inset note under the empty-state hint. It only ever
+   appears on cramped (phone) wheels, so it is compact by default. Calm surface +
+   muted ink so it reads as help, not an alert. */
+.screen-nudge {
+    display: flex;
+    align-items: center;
+    align-self: stretch;
+    gap: var(--space-1);
+    padding: var(--space-1) 0 var(--space-1) var(--space-3);
+    text-align: left;
+    background: var(--color-surface-alt);
+    border-radius: var(--radius-sm);
+}
+.screen-nudge[hidden] {
+    display: none;
+}
+.screen-nudge__text {
+    flex: 1;
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    color: var(--color-ink-muted);
+}
+.screen-nudge__dismiss {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    color: var(--color-ink-muted);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+}
+.screen-nudge__dismiss .hero-ic {
+    width: 16px;
+    height: 16px;
+}
+.screen-nudge__dismiss:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: -2px;
+}
+@media (hover: hover) {
+    .screen-nudge__dismiss:hover {
+        color: var(--color-accent-text);
+        background: var(--color-surface);
+    }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .screen-nudge {
+        animation: screen-nudge-in var(--motion-slow) var(--ease-soft);
+    }
+}
+@keyframes screen-nudge-in {
+    from {
+        opacity: 0;
+    }
+}
+/* While the tip shows, the optional second sentence steps aside so the hint and
+   the tip both fit the phone sheet without scrolling. */
+.panel-empty:has(.screen-nudge:not([hidden])) {
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+}
+.panel-empty:has(.screen-nudge:not([hidden])) .empty-hint__more {
+    display: none;
+}
+
 /* The bottom sheet is short: keep the invitation compact so it never crowds the footer. */
 @media (max-width: 767px) and (orientation: portrait) {
     .panel-empty {
@@ -1344,7 +1415,9 @@ svg text {
 
 /* Performance optimization for reduced motion users */
 @media (prefers-reduced-motion: reduce) {
-    svg, path:not(.shadow-wedge), text, .wheel-main-group {
+    /* Not `text`: a label's rotate() is its static radial layout, not motion —
+       removing it lays every word flat across its neighbours. */
+    svg, path:not(.shadow-wedge), .wheel-main-group {
         /* Disable hardware acceleration if user prefers reduced motion */
         will-change: auto;
         transform: none;

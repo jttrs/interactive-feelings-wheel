@@ -11,6 +11,7 @@ web
 - **Primary: therapists, in session with a client.** The therapist uses the wheel with the client to explore and name the client's feelings. The tool is never meant to be used by a client alone.
 - **Clients, alongside their therapist.** Adults use the full wheel. **Younger clients (mostly children)** use Simplified view, which the therapist chooses up front because children don't yet have the nuance for the outer-ring words.
 - Sessions happen both in the room (laptop or tablet shared between therapist and client) and over telehealth (the therapist's screen shared to the client). Who drives the device varies.
+- **Phones and tablets are real session devices**, not just "it also works on mobile". Both orientations must give the wheel as much room as possible and keep chosen feelings readable.
 
 ## Product Purpose
 

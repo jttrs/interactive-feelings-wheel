@@ -324,7 +324,7 @@ for (const [width, height] of [
     [1024, 768],
     [1440, 900],
     [844, 390],
-    [768, 1024],
+    [1180, 820],
 ]) {
     test(`panel toggles never overlap the wheel at ${width}x${height}`, async ({ page }) => {
         await page.setViewportSize({ width, height });
@@ -343,6 +343,28 @@ for (const [width, height] of [
         await page.locator('#panel-hide-btn').click();
         await page.waitForTimeout(800);
         expect(await intrusion('#panel-show-btn')).toBeLessThanOrEqual(0);
+    });
+}
+
+// Portrait tablets are session devices: the wheel is width-bound there, so they get
+// the bottom sheet (not a side panel that would shrink the wheel by a third).
+for (const [width, height] of [
+    [820, 1180],
+    [1024, 1366],
+]) {
+    test(`portrait tablet ${width}x${height} uses the sheet and a near-full-width wheel`, async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(400);
+        await expect(page.locator('#mobile-collapse-handle')).toBeVisible();
+        await expect(page.locator('#panel-hide-btn')).toBeHidden();
+        const wheel = (await page.locator('.wheel-main-group').first().boundingBox())!;
+        expect(wheel.width).toBeGreaterThan(width * 0.9);
+        // Footer fits on one row: the view chips and Reset share a baseline.
+        const chip = (await page.locator('label[for="focused-mode-panel"]').boundingBox())!;
+        const reset = (await page.locator('#reset-btn-panel').boundingBox())!;
+        expect(Math.abs(chip.y + chip.height / 2 - (reset.y + reset.height / 2))).toBeLessThan(4);
     });
 }
 

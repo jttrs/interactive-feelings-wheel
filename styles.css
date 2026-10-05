@@ -340,8 +340,10 @@ body {
    --sheet-h is the sheet's live rendered height, written by app.ts from a
    ResizeObserver, so expanded, collapsed and short-screen sheets all reserve
    exactly their own space and the wheel centres in what's actually visible.
-   Landscape phones keep the side panel: a sheet there would bury the wheel. */
-@media (max-width: 767px) and (orientation: portrait) {
+   Portrait phones AND portrait tablets (up to iPad Pro width) use the sheet: in
+   portrait the wheel is width-bound, so a side panel would shrink it by a third.
+   Landscape keeps the side panel: a sheet there would bury the wheel. */
+@media (max-width: 1100px) and (orientation: portrait) {
     .wheel-section,
     .main-layout.panel-minimized .wheel-section {
         padding-right: 0;
@@ -378,7 +380,7 @@ body {
 }
 
 /* Mobile: Bottom sheet style with enhanced visibility */
-@media (max-width: 767px) and (orientation: portrait) {
+@media (max-width: 1100px) and (orientation: portrait) {
     .info-panel {
         position: fixed;
         top: auto;
@@ -390,8 +392,9 @@ body {
         height: auto;
         min-height: 280px;
         /* Tall phones: the wheel is width-bound, so the sheet can take up to 45% of
-           the height (more room for chosen feelings) without shrinking the wheel. */
-        max-height: max(350px, min(45vh, 420px));
+           the height, or every pixel the wheel can't use (height minus width), for more
+           chosen-feelings room without shrinking the wheel. */
+        max-height: max(350px, min(45vh, 420px), calc(100dvh - 100vw - 60px));
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         margin: 0;
         border: none;
@@ -520,7 +523,7 @@ body {
    before the slide). The tab rides to the screen edge and stays reachable
    (it lives outside the transformed panel). Desktop only: on mobile the sheet
    folds down instead of sliding sideways. */
-@media (min-width: 768px), (orientation: landscape) {
+@media (min-width: 1101px), (orientation: landscape) {
     .info-panel.minimized {
         transform: translateX(100%);
         box-shadow: none;
@@ -590,7 +593,7 @@ body {
 }
 
 /* Mobile: the sheet's grab handle replaces the hide/show buttons */
-@media (max-width: 767px) and (orientation: portrait) {
+@media (max-width: 1100px) and (orientation: portrait) {
     .mobile-collapse-handle {
         display: flex;
     }
@@ -615,7 +618,7 @@ body {
 }
 
 /* Mobile: Add top padding to prevent overlap with collapse handle */
-@media (max-width: 767px) and (orientation: portrait) {
+@media (max-width: 1100px) and (orientation: portrait) {
     .panel-content {
         padding-top: 32px; /* Space for mobile collapse handle */
     }
@@ -906,7 +909,7 @@ body {
 }
 
 /* The bottom sheet is short: keep the invitation compact so it never crowds the footer. */
-@media (max-width: 767px) and (orientation: portrait) {
+@media (max-width: 1100px) and (orientation: portrait) {
     .panel-empty {
         padding: var(--space-4) var(--space-5);
     }
@@ -1226,6 +1229,30 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-1);
+}
+
+/* Tablet sheet: room for the footer on one row (views left, actions right), so
+   the chosen feelings get the height instead of two stretched rows of chrome. */
+@media (min-width: 600px) and (max-width: 1100px) and (orientation: portrait) {
+    .panel-footer {
+        display: grid;
+        grid-template-columns: minmax(0, 26rem) auto;
+        grid-template-areas:
+            'label .'
+            'views actions';
+        justify-content: space-between;
+        align-items: center;
+        column-gap: var(--space-5);
+    }
+    .footer-label {
+        grid-area: label;
+    }
+    .view-toggles {
+        grid-area: views;
+    }
+    .hero-actions {
+        grid-area: actions;
+    }
 }
 
 .hero-spacer {
@@ -1595,10 +1622,9 @@ body {
         left: 0;
         right: 0;
         width: 100% !important;
-        /* Height-aware: taller phones give the chosen feelings more room; the wheel is
-           width-bound there, so it doesn't shrink. Short screens are capped below. */
-        height: max(280px, min(45vh, 420px));
-        border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+        /* Height-aware: taller phones give the chosen feelings more room — up to every
+           pixel the width-bound wheel can't use. Short screens are capped below. */
+        height: max(280px, min(45vh, 420px), calc(100dvh - 100vw - 60px));
     }
 }
 
@@ -1860,7 +1886,7 @@ svg text {
     right: var(--space-4);
 }
 
-@media (max-width: 767px) and (orientation: portrait) {
+@media (max-width: 1100px) and (orientation: portrait) {
     .focused-hint,
     .main-layout.panel-minimized .focused-hint {
         right: var(--space-4);

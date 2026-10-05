@@ -4,13 +4,13 @@ import type { FeelingsData } from './src/types.ts';
 export const FEELINGS_DATA: FeelingsData = {
     // Core emotions (center circle) - 7 primary emotions in clockwise order starting with Angry at 0°
     core: [
-        { name: 'Angry', color: '#FFB3B3' }, // Pastel Red - at 0 degrees
-        { name: 'Disgusted', color: '#D3D3D3' }, // Gray
-        { name: 'Sad', color: '#B3C6FF' }, // Pastel Blue
-        { name: 'Happy', color: '#FFFF99' }, // Pastel Yellow
-        { name: 'Surprised', color: '#D4B3FF' }, // Pastel Purple
-        { name: 'Bad', color: '#B3FFB3' }, // Pastel Green
-        { name: 'Fearful', color: '#FFD4A3' }, // Pastel Orange
+        { name: 'Angry', color: '#E6B3A6' }, // Clay rose - at 0 degrees
+        { name: 'Disgusted', color: '#CBC5B9' }, // Stone
+        { name: 'Sad', color: '#B3C3D6' }, // Dusk blue
+        { name: 'Happy', color: '#EAD89E' }, // Honey
+        { name: 'Surprised', color: '#CDBBD8' }, // Lavender
+        { name: 'Bad', color: '#B8CCAF' }, // Sage
+        { name: 'Fearful', color: '#E8C9A2' }, // Apricot
     ],
 
     // Secondary emotions (middle ring) - reading clockwise from reference image

@@ -20,47 +20,48 @@
     src: url('./src/fonts/atkinson-hyperlegible-700.woff2') format('woff2');
 }
 
-/* ===== DESIGN TOKENS (calm / therapeutic, WCAG 2.2 AA audited) =====
-   Every text/UI pairing below was contrast-checked (no rounding):
-   ink/bg 13.1:1, ink/surface 14.3:1, muted/surface 7.1:1, faint/surface 5.3:1,
-   accent-text/surface 9.3:1, accent-UI/surface 5.8:1, focus/surface 9.5:1,
-   white/accent 5.8:1 — all clear AA (4.5 text / 3.0 UI). Warm charcoal on warm
-   paper (not #000/#fff) avoids halation/visual vibration for activated users. */
+/* ===== DESIGN TOKENS — "The Quiet Room" (WCAG 2.2 AA audited) =====
+   A soft, low-stimulation room: linen paper, a warm cream panel, softened ink and a
+   dusty sage-teal. Every text/UI pairing was contrast-checked (no rounding):
+   ink/bg 9.7:1, ink/surface 10.7:1, muted/surface 6.0:1, muted/sand 5.4:1,
+   faint/surface 4.7:1, accent-text/surface 6.9:1, focus/surface 6.9:1,
+   focus/bg 6.2:1, accent-UI/bg 3.9:1, white/accent 4.8:1 — all clear AA
+   (4.5 text / 3.0 UI). Nothing is pure black or white: no glare, no vibration. */
 :root {
     color-scheme: light;
 
     /* Surfaces & ink */
-    --color-bg: #f7f4ef; /* warm paper */
-    --color-surface: #ffffff; /* panel / card */
-    --color-surface-alt: #f2eee7; /* inset / raised fill */
-    --color-ink: #2b2a28; /* primary text (warm charcoal) */
-    --color-ink-muted: #5e574c; /* secondary text */
+    --color-bg: #ece6dc; /* linen */
+    --color-surface: #f6f1ea; /* warm cream panel */
+    --color-surface-alt: #ebe4d8; /* sand: chips, hover, keycaps */
+    --color-ink: #3a3631; /* primary text (soft charcoal) */
+    --color-ink-muted: #625a4f; /* secondary text */
     --color-ink-faint: #736b5e; /* tertiary text */
-    --color-border: #e4ded4; /* decorative hairline */
-    --color-border-strong: #cbc3b6; /* control boundary (meets 3:1 vs surface) */
+    --color-border: #e2d9cb; /* decorative hairline */
+    --color-border-strong: #c4b9a8; /* outlines on handles and keycaps (labelled controls) */
 
     /* Accent (calm teal) */
-    --color-accent: #2f6f6e; /* UI accent / control fills */
-    --color-accent-text: #1f4e4d; /* accent used as text on light */
-    --color-accent-strong: #245957; /* hover/active */
+    --color-accent: #4d7a71; /* dusty sage-teal: control fills */
+    --color-accent-text: #335a53; /* accent used as text on light */
+    --color-accent-strong: #3f6a61; /* hover/active */
     --color-on-accent: #ffffff; /* text/icon on accent fill */
 
     /* Focus ring (>=3:1 vs both bg and surface) */
-    --color-focus: #1b4d4c;
+    --color-focus: #335a53;
 
     /* Wheel separators — the division lines + concentric ring circles own ALL of the
        wheel's boundaries (wedges are fill-only). Warm charcoal, softer than pure #333
        to suit the calm palette. Weights are ratios of wheel size (JS applies floors). */
-    --wheel-line: #4a453d;
+    --wheel-line: #6f665a;
     --wheel-line-primary: 0.0028; /* between core families (thickest) */
     --wheel-line-secondary: 0.0012; /* between secondaries within a family */
     --wheel-line-dyad: 0.0008; /* dyad split in the outer ring (dashed, thinnest) */
-    --wheel-ring: #4a453d; /* concentric ring circles */
+    --wheel-ring: #6f665a; /* concentric ring circles */
     --wheel-ring-weight: 0.0022;
 
     /* Selected-wedge emphasis: a soft accent glow (real drop-shadow filter) that lifts
        the chosen emotion off the wheel, and a warm shadow for the raised copy. */
-    --wheel-selected-glow: drop-shadow(0 0 6px rgba(47, 111, 110, 0.55));
+    --wheel-selected-glow: drop-shadow(0 0 8px rgba(77, 122, 113, 0.5));
     --wheel-shadow-color: rgba(61, 52, 40, 0.28); /* warm, not cold black */
     --wheel-shadow-blur: 4px;
 
@@ -76,6 +77,7 @@
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
+    --radius-xl: 28px; /* the phone sheet's top corners */
     --radius-pill: 999px;
 
     /* Elevation (soft, low-arousal shadows) */
@@ -362,9 +364,9 @@ body {
 
     background: var(--color-surface);
     border: none;
-    border-left: 1px solid var(--color-border);
     border-radius: 0;
-    box-shadow: -8px 0 24px rgba(43, 42, 40, 0.04);
+    /* Docked, but edged with a soft falloff rather than a ruled line. */
+    box-shadow: -12px 0 40px rgba(70, 55, 35, 0.07);
 
     display: flex;
     flex-direction: column;
@@ -390,13 +392,10 @@ body {
         /* Tall phones: the wheel is width-bound, so the sheet can take up to 45% of
            the height (more room for chosen feelings) without shrinking the wheel. */
         max-height: max(350px, min(45vh, 420px));
-        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         margin: 0;
         border: none;
-        border-top: 1px solid var(--color-border);
-        box-shadow:
-            0 -8px 24px rgba(43, 42, 40, 0.1),
-            0 -1px 4px rgba(43, 42, 40, 0.06);
+        box-shadow: 0 -12px 40px rgba(70, 55, 35, 0.1);
         padding-bottom: env(safe-area-inset-bottom);
     }
 
@@ -663,8 +662,7 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-4) var(--space-4) var(--space-3);
-    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-5) var(--space-4) var(--space-3);
 }
 
 .view-back {
@@ -692,8 +690,9 @@ body {
 }
 
 .view-title {
-    font-size: 1.5rem;
-    font-weight: 700;
+    /* Regular weight: the question is asked softly, not announced. */
+    font-size: 1.65rem;
+    font-weight: 400;
     line-height: 1.25;
     letter-spacing: -0.01em;
     margin: 0;
@@ -1139,17 +1138,16 @@ body {
     padding: var(--space-3) var(--space-4);
     padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
     background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
+    /* No ruled line: a soft lift separates it from the list scrolling beneath. */
+    box-shadow: 0 -14px 20px -16px rgba(70, 55, 35, 0.18);
 }
 
 /* Names the chip group, so Focused/Simplified read as views, not feeling words. */
 .footer-label {
     margin: 0;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: var(--weight-medium);
     line-height: 1.2;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
     color: var(--color-ink-muted);
 }
 
@@ -1173,8 +1171,9 @@ body {
     line-height: 1.2;
     white-space: nowrap;
     color: var(--color-ink-muted);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-strong);
+    /* Soft sand pads, no outline: they sit in the room rather than on it. */
+    background: var(--color-surface-alt);
+    border: 1px solid transparent;
     border-radius: var(--radius-pill);
     cursor: pointer;
     transition:
@@ -1190,7 +1189,7 @@ body {
 
 @media (hover: hover) {
     .view-chip:hover {
-        background: var(--color-surface-alt);
+        background: #e2d9cb;
         color: var(--color-accent-text);
     }
 }
@@ -1572,6 +1571,8 @@ body {
     position: relative;
     width: 100%;
     height: 100%;
+    /* A faint pool of light behind the wheel; the room's edges stay in shade. */
+    background: radial-gradient(closest-side, #f6f1ea 0%, var(--color-bg) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1712,8 +1713,9 @@ svg text {
 }
 
 .wedge:hover {
-    /* Subtle enhancement on hover - NO transform to avoid SVG conflicts */
-    filter: saturate(1.2) brightness(1.1);
+    /* Subtle enhancement on hover - NO transform to avoid SVG conflicts. Colour
+       deepens rather than brightens: pale outer tints would otherwise wash to white. */
+    filter: saturate(1.35) brightness(1.02);
 }
 
 /* Focused view (opt-in): rings the user hasn't reached rest in the background —
@@ -1877,7 +1879,7 @@ svg.focused-core-cue .core-wedge:not([aria-pressed='true']) {
         filter: none;
     }
     45% {
-        filter: saturate(1.25) brightness(1.12);
+        filter: saturate(1.35) brightness(1.04);
     }
 }
 
@@ -1886,7 +1888,7 @@ svg.focused-core-cue .core-wedge:not([aria-pressed='true']) {
    nothing) chained after the saturate/brightness lift, tinted with the accent. */
 .selected {
     stroke: var(--wheel-line) !important;
-    filter: saturate(1.4) brightness(1.12) var(--wheel-selected-glow);
+    filter: saturate(1.8) brightness(1.03) var(--wheel-selected-glow);
     transition: filter var(--motion-base) var(--ease-soft);
 }
 

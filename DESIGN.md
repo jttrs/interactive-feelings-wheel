@@ -2,32 +2,32 @@
 name: Feelings Wheel
 description: A calm, faithful feelings wheel a therapist and client explore together.
 colors:
-    calm-teal: '#2f6f6e'
-    calm-teal-deep: '#245957'
-    calm-teal-ink: '#1f4e4d'
-    focus-teal: '#1b4d4c'
+    sage-teal: '#4d7a71'
+    sage-teal-deep: '#3f6a61'
+    sage-teal-ink: '#335a53'
+    focus-teal: '#335a53'
     on-teal: '#ffffff'
-    warm-paper: '#f7f4ef'
-    surface: '#ffffff'
-    surface-sand: '#f2eee7'
-    warm-charcoal: '#2b2a28'
-    ink-muted: '#5e574c'
+    linen: '#ece6dc'
+    surface: '#f6f1ea'
+    surface-sand: '#ebe4d8'
+    soft-charcoal: '#3a3631'
+    ink-muted: '#625a4f'
     ink-faint: '#736b5e'
-    hairline: '#e4ded4'
-    control-edge: '#cbc3b6'
-    wheel-line: '#4a453d'
-    family-angry: '#FFB3B3'
-    family-disgusted: '#D3D3D3'
-    family-sad: '#B3C6FF'
-    family-happy: '#FFFF99'
-    family-surprised: '#D4B3FF'
-    family-bad: '#B3FFB3'
-    family-fearful: '#FFD4A3'
+    hairline: '#e2d9cb'
+    control-edge: '#c4b9a8'
+    wheel-line: '#6f665a'
+    family-angry: '#E6B3A6'
+    family-disgusted: '#CBC5B9'
+    family-sad: '#B3C3D6'
+    family-happy: '#EAD89E'
+    family-surprised: '#CDBBD8'
+    family-bad: '#B8CCAF'
+    family-fearful: '#E8C9A2'
 typography:
     headline:
         fontFamily: 'Atkinson Hyperlegible, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
-        fontSize: '1.5rem'
-        fontWeight: 700
+        fontSize: '1.65rem'
+        fontWeight: 400
         lineHeight: 1.25
         letterSpacing: '-0.01em'
     title:
@@ -86,14 +86,14 @@ spacing:
     '6': '2rem'
 components:
     view-chip:
-        backgroundColor: '{colors.surface}'
+        backgroundColor: '{colors.surface-sand}'
         textColor: '{colors.ink-muted}'
         typography: '{typography.label}'
         rounded: '{rounded.pill}'
         padding: '0 0.75rem'
         height: '36px'
     view-chip-on:
-        backgroundColor: '{colors.calm-teal}'
+        backgroundColor: '{colors.sage-teal}'
         textColor: '{colors.on-teal}'
         rounded: '{rounded.pill}'
     icon-button:
@@ -103,9 +103,9 @@ components:
         size: '44px'
     icon-button-hover:
         backgroundColor: '{colors.surface-sand}'
-        textColor: '{colors.calm-teal-ink}'
+        textColor: '{colors.sage-teal-ink}'
     icon-button-pressed:
-        backgroundColor: '{colors.calm-teal}'
+        backgroundColor: '{colors.sage-teal}'
         textColor: '{colors.on-teal}'
     panel-show-button:
         backgroundColor: '{colors.surface}'
@@ -114,7 +114,7 @@ components:
         size: '40px'
     reading-lens:
         backgroundColor: '{colors.surface}'
-        textColor: '{colors.warm-charcoal}'
+        textColor: '{colors.soft-charcoal}'
         typography: '{typography.lens-word}'
         rounded: '{rounded.lg}'
         padding: '0.5rem 1.5rem'
@@ -124,61 +124,62 @@ components:
         rounded: '{rounded.pill}'
 ---
 
-<!-- North Star chosen by the agent (the owner was unavailable to pick); it follows
-     PRODUCT.md's positioning. Revise freely. -->
+<!-- North Star chosen by the owner (2026-10-05) from three rendered directions.
+     The other two are kept in docs/design-directions.md. -->
 
 # Design System: Feelings Wheel
 
 ## Overview
 
-**Creative North Star: "The Shared Map"**
+**Creative North Star: "The Quiet Room"**
 
-The wheel is a calm, faithful map that a therapist and client read together. The interface's job is to make the map easy to share and then step back. It never interprets, never decorates, and never competes with the words. Everything around the wheel is warm paper, charcoal ink and one quiet teal. Colour lives in the wheel, because the wheel's family colours are part of the established tool, not the brand.
+The wheel sits in a soft, low-stimulation room, like a good therapy office: linen walls, a warm cream panel, softened ink and one dusty sage-teal. Nothing is clinical, bright or loud. The room exists so a distressed client can settle, look, and find a word with their therapist. The interface never interprets and never coaches; it furnishes the space and stays quiet.
 
-The system is low-arousal on purpose. Clients may be distressed, so surfaces are soft and warm rather than stark, motion is a gentle ease rather than a flourish, and nothing flashes, bounces or demands attention. Density is set by the content: the full 130-word wheel is the default, so the chrome around it is sparse and pushed to the edges. That means a side panel on wide screens, a bottom sheet on phones, and corner controls that a circle can never reach.
+Low arousal is the whole point. There is no pure white and no pure black anywhere. The family colours are muted and earthy (honey, clay, dusk blue, sage, lavender, apricot, stone), so the full 130-word wheel reads as calm rather than as a candy chart. Edges are drawn by soft light, not by rules: the docked panel and the footer lift on a gentle shadow instead of a hairline, and headings are asked in a regular weight rather than announced in bold. Motion is a slow ease, and none at all when reduced motion is requested.
 
-Legibility comes first. Atkinson Hyperlegible is used everywhere, text pairs are contrast-audited to WCAG AA, and small words get a reading lens rather than being dropped.
+The room is still a working tool. The wheel gets the centre and the space; the chrome docks to the edge (a side panel on wide screens, a bottom sheet with soft rounded corners on phones). Atkinson Hyperlegible is used everywhere, every text pair is audited to WCAG AA, and small words get a reading lens rather than being dropped.
 
 **Key Characteristics:**
 
-- Warm paper and charcoal ink, never pure black on white.
-- One accent (calm teal), used for state and focus, never for decoration.
-- The wheel's family colours belong to the wheel alone.
-- Chrome sits at the edges; the wheel always gets the centre and the space.
-- Soft, slow-ish motion (0.15–0.35s, one easing curve), and none when reduced motion is requested.
+- Linen, cream and soft charcoal: nothing pure black or pure white.
+- Muted, earthy family colours on the wheel; a faint pool of light behind it.
+- One accent (dusty sage-teal), used for state and focus, never for decoration.
+- Edges made with soft shadow, not ruled lines. The panel docks; it never floats.
+- Regular-weight headline; bold is kept for chosen feelings.
+- Choosing a feeling deepens its colour (more saturation), never brightens it toward white.
 
 ## Colors
 
-A warm, low-glare neutral world with a single calm teal accent. The vivid colour is reserved for the wheel's own feeling families.
+A warm, low-glare room in linen and cream, with one dusty sage-teal accent and a muted, earthy wheel.
 
 ### Primary
 
-- **Calm Teal** (#2f6f6e): the one UI accent. It fills a toggled-on view chip, a pressed icon button (fullscreen on), the skip link and selected states. White text on it reaches 5.8:1.
-- **Calm Teal Deep** (#245957): the hover/active shade for teal-filled controls.
-- **Calm Teal Ink** (#1f4e4d): teal used as text on light surfaces (hover text on icon buttons, Help links). 9.3:1 on white.
-- **Focus Teal** (#1b4d4c): every keyboard focus ring (3px, 2px offset). At least 3:1 against both paper and surface.
+- **Sage Teal** (#4d7a71): the one UI accent. It fills a toggled-on view chip, a pressed icon button (fullscreen on), the skip link and selected states. White text on it reaches 4.8:1.
+- **Sage Teal Deep** (#3f6a61): the hover/active shade for teal-filled controls.
+- **Sage Teal Ink** (#335a53): teal used as text on light surfaces (hover text on icon buttons, Help links). 6.9:1 on cream.
+- **Focus Teal** (#335a53): every keyboard focus ring (3px, 2px offset). 6.9:1 on cream, 6.2:1 on linen.
 
 ### Neutral
 
-- **Warm Paper** (#f7f4ef): the page background behind the wheel; warm, to avoid halation.
-- **Surface** (#ffffff): the side panel, bottom sheet, chips, tip, lens and corner buttons.
-- **Sand** (#f2eee7): inset or raised fills, such as hover fills and the keyboard-key chips.
-- **Warm Charcoal** (#2b2a28): primary text and wheel labels. 14.3:1 on white.
-- **Muted Ink** (#5e574c): secondary text, including empty-state copy, definitions and resting icons.
-- **Faint Ink** (#736b5e): tertiary text, including context-only ancestors in the list, quiet hints and chevrons.
-- **Hairline** (#e4ded4): decorative dividers such as the panel edge and header rules.
-- **Control Edge** (#cbc3b6): the visible boundary of interactive controls such as chip outlines. At least 3:1 against white.
-- **Wheel Line** (#4a453d): every boundary on the wheel: family divisions, ring circles and the dashed split between outer-ring pairs.
+- **Linen** (#ece6dc): the room: the page behind the wheel. A lighter cream pool (#f6f1ea) sits behind the wheel itself.
+- **Cream** (#f6f1ea, token `surface`): the docked panel, bottom sheet, tip, lens and corner buttons.
+- **Sand** (#ebe4d8): soft fills: unselected view chips, hover fills and keyboard-key chips.
+- **Soft Charcoal** (#3a3631): primary text. 10.7:1 on cream. Wheel labels use a slightly deeper charcoal (#2b2a28) for small sizes.
+- **Muted Ink** (#625a4f): secondary text, including empty-state instructions, definitions and resting icons. 6.0:1 on cream.
+- **Faint Ink** (#736b5e): tertiary text, including context-only ancestors, quiet hints and chevrons. 4.7:1 on cream.
+- **Hairline** (#e2d9cb): the few remaining decorative dividers.
+- **Control Edge** (#c4b9a8): outlines on the sheet handle and keycaps.
+- **Wheel Line** (#6f665a): every boundary on the wheel, softer than the text ink.
 
 ### Wheel Family Colours (content, not brand)
 
-The seven pastel family colours come from the source wheel: Angry #FFB3B3, Disgusted #D3D3D3, Sad #B3C6FF, Happy #FFFF99, Surprised #D4B3FF, Bad #B3FFB3, Fearful #FFD4A3. Each family's middle and outer rings are generated lighter versions of its colour. In the panel they appear only as the thin coloured stem that groups a family.
+The seven families keep the source wheel's hue for each feeling but are muted to sit in the room: Angry #E6B3A6 (clay rose), Disgusted #CBC5B9 (stone), Sad #B3C3D6 (dusk blue), Happy #EAD89E (honey), Surprised #CDBBD8 (lavender), Bad #B8CCAF (sage), Fearful #E8C9A2 (apricot). Wheel labels are at least 7.7:1 on every core colour. Each family's middle and outer rings are generated lighter versions of its colour. A chosen wedge is saturated (deeper), not brightened. In the panel the colours appear only as the thin stem that groups a family.
 
 ### Named Rules
 
-**The Map-Holds-the-Colour Rule.** Saturated colour belongs to the wheel's families. UI chrome uses paper, ink and teal only. Never tint a control with a family colour or theme a screen around one.
+**The Map-Holds-the-Colour Rule.** Saturated colour belongs to the wheel's families. UI chrome uses linen, cream, ink and sage-teal only. Never tint a control with a family colour or theme a screen around one.
 
-**The One Teal Rule.** Calm Teal marks state (on, pressed, selected, focused). If something is teal, it is on or it has focus.
+**The One Teal Rule.** Sage Teal marks state (on, pressed, selected, focused). If something is teal, it is on or it has focus.
 
 ## Typography
 
@@ -190,13 +191,13 @@ The seven pastel family colours come from the source wheel: Angry #FFB3B3, Disgu
 
 ### Hierarchy
 
-- **Headline** (700, 1.5rem, 1.25): the panel's one question, "How are you feeling?", and secondary view titles. 1.15rem on very short phones.
+- **Headline** (400, 1.65rem, 1.25): the panel's one question, "How are you feeling?", and secondary view titles, asked in a regular weight. Smaller on very short phones.
 - **Title** (700, 1.05rem, 1.3): Help section headings, in sentence case.
 - **Feeling – core / secondary / outer** (700 / 600 / 600 at 1.25 / 1.05 / 0.9rem, leading 1.2): the chosen-feelings list, where depth is carried by size, weight and indent.
 - **Body** (400, 0.95rem, 1.5): empty-state instructions and Help text.
 - **Definition** (400, 0.85rem, 1.45, max 42ch): the meaning under a chosen feeling, in Muted Ink.
 - **Label** (600, 0.85rem): view chips and Reset.
-- **Group label** (600, 0.75rem, uppercase, 0.06em tracking, Muted Ink): the "Views" label over the view chips, so Focused and Simplified don't read as feeling words.
+- **Group label** (600, 0.85rem, sentence case, Muted Ink): the "Views" label over the view chips, so Focused and Simplified don't read as feeling words.
 - **Lens word** (700, 1.75rem, 1.15): the enlarged word in the reading lens.
 - **Wheel labels**: sized per wedge in code so each word fits its wedge (never a fixed size), bold when selected.
 
@@ -210,8 +211,8 @@ The seven pastel family colours come from the source wheel: Angry #FFB3B3, Disgu
 
 The wheel is always the centrepiece. It's a circle sized to the largest square that fits the space left by the panel, and it re-centres smoothly when the panel opens or closes.
 
-- **Wide screens and landscape phones:** a docked side panel (`clamp(280px, 25vw, 380px)` wide) on the right with a single hairline edge. The wheel fills the rest.
-- **Portrait phones:** a bottom sheet. It reserves its own live height so the wheel never sits under it, grows up to 45% of the height (max 420px) on tall phones, and starts compact (236px) on very short ones.
+- **Wide screens and landscape phones:** a docked side panel (`clamp(280px, 25vw, 380px)` wide) on the right. It docks flush to the edge (never floating as a card) and is separated by a soft shadow, not a line. The wheel fills the rest.
+- **Portrait phones:** a bottom sheet with 28px rounded top corners. It reserves its own live height so the wheel never sits under it, grows up to 45% of the height (max 420px) on tall phones, and starts compact (236px) on very short ones.
 - **Corners are for chrome.** A circle never reaches the corners of its square, so the panel's hide button (in the panel's top-right corner) and the show button (in the screen's top-right corner) can never cover a word. Transient overlays (Focused hint, reading lens, small-screen tip) sit on the top or bottom edge, away from the word being read.
 - **Spacing rhythm:** a 4px-based scale (0.25, 0.5, 0.75, 1, 1.5, 2rem). Tight inside a group, generous between groups.
 - **Touch targets:** at least 44px on coarse pointers (`--touch-target-min`).
@@ -222,43 +223,45 @@ The wheel is always the centrepiece. It's a circle sized to the largest square t
 
 ## Elevation & Depth
 
-Mostly flat and warm. Depth comes from surface contrast (white panel on warm paper) plus three soft, low-alpha shadows, always tinted with warm charcoal, never cold black.
+Mostly flat and warm. Depth comes from surface contrast (cream panel in a linen room) and soft, low-alpha shadows in warm brown, never cold black. Shadows replace ruled lines wherever a surface meets another.
 
 ### Shadow Vocabulary
 
 - **Rest** (`0 1px 2px rgba(43,42,40,0.06), 0 1px 3px rgba(43,42,40,0.08)`): chips at rest, the corner show button, the mobile handle.
 - **Lifted** (`0 4px 12px rgba(43,42,40,0.08), 0 2px 4px rgba(43,42,40,0.06)`): floating overlays such as the reading lens and small-screen tip, and the collapsed sheet pill.
-- **Sheet** (`0 -8px 24px rgba(43,42,40,0.1), 0 -1px 4px rgba(43,42,40,0.06)`): the phone bottom sheet's upward lift.
-- **Selected wedge**: a soft teal glow (`drop-shadow(0 0 6px rgba(47,111,110,0.55))`) plus a slight saturation lift. It's the only shadow on the wheel.
+- **Panel edge** (`-12px 0 40px rgba(70,55,35,0.07)`): the docked side panel's soft edge against the room.
+- **Sheet** (`0 -12px 40px rgba(70,55,35,0.1)`): the phone bottom sheet's upward lift.
+- **Footer lift** (`0 -14px 20px -16px rgba(70,55,35,0.18)`): separates the panel footer from the list scrolling beneath it.
+- **Selected wedge**: a soft sage glow (`drop-shadow(0 0 8px rgba(77,122,113,0.5))`) plus a saturation lift (`saturate(1.8) brightness(1.03)`). It's the only shadow on the wheel.
 
 ### Named Rules
 
-**The Warm Shadow Rule.** Shadows use warm charcoal at 12% opacity or less. If a shadow is noticeable before the thing it lifts, it's too strong.
+**The Warm Shadow Rule.** Shadows use warm brown or charcoal at 18% opacity or less. If a shadow is noticeable before the thing it lifts, it's too strong.
 
 ## Shapes
 
-Gently rounded and friendly, never sharp, never blobby. Small pieces use 8px, controls and buttons 12px, floating surfaces 18px, and chips and pills are fully round. The bottom sheet rounds only its top corners (18px). The wheel itself is pure geometry, with straight radial divisions and concentric rings, and is never rounded or softened.
+Gently rounded and friendly, never sharp, never blobby. Small pieces use 8px, controls and buttons 12px, floating surfaces 18px, and chips and pills are fully round. The bottom sheet rounds only its top corners (28px). The wheel itself is pure geometry, with straight radial divisions and concentric rings, and is never rounded or softened.
 
 ## Components
 
 ### View chips (Focused, Simplified)
 
 - **Character:** quiet, labelled toggles for the two views; the therapist's choice, never a client prompt.
-- **Shape:** full pill (999px), 36px tall (44px on touch), outline in Control Edge.
-- **Off:** white with Muted Ink text and a 16px line icon. **On:** filled Calm Teal with white text.
-- **Hover / Focus:** Sand fill with teal text on hover; the standard 3px Focus Teal ring.
+- **Shape:** full pill (999px), 36px tall (44px on touch), no outline: soft Sand pads under a "Views" label.
+- **Off:** Sand with Muted Ink text and a 16px line icon. **On:** filled Sage Teal with white text.
+- **Hover / Focus:** a slightly deeper sand (#e2d9cb) with teal text on hover; the standard 3px Focus Teal ring.
 
 ### Icon buttons (Fullscreen, Help, About, Ko-fi)
 
 - **Shape:** 44px square target, 12px radius, transparent at rest, 22px line icon (1.9 stroke).
-- **Hover:** Sand fill with teal icon. **Pressed toggle** (fullscreen on): Calm Teal fill with white icon.
+- **Hover:** Sand fill with teal icon. **Pressed toggle** (fullscreen on): Sage Teal fill with white icon.
 - **Tooltip:** a small charcoal label above, on hover and focus.
 - **Reset** is the one labelled action in the row (icon plus "Reset").
 
 ### Panel hide / show
 
 - **Hide:** a 40px transparent icon button (sidebar glyph) in the panel's top-right corner, level with the heading.
-- **Show:** the same glyph on a white 40px button with a hairline border and Rest shadow, in the screen's top-right corner. It fades in only while the panel is hidden.
+- **Show:** the same glyph on a cream 40px button with a hairline border and Rest shadow, in the screen's top-right corner. It fades in only while the panel is hidden.
 - **Phones:** replaced by the bottom sheet's grab handle.
 
 ### Chosen-feelings list (signature)
@@ -269,12 +272,12 @@ Gently rounded and friendly, never sharp, never blobby. Small pieces use 8px, co
 
 ### Reading lens (signature)
 
-- A white floating card (18px radius, Lifted shadow) with the word in 1.75rem bold and its family path above in Muted Ink. It sits on the top or bottom edge of the wheel area, whichever is away from the word.
+- A cream floating card (18px radius, Lifted shadow) with the word in 1.75rem bold and its family path above in Muted Ink. It sits on the top or bottom edge of the wheel area, whichever is away from the word.
 - **Keyboard:** for the first few feelings reached it lists the keys; after that it shows a faint "Press ? for keys".
 
 ### Wheel overlays (Focused hint, small-screen tip)
 
-- White pills with a hairline border and a soft shadow, in Muted Ink 0.85–0.95rem text. Pointer-transparent (the tip's dismiss button excepted), transient, and pinned to an edge of the wheel area.
+- Cream pills with a hairline border and a soft shadow, in Muted Ink 0.85–0.95rem text. Pointer-transparent (the tip's dismiss button excepted), transient, and pinned to an edge of the wheel area.
 
 ### Focus ring
 
@@ -284,16 +287,18 @@ Gently rounded and friendly, never sharp, never blobby. Small pieces use 8px, co
 
 ### Do:
 
-- **Do** keep chrome in paper, ink and Calm Teal (#2f6f6e). Teal means "on" or "focused".
+- **Do** keep chrome in linen, cream, ink and Sage Teal (#4d7a71). Teal means "on" or "focused".
+- **Do** dock the panel flush to the screen edge, and separate surfaces with soft shadow rather than ruled lines.
 - **Do** give the wheel the centre and the space. Put persistent controls in the panel or a corner.
-- **Do** use Atkinson Hyperlegible for everything, with hierarchy from size (1.5 / 1.25 / 1.05 / 0.95 / 0.85rem) and weight (400 / 600 / 700).
+- **Do** use Atkinson Hyperlegible for everything, with hierarchy from size (1.65 / 1.25 / 1.05 / 0.95 / 0.85rem) and weight (400 / 600 / 700).
 - **Do** use warm, low-alpha shadows (Rest / Lifted / Sheet) and the single easing curve `cubic-bezier(0.4, 0, 0.2, 1)` at 0.15–0.35s.
-- **Do** keep every text pair at WCAG AA or better, every control boundary at 3:1 or better, and touch targets at 44px or larger.
+- **Do** keep every text pair at WCAG AA or better, every unlabelled control boundary at 3:1 or better, and touch targets at 44px or larger.
 - **Do** shrink a wheel word to fit its wedge, and offer the reading lens when it gets small.
 
 ### Don't:
 
-- **Don't** use the wheel's family colours for UI chrome, or add new saturated colours.
+- **Don't** use the wheel's family colours for UI chrome, or add new saturated colours. Don't return the wheel to bright pastels.
+- **Don't** float the panel as a card over an empty patch of room, or brighten chosen wedges toward white.
 - **Don't** put persistent controls over the wheel's disc. The old mid-edge panel tab covered outer-ring words.
 - **Don't** use pure black text, pure white backgrounds behind the wheel, or cold grey shadows.
 - **Don't** add bouncy or elastic easing, looping animation, or motion that ignores reduced-motion settings.

@@ -420,6 +420,11 @@ test('the keyboard lens teaches the keys for the first few feelings, then gets q
 
 test('the empty state mentions that the wheel turns', async ({ page }) => {
     await expect(page.locator('#panel-instructions')).toContainText('Drag the wheel to turn it.');
-    await expect(page.locator('#panel-instructions')).toContainText('Try Guided view.');
+    await expect(page.locator('#panel-instructions')).toContainText('Too much at once?');
     await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+
+    // The suggestion is an action — but only when pressed.
+    await page.locator('.inline-action[data-toggle="guided-mode-panel"]').click();
+    await expect(page.locator('#guided-mode-panel')).toBeChecked();
+    await expect(page.locator('.empty-hint--aside')).toBeHidden(); // status line takes over
 });

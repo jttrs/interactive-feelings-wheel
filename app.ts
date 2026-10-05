@@ -341,6 +341,17 @@ export class FeelingsWheelApp {
             this.updateViewStatus();
         });
 
+        // In-copy view suggestions ("Try Guided or Simplified view") act on the real
+        // toggles, only when pressed — the full wheel stays the default.
+        document.querySelectorAll<HTMLButtonElement>('.inline-action[data-toggle]').forEach((btn) =>
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(
+                    btn.dataset.toggle!
+                ) as HTMLInputElement | null;
+                if (input && !input.checked) input.click();
+            })
+        );
+
         // 'Show full wheel' turns every easier view off (through the real toggles, so
         // each one announces and updates exactly as if its chip were pressed).
         document.getElementById('view-status-reset')?.addEventListener('click', () => {

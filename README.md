@@ -17,7 +17,7 @@ An interactive web application displaying a therapeutic feelings wheel based on 
 - **Guided View** (opt-in, `G`): Starts with the core feelings and opens each ring as you choose — the full wheel stays the default
 - **Simplified View** (`S`): Hides the outer ring for a calmer wheel
 - **Fullscreen** (`F11`), **Reset** (`R`), **Hide panel** (`P`)
-- **Keyboard & Screen Readers**: The wheel is one tab-stop; arrow keys move between feelings, Enter/Space chooses
+- **Keyboard & Screen Readers**: The wheel is one tab-stop. ← → move around a ring, ↓ steps out to more specific feelings and ↑ back in, `[` `]` (or Page Up/Down) jump between families, Home/End go to the ends of a ring, Enter/Space chooses. Each feeling is read with its place, e.g. "Playful, under Happy, 1 of 6"
 
 ### Advanced Visual Features
 - **Layered Shadows**: Shadows render over unemphasized wedges but never cover emphasized ones
@@ -53,7 +53,8 @@ This web application faithfully recreates the therapeutic feelings wheel with mo
 ### Usage
 - **Choose**: Click or tap any feeling to add it to your list, with its meaning
 - **Remove**: Choose a selected feeling on the wheel again
-- **Rotate**: Drag the wheel, scroll over it, or hold the arrow keys
+- **Rotate**: Drag the wheel, scroll over it, or hold the arrow keys (when no feeling has focus)
+- **Keyboard**: Tab into the wheel; ← → around a ring, ↓ / ↑ out to specific / back to broader feelings, `[` `]` between families
 - **Guided view**: Turn on in the panel footer (or press `G`) to focus one ring at a time
 - **Reset**: The Reset button (or `R`) clears your choices and re-centres the wheel
 

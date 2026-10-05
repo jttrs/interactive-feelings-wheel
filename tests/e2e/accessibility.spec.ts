@@ -16,10 +16,10 @@ test('wedges expose button semantics and labels', async ({ page }) => {
     const angry = page.locator('.core-wedge[data-emotion="Angry"]');
     await expect(angry).toHaveAttribute('role', 'button');
     await expect(angry).toHaveAttribute('aria-pressed', 'false');
-    await expect(angry).toHaveAttribute('aria-label', 'Angry, core feeling');
+    await expect(angry).toHaveAttribute('aria-label', 'Angry, core feeling, 1 of 7');
 
     const playful = page.locator('.secondary-wedge[data-emotion="Playful"]');
-    await expect(playful).toHaveAttribute('aria-label', 'Playful, under Happy');
+    await expect(playful).toHaveAttribute('aria-label', 'Playful, under Happy, 1 of 9');
 });
 
 test('the wheel is a single tab-stop (one wedge tabindex=0)', async ({ page }) => {
@@ -86,6 +86,108 @@ test('arrow focus order is stable after a selection (nav-index, not DOM order)',
     );
 
     expect(neighbourAfter).toBe(neighbourBefore);
+});
+
+// ===== Structured wheel keyboard model (ring / family navigation) =====
+
+const focusedId = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => document.activeElement!.getAttribute('data-wedge-id'));
+
+test('Left/Right stay in the core ring and wrap', async ({ page }) => {
+    await page.locator('.core-wedge[data-nav-index="0"]').focus();
+    await page.keyboard.press('ArrowLeft');
+    expect(await focusedId(page)).toBe('core-Fearful'); // wrapped to the last core
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    expect(await focusedId(page)).toBe('core-Disgusted');
+    await expect(page.locator('.wedge[tabindex="0"]')).toHaveCount(1);
+});
+
+test('Down steps out to specific feelings, Up steps back, and Down remembers', async ({
+    page,
+}) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').focus();
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('secondary-Happy-Playful');
+    await page.keyboard.press('ArrowRight');
+    expect(await focusedId(page)).toBe('secondary-Happy-Content');
+    await page.keyboard.press('ArrowDown');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Content'
+    );
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowUp');
+    expect(await focusedId(page)).toBe('core-Happy');
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('secondary-Happy-Content'); // remembered
+    await expect(page.locator('.wedge.selected')).toHaveCount(0);
+});
+
+test('edges are announced instead of moving', async ({ page }) => {
+    await page.locator('.core-wedge[data-emotion="Sad"]').focus();
+    await page.keyboard.press('ArrowUp');
+    expect(await focusedId(page)).toBe('core-Sad');
+    await expect(page.locator('#sr-announcer')).toHaveText('This is the center ring.');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('#sr-announcer')).toHaveText('This is the outer ring.');
+});
+
+test('Page Down / ] jump to the next family in the same ring; Home/End to ring ends', async ({
+    page,
+}) => {
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').focus();
+    await page.keyboard.press('PageDown');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-level'))).toBe(
+        'secondary'
+    );
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Surprised'
+    );
+    await page.keyboard.press('[');
+    expect(await focusedId(page)).toBe('secondary-Happy-Playful');
+    await page.keyboard.press('Home');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Angry'
+    );
+    await page.keyboard.press('End');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Fearful'
+    );
+});
+
+test('guided view: navigation skips rested wedges and explains closed rings', async ({
+    page,
+}) => {
+    await page.keyboard.press('g');
+    await page.locator('.core-wedge[data-emotion="Happy"]').focus();
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('core-Happy');
+    await expect(page.locator('#sr-announcer')).toHaveText(
+        'Choose Happy to open its more specific feelings.'
+    );
+    await page.keyboard.press('Enter'); // opens Happy's ring
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('secondary-Happy-Playful');
+    // Only Happy's family is open, so Left wraps inside it.
+    await page.keyboard.press('ArrowLeft');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Happy'
+    );
+    expect(await page.evaluate(() => document.activeElement!.hasAttribute('data-guided-rest'))).toBe(
+        false
+    );
+    await expect(page.locator('.wedge[tabindex="0"]')).toHaveCount(1);
+});
+
+test('simplified view: the middle ring is the outer edge', async ({ page }) => {
+    await page.keyboard.press('s');
+    await page.waitForSelector('.secondary-wedge');
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').focus();
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('secondary-Happy-Playful');
+    await expect(page.locator('#sr-announcer')).toHaveText('This is the outer ring.');
 });
 
 test('reset is announced to screen readers', async ({ page }) => {

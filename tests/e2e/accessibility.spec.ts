@@ -615,3 +615,16 @@ test('short phones give the chosen list the sheet: no repeated question, Views b
     const body = (await page.locator('.view-body--explore').boundingBox())!;
     expect(body.height).toBeGreaterThanOrEqual(90);
 });
+
+test('short phones: the sheet grows once feelings are chosen, and shrinks back when cleared', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.waitForTimeout(400);
+    const h = async () => (await page.locator('.info-panel').boundingBox())!.height;
+    const before = await h();
+    await page.locator('.core-wedge[data-emotion="Sad"]').click();
+    await expect.poll(h).toBeGreaterThan(before + 40);
+    await page.keyboard.press('r');
+    await expect.poll(h).toBeLessThan(before + 5);
+});

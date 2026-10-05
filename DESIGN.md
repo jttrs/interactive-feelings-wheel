@@ -212,7 +212,7 @@ The seven families keep the source wheel's hue for each feeling but are muted to
 The wheel is always the centrepiece. It's a circle sized to the largest square that fits the space left by the panel, and it re-centres smoothly when the panel opens or closes.
 
 - **Wide screens and landscape phones:** a docked side panel (`clamp(280px, 25vw, 380px)` wide) on the right. It docks flush to the edge (never floating as a card) and is separated by a soft shadow, not a line. The wheel fills the rest.
-- **Portrait phones and tablets (up to 1100px wide):** a bottom sheet with 28px rounded top corners. In portrait the wheel is width-bound, so a side panel would shrink it by a third. On phones the sheet takes the height the wheel can't use (`100dvh − 100vw − 60px`, leaving room for the small-screen tip). On tablets (600px and wider) the footer sits on one row, with views on the left and actions on the right. It reserves its own live height so the wheel never sits under it, grows up to 45% of the height (max 420px) on tall phones, and starts compact (236px) on very short ones.
+- **Portrait phones and tablets (up to 1100px wide):** a bottom sheet with 28px rounded top corners. In portrait the wheel is width-bound, so a side panel would shrink it by a third. On phones the sheet takes the height the wheel can't use (`100dvh − 100vw − 60px`, leaving room for the small-screen tip). On tablets (600px and wider) the footer sits on one row, with views on the left and actions on the right. It reserves its own live height so the wheel never sits under it, grows up to 45% of the height (max 420px) on tall phones, and starts compact (236px) on very short ones. On short phones (up to 700px tall) it grows one step once feelings are chosen (`min(52vh, 360px)`), because the record then matters more; the wheel re-fits above it.
 - **Corners are for chrome.** A circle never reaches the corners of its square, so the panel's hide button (in the panel's top-right corner) and the show button (in the screen's top-right corner) can never cover a word. Transient overlays (Focused hint, reading lens, small-screen tip) sit on the top or bottom edge, away from the word being read.
 - **Spacing rhythm:** a 4px-based scale (0.25, 0.5, 0.75, 1, 1.5, 2rem). Tight inside a group, generous between groups.
 - **Touch targets:** at least 44px on coarse pointers (`--touch-target-min`).
@@ -256,7 +256,7 @@ Gently rounded and friendly, never sharp, never blobby. Small pieces use 8px, co
 - **Shape:** 44px square target, 12px radius, transparent at rest, 22px line icon (1.9 stroke).
 - **Hover:** Sand fill with teal icon. **Pressed toggle** (fullscreen on): Sage Teal fill with white icon.
 - **Tooltip:** a small charcoal label above, on hover and focus.
-- **Reset** is the one labelled action in the row (icon plus "Reset").
+- **Reset** is the one labelled action in the row (icon plus "Reset"). A hairline and open space set it apart from the routine icons, because it clears the session. There's no confirm dialog; Undo covers mistakes, and Reset from Help or About returns to the feelings view so Undo is visible.
 
 ### Panel hide / show
 

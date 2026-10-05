@@ -977,3 +977,25 @@ test('the Undo offer ends with a new choice', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(page.locator('#reset-undo')).toBeHidden();
 });
+
+test('Reset from Help returns to the feelings view so Undo is visible', async ({ page }) => {
+    await page.locator('.core-wedge[data-emotion="Sad"]').click();
+    await page.locator('#help-btn-panel').click();
+    await expect(page.locator('#view-help')).toBeVisible();
+    await page.locator('#reset-btn-panel').click();
+    await expect(page.locator('#view-explore')).toBeVisible();
+    await expect(page.locator('#reset-undo')).toBeVisible();
+    await page.waitForTimeout(1200); // let the unwind finish
+    await page.locator('#reset-undo-btn').click();
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(1);
+});
+
+test('Focused view: rested words recede further than their wedges', async ({ page }) => {
+    await page.locator('label[for="focused-mode-panel"]').click();
+    const [wedge, label] = await page.evaluate(() => {
+        const w = document.querySelector('.wedge[data-focused-rest]')!;
+        const t = document.querySelector('text[data-focused-rest]')!;
+        return [Number(getComputedStyle(w).opacity), Number(getComputedStyle(t).opacity)];
+    });
+    expect(label).toBeLessThan(wedge);
+});

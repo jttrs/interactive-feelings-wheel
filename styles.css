@@ -1258,6 +1258,15 @@ body {
     align-items: center;
     gap: var(--space-1);
 }
+/* Reset clears the session, so it stands apart from the routine icons: a hairline
+   and open space between them, never a confirm dialog (Undo covers mistakes). */
+.hero-actions__sep {
+    width: 1px;
+    height: 24px;
+    margin: 0 auto 0 var(--space-2);
+    background: var(--color-border-strong);
+    flex-shrink: 0;
+}
 
 /* Tablet sheet: room for the footer on one row (views left, actions right), so
    the chosen feelings get the height instead of two stretched rows of chrome. */
@@ -1734,6 +1743,13 @@ body {
         display: none;
     }
 
+    /* Once feelings are chosen the record matters more: the sheet grows one step
+       (the wheel re-fits above it), so several feelings read without scrolling. */
+    .info-panel:not(.minimized):has(.feeling-node) {
+        height: min(52vh, 360px);
+        max-height: min(52vh, 360px);
+    }
+
     #view-explore:has(.feeling-node) .view-head {
         position: absolute;
         width: 1px;
@@ -1865,6 +1881,11 @@ svg text {
 #wheel-container [data-focused-rest] {
     opacity: 0.22;
     pointer-events: none;
+}
+/* Rested words recede further than their wedges: the ring shapes still show the
+   whole map, but their words don't compete with the ring being explored. */
+#wheel-container text[data-focused-rest] {
+    opacity: 0.1;
 }
 
 /* Focused view caption: pinned to the wheel area (never rotates with the wheel),

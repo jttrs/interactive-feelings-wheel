@@ -96,8 +96,6 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
         declare _navCounter: WheelInstance['_navCounter'];
         declare dpr: WheelInstance['dpr'];
         declare effectiveSize: WheelInstance['effectiveSize'];
-        declare fullModeState: WheelInstance['fullModeState'];
-        declare simplifiedModeState: WheelInstance['simplifiedModeState'];
         // Provided by the interaction mixin; called at the end of generate().
         declare setupEventListeners: () => void;
 
@@ -685,12 +683,6 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             document.fonts?.ready?.then(() => {
                 if (this.svg === svgAtFit) this.fitLabels();
             });
-
-            // Mark current mode as initialized
-            const currentState = this.isSimplifiedMode
-                ? this.simplifiedModeState
-                : this.fullModeState;
-            currentState.hasBeenInitialized = true;
 
             this.setupEventListeners();
             if (this.isGuidedMode) this.refreshGuidedFocus();

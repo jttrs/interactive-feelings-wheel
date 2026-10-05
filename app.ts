@@ -339,17 +339,21 @@ export class FeelingsWheelApp {
         simplifiedModeToggle.addEventListener('change', (event) => {
             const isSimplified = (event.target as HTMLInputElement).checked;
 
-            // CRITICAL FIX: Clear app state completely and let wheel engine manage everything
+            // One shared selection across views: the engine only changes which rings it
+            // draws, so the panel is simply re-rendered (with simpler meanings).
             this.clearAllTilesWithoutInstructions(); // Don't auto-show instructions during mode switch
-
-            // Let wheel engine handle mode switching and state restoration
             this.wheelGenerator.setSimplifiedMode(isSimplified);
-
-            // Recreate tiles from wheel engine's restored state
             this.recreateTilesFromWheelState();
-
-            // Update instruction visibility based on final tile state
             this.updateInstructionsVisibility();
+
+            const hidden = this.hiddenSelectionCount();
+            this.announce(
+                isSimplified
+                    ? hidden
+                        ? `Simplified view on. ${hidden === 1 ? '1 chosen feeling is' : `${hidden} chosen feelings are`} in the hidden outer ring and stay chosen.`
+                        : 'Simplified view on.'
+                    : 'Full wheel shown.'
+            );
         });
 
         // Setup reset button
@@ -477,7 +481,26 @@ export class FeelingsWheelApp {
             getFamilyColor: (family) => FEELINGS_DATA.getCoreEmotionColor(family),
         });
 
-        container.replaceChildren(element);
+        const hidden = this.hiddenSelectionCount();
+        if (hidden) {
+            const note = document.createElement('p');
+            note.className = 'hidden-ring-note';
+            note.textContent =
+                hidden === 1
+                    ? 'One of these is in the outer ring, which Simplified view hides. It stays chosen.'
+                    : `${hidden} of these are in the outer ring, which Simplified view hides. They stay chosen.`;
+            container.replaceChildren(note, element);
+        } else {
+            container.replaceChildren(element);
+        }
+    }
+
+    // Chosen feelings that exist but aren't drawn (outer ring while Simplified is on).
+    hiddenSelectionCount(): number {
+        if (!this.wheelGenerator?.isSimplifiedMode) return 0;
+        return [...this.wheelGenerator.selectedWedges].filter(
+            (id) => this.wheelGenerator.parseUniqueWedgeId(id).level === 'tertiary'
+        ).length;
     }
 
     isSimplifiedActive(): boolean {

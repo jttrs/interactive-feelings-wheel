@@ -73,13 +73,6 @@ export interface TextEl {
     fit?: { innerR: number; outerR: number; r: number; spanDeg: number };
 }
 
-// Per-mode snapshot for the simplified/full toggle.
-export interface ModeState {
-    rotation: number;
-    selectedWedges: Set<string>;
-    hasBeenInitialized: boolean;
-}
-
 // Result of calculateResponsiveScaling().
 export interface ResponsiveScaling {
     primaryDivisionStroke: number;
@@ -187,10 +180,6 @@ export interface WheelInstance {
     dpr: number;
     effectiveSize: number;
     resizeTimeout: ReturnType<typeof setTimeout> | null;
-
-    // Mode-switch snapshots
-    fullModeState: ModeState;
-    simplifiedModeState: ModeState;
 
     // Radii + scaling (set during generate())
     coreRadius: number;

@@ -605,3 +605,26 @@ for (const vp of [
         expect(coversReachable).toBe(false);
     });
 }
+
+// One shared selection across views: Simplified only hides the outer ring.
+test('Simplified view keeps outer-ring choices chosen and says so; full view shows them again', async ({
+    page,
+}) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
+
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect(page.locator('.tertiary-wedge')).toHaveCount(0);
+    await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(2);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(3);
+    await expect(page.locator('.hidden-ring-note')).toContainText('stays chosen');
+    await expect(page.locator('#sr-announcer')).toContainText('1 chosen feeling is');
+
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect(page.locator('.tertiary-wedge[data-emotion="Cheeky"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    );
+    await expect(page.locator('.hidden-ring-note')).toHaveCount(0);
+});

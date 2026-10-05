@@ -139,8 +139,6 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         declare scrollVelocity: WheelInstance['scrollVelocity'];
         declare momentumRafId: WheelInstance['momentumRafId'];
         declare heldRotationDir: WheelInstance['heldRotationDir'];
-        declare fullModeState: WheelInstance['fullModeState'];
-        declare simplifiedModeState: WheelInstance['simplifiedModeState'];
         declare wedgeRegistry: WheelInstance['wedgeRegistry'];
         declare topGroup: WheelInstance['topGroup'];
         declare baseGroup: WheelInstance['baseGroup'];
@@ -183,41 +181,13 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         declare getShortestRotationPath: (from: number, to: number) => number;
         declare clearAllAnimations: () => void;
 
-        saveCurrentState(): void {
-            const currentState = this.isSimplifiedMode
-                ? this.simplifiedModeState
-                : this.fullModeState;
-            currentState.rotation = this.currentRotation;
-            currentState.selectedWedges = new Set(this.selectedWedges);
-            currentState.hasBeenInitialized = true;
-        }
-
-        restoreState(targetMode: boolean): void {
-            const targetState = targetMode ? this.simplifiedModeState : this.fullModeState;
-
-            if (targetState.hasBeenInitialized) {
-                // Restore previous state
-                this.currentRotation = targetState.rotation;
-                this.selectedWedges = new Set(targetState.selectedWedges);
-            } else {
-                // First time seeing this mode - reset state
-                this.currentRotation = 0;
-                this.selectedWedges = new Set();
-            }
-        }
-
+        // Views share ONE selection and rotation. Simplified only stops drawing the outer
+        // ring: a chosen outer-ring feeling stays chosen (and listed in the panel) while
+        // hidden, and reappears selected when the full wheel returns. No per-view memory,
+        // so switching views never silently swaps what the user picked.
         setSimplifiedMode(enabled: boolean): void {
-            // Save current state before switching
-            this.saveCurrentState();
-
-            // Switch mode
             this.isSimplifiedMode = enabled;
             this.updateRadii();
-
-            // Restore state for new mode
-            this.restoreState(enabled);
-
-            // Regenerate wheel
             this.regenerateWheel();
         }
 
@@ -820,19 +790,13 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
                 const wedge = this.findWedgeByUniqueId(level, emotion, parent);
                 if (wedge) this.deselectWedge(wedgeId, wedge);
+                // Not drawn (outer ring hidden in Simplified): only membership to clear.
+                else this.selectedWedges.delete(wedgeId);
             });
 
             // Reset rotation instantly (a non-selection duty reset still owns).
             this.currentRotation = 0;
             this.updateRotation();
-
-            // Update the stored state for current mode only
-            const currentState = this.isSimplifiedMode
-                ? this.simplifiedModeState
-                : this.fullModeState;
-            currentState.rotation = 0;
-            currentState.selectedWedges = new Set();
-            currentState.hasBeenInitialized = true;
         }
 
         // ===== PUBLIC RESET/SELECTION API (used by the app's animated reset) =====
@@ -855,6 +819,8 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             if (!this.selectedWedges.has(wedgeId)) return;
             const ctx = this.effectCtx(wedgeId);
             if (ctx) this.clearSelectionEffects(ctx);
+            // Not drawn (outer ring hidden in Simplified): only membership to clear.
+            else this.selectedWedges.delete(wedgeId);
         }
 
         // Animate rotation back to 0 over `duration` ms (ease-out cubic), resolving when
@@ -887,15 +853,9 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             });
         }
 
-        // Persist the "cleared" state for the current mode after a reset completes.
+        // Settle the wheel at rest after an animated reset completes.
         commitResetState(): void {
             this.currentRotation = 0;
             this.updateRotation();
-            const currentState = this.isSimplifiedMode
-                ? this.simplifiedModeState
-                : this.fullModeState;
-            currentState.rotation = 0;
-            currentState.selectedWedges = new Set();
-            currentState.hasBeenInitialized = true;
         }
     };

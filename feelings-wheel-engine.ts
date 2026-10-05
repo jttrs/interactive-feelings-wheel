@@ -55,18 +55,6 @@ export class FeelingsWheelGenerator extends InteractionMixin(
         this.effectiveSize = 0;
         this.resizeTimeout = null;
 
-        // State management for mode switching
-        this.fullModeState = {
-            rotation: 0,
-            selectedWedges: new Set(),
-            hasBeenInitialized: false,
-        };
-        this.simplifiedModeState = {
-            rotation: 0,
-            selectedWedges: new Set(),
-            hasBeenInitialized: false,
-        };
-
         // Set dynamic radii based on mode
         this.updateRadii();
 

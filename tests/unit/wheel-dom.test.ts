@@ -288,19 +288,22 @@ describe('roving tabindex', () => {
 });
 
 describe('mode-state preservation', () => {
-    it('restores the full-mode selection after switching to simplified and back', () => {
+    it('views share one selection and rotation (Simplified never swaps what was picked)', () => {
         const { container, gen } = createTestWheel();
 
         const happy = getWedge(container, 'Happy') as SVGElement;
         const happyId = happy.getAttribute('data-wedge-id')!;
         gen.selectWedge(happyId, happy);
+        gen.currentRotation = 40;
 
         gen.setSimplifiedMode(true);
-        // Full-mode state should have been snapshotted before the switch.
-        expect(gen.fullModeState.selectedWedges.has(happyId)).toBe(true);
+        expect(gen.selectedWedges.has(happyId)).toBe(true);
+        expect(gen.currentRotation).toBe(40);
+        expect(getWedge(container, 'Happy')!.getAttribute('aria-pressed')).toBe('true');
 
         gen.setSimplifiedMode(false);
         expect(gen.selectedWedges.has(happyId)).toBe(true);
+        expect(gen.currentRotation).toBe(40);
     });
 
     it('updateTextRotations only writes transforms when the rotation actually changes (review #6)', () => {
@@ -330,11 +333,7 @@ describe('mode-state preservation', () => {
         expect(writes).toBeGreaterThan(0);
     });
 
-    it('a tertiary selection does NOT orphan in the live set while simplified (review #5)', () => {
-        // Review flagged a possible orphaned tertiary in selectedWedges across a mode
-        // round-trip. Verified as by-design: restoreState swaps in the per-mode set, so
-        // the tertiary is absent from the LIVE set while simplified (no orphan), and
-        // returns from the full-mode snapshot on switch-back (intended per-mode memory).
+    it('a chosen outer-ring feeling stays chosen while Simplified hides it, and Reset clears it', () => {
         const { container, gen } = createTestWheel();
         const cheeky = getWedge(container, 'Cheeky') as SVGElement; // tertiary under Playful
         const id = cheeky.getAttribute('data-wedge-id')!;
@@ -342,14 +341,19 @@ describe('mode-state preservation', () => {
         expect(gen.parseUniqueWedgeId(id).level).toBe('tertiary');
 
         gen.setSimplifiedMode(true);
-        // No tertiary lingers in the live selection while simplified.
-        const tertiaryLive = [...gen.selectedWedges].filter(
-            (w) => gen.parseUniqueWedgeId(w).level === 'tertiary'
-        );
-        expect(tertiaryLive).toHaveLength(0);
+        // Not drawn, but still chosen.
+        expect(getWedge(container, 'Cheeky')).toBeNull();
+        expect(gen.selectedWedges.has(id)).toBe(true);
 
         gen.setSimplifiedMode(false);
-        // Returns exactly once from the full-mode snapshot.
-        expect(gen.selectedWedges.has(id)).toBe(true);
+        // Drawn again, and drawn selected (every effect re-applied).
+        expect(getWedge(container, 'Cheeky')!.getAttribute('aria-pressed')).toBe('true');
+
+        // Reset while simplified clears hidden selections too (no orphan).
+        gen.setSimplifiedMode(true);
+        gen.reset();
+        expect(gen.selectedWedges.size).toBe(0);
+        gen.setSimplifiedMode(false);
+        expect(container.querySelectorAll('.wedge[aria-pressed="true"]')).toHaveLength(0);
     });
 });

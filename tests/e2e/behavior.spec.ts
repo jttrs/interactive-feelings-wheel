@@ -619,7 +619,9 @@ test('Simplified view keeps outer-ring choices chosen and says so; full view sho
     await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(2);
     await expect(page.locator('.feeling-node.is-selected')).toHaveCount(3);
     await expect(page.locator('.hidden-ring-note')).toContainText('stays chosen');
-    await expect(page.locator('#sr-announcer')).toContainText('1 chosen feeling is');
+    await expect(page.locator('#sr-announcer')).toContainText(
+        '1 chosen feeling is in the hidden outer ring and stays chosen.'
+    );
 
     await page.locator('label[for="simplified-mode-panel"]').click();
     await expect(page.locator('.tertiary-wedge[data-emotion="Cheeky"]')).toHaveAttribute(
@@ -758,4 +760,23 @@ test('feeling names that reveal a meaning carry a chevron that turns with the st
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(await chevron()).not.toBe(closed);
+});
+
+test('a refused fullscreen request is announced, not silent', async ({ page }) => {
+    await page.evaluate(() => {
+        Element.prototype.requestFullscreen = () => Promise.reject(new Error('denied'));
+    });
+    await page.locator('#fullscreen-btn-panel').click();
+    await expect(page.locator('#sr-announcer')).toHaveText("Fullscreen isn't available here.");
+    await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('the reading lens shows when a key is pressed on a wedge focused by script', async ({
+    page,
+}) => {
+    await page.locator('label[for="guided-mode-panel"]').click();
+    await page.locator('.core-wedge[data-emotion="Angry"]').focus();
+    await page.keyboard.press('ArrowDown'); // can't move in Guided yet — still a keyboard user
+    await expect(page.locator('.core-wedge[data-emotion="Angry"]')).toBeFocused();
+    await expect(page.locator('#wheel-lens .wheel-lens__word')).toHaveText('Angry');
 });

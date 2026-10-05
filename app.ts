@@ -140,8 +140,12 @@ export class FeelingsWheelApp {
                 await this.requestFullscreen();
             }
         } catch {
-            // Fullscreen can be refused (iframe, user gesture, platform); the button's
-            // aria-pressed stays truthful because it's driven by fullscreenchange.
+            // Fullscreen can be refused (embedded frame, permissions, platform). The
+            // button's aria-pressed stays truthful (driven by fullscreenchange); say why
+            // nothing happened instead of failing silently.
+            this.announce("Fullscreen isn't available here.");
+            const btn = document.getElementById('fullscreen-btn-panel');
+            if (btn) btn.title = "Fullscreen isn't available here";
         }
     }
 
@@ -354,7 +358,9 @@ export class FeelingsWheelApp {
             this.announce(
                 isSimplified
                     ? hidden
-                        ? `Simplified view on. ${hidden === 1 ? '1 chosen feeling is' : `${hidden} chosen feelings are`} in the hidden outer ring and stay chosen.`
+                        ? hidden === 1
+                            ? 'Simplified view on. 1 chosen feeling is in the hidden outer ring and stays chosen.'
+                            : `Simplified view on. ${hidden} chosen feelings are in the hidden outer ring and stay chosen.`
                         : 'Simplified view on.'
                     : 'Full wheel shown.'
             );

@@ -126,6 +126,12 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
         if (!wedgeFrom(e.relatedTarget)) hide();
     };
     const onWheel = () => hide();
+    // Any key on a focused wedge means the keyboard is in use: show it even if focus
+    // arrived by script/mouse (where :focus-visible didn't match) or the key couldn't move.
+    const onKey = (e: KeyboardEvent) => {
+        const w = wedgeFrom(e.target);
+        if (w && document.activeElement === w) show(w);
+    };
 
     wheelRoot.addEventListener('pointerover', onOver);
     wheelRoot.addEventListener('pointerleave', onLeave);
@@ -136,6 +142,7 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
     wheelRoot.addEventListener('focusin', onFocusIn);
     wheelRoot.addEventListener('focusout', onFocusOut);
     wheelRoot.addEventListener('wheel', onWheel, { passive: true });
+    wheelRoot.addEventListener('keyup', onKey);
 
     return {
         destroy() {
@@ -148,6 +155,7 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
             wheelRoot.removeEventListener('focusin', onFocusIn);
             wheelRoot.removeEventListener('focusout', onFocusOut);
             wheelRoot.removeEventListener('wheel', onWheel);
+            wheelRoot.removeEventListener('keyup', onKey);
             if (hideTimer) clearTimeout(hideTimer);
         },
     };

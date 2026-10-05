@@ -79,7 +79,7 @@ feelings-wheel/
 ├── feelings-wheel-engine.ts # Composes the wheel mixins below
 ├── feelings-data.ts         # Feelings, families, and definitions
 └── src/
-    ├── wheel/               # rendering, interaction, animation, svg, focused view (guided.ts)
+    ├── wheel/               # rendering, interaction, animation, svg, focused view (focused-view.ts)
     └── ui/feelings-tree.ts  # Selected-feelings list
 ```
 

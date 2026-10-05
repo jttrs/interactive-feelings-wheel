@@ -1,4 +1,4 @@
-// Guided mode: an opt-in spotlight over the FULL wheel. Geometry never changes —
+// Focused mode: an opt-in spotlight over the FULL wheel. Geometry never changes —
 // rings the user hasn't reached yet are dimmed and made inert, so the wheel keeps the
 // same spatial map a therapist works from in the default (full) view. Pure DOM in/out:
 // selection state is read from aria-pressed, which the selection-effect registry owns.
@@ -7,13 +7,13 @@
 //   secondary S under core C — open if C, S, or any tertiary under C/S is selected
 //   tertiary  T under C/S    — open if S or T is selected
 
-export const GUIDED_REST_ATTR = 'data-guided-rest';
+export const FOCUSED_REST_ATTR = 'data-focused-rest';
 
 function key(...parts: (string | null | undefined)[]): string {
     return parts.map((p) => p ?? '').join('/');
 }
 
-export function applyGuidedFocus(root: ParentNode, enabled: boolean): void {
+export function applyFocusedView(root: ParentNode, enabled: boolean): void {
     const wedges = Array.from(root.querySelectorAll<SVGElement>('.wedge:not(.shadow-wedge)'));
 
     const selectedCores = new Set<string>();
@@ -47,14 +47,14 @@ export function applyGuidedFocus(root: ParentNode, enabled: boolean): void {
 
         const label = root.querySelector(`text[data-wedge-id="${w.dataset.wedgeId}"]`);
         if (open) {
-            w.removeAttribute(GUIDED_REST_ATTR);
+            w.removeAttribute(FOCUSED_REST_ATTR);
             w.removeAttribute('aria-hidden');
-            label?.removeAttribute(GUIDED_REST_ATTR);
+            label?.removeAttribute(FOCUSED_REST_ATTR);
         } else {
-            w.setAttribute(GUIDED_REST_ATTR, '');
+            w.setAttribute(FOCUSED_REST_ATTR, '');
             w.setAttribute('aria-hidden', 'true');
             w.setAttribute('tabindex', '-1');
-            label?.setAttribute(GUIDED_REST_ATTR, '');
+            label?.setAttribute(FOCUSED_REST_ATTR, '');
         }
     }
 }

@@ -484,20 +484,20 @@ for (const [width, height] of [
     });
 }
 
-// Focused view (internally "guided") is OPT-IN: the full wheel is the default (therapists use the whole
+// Focused view is OPT-IN: the full wheel is the default (therapists use the whole
 // spectrum). When on, it spotlights the path without changing geometry or selection.
-test('guided view is off by default: the full wheel is fully interactive', async ({ page }) => {
-    await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
-    await expect(page.locator('.wedge[data-guided-rest]')).toHaveCount(0);
+test('focused view is off by default: the full wheel is fully interactive', async ({ page }) => {
+    await expect(page.locator('#focused-mode-panel')).not.toBeChecked();
+    await expect(page.locator('.wedge[data-focused-rest]')).toHaveCount(0);
 });
 
-test('guided view opens rings along the chosen path and toggles off losslessly', async ({
+test('focused view opens rings along the chosen path and toggles off losslessly', async ({
     page,
 }) => {
-    const rest = page.locator('.wedge[data-guided-rest]');
-    await page.locator('label[for="guided-mode-panel"]').click();
+    const rest = page.locator('.wedge[data-focused-rest]');
+    await page.locator('label[for="focused-mode-panel"]').click();
     // Only the 7 cores are reachable at first.
-    await expect(page.locator('.wedge:not(.shadow-wedge):not([data-guided-rest])')).toHaveCount(7);
+    await expect(page.locator('.wedge:not(.shadow-wedge):not([data-focused-rest])')).toHaveCount(7);
     await expect(page.locator('.secondary-wedge[data-emotion="Playful"]')).toHaveAttribute(
         'aria-hidden',
         'true'
@@ -505,16 +505,16 @@ test('guided view opens rings along the chosen path and toggles off losslessly',
 
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await expect(page.locator('.secondary-wedge[data-emotion="Playful"]')).not.toHaveAttribute(
-        'data-guided-rest',
+        'data-focused-rest',
         ''
     );
     await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
     await expect(
         page.locator('.tertiary-wedge[data-parent="Playful"]').first()
-    ).not.toHaveAttribute('data-guided-rest', '');
+    ).not.toHaveAttribute('data-focused-rest', '');
     // Unrelated families stay at rest.
     await expect(page.locator('.secondary-wedge[data-emotion="Lonely"]')).toHaveAttribute(
-        'data-guided-rest',
+        'data-focused-rest',
         ''
     );
 
@@ -524,7 +524,7 @@ test('guided view opens rings along the chosen path and toggles off losslessly',
     await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(2);
 });
 
-test('keyboard toggling keeps focus on the wheel, even when guided view rests the wedge', async ({
+test('keyboard toggling keeps focus on the wheel, even when focused view rests the wedge', async ({
     page,
 }) => {
     const happy = page.locator('.core-wedge[data-emotion="Happy"]');
@@ -532,25 +532,25 @@ test('keyboard toggling keeps focus on the wheel, even when guided view rests th
     await page.keyboard.press('Enter');
     await expect(happy).toBeFocused();
 
-    await page.locator('label[for="guided-mode-panel"]').click();
+    await page.locator('label[for="focused-mode-panel"]').click();
     const playful = page.locator('.secondary-wedge[data-emotion="Playful"]');
     await playful.click();
     await happy.click(); // deselect core; Playful stays reachable because it's selected
     await playful.focus();
     await page.keyboard.press('Enter'); // deselect -> Playful goes to rest
-    await expect(playful).toHaveAttribute('data-guided-rest', '');
+    await expect(playful).toHaveAttribute('data-focused-rest', '');
     await expect(happy).toBeFocused();
 });
 
 // Focused view hint: a calm on-wheel caption that explains the dimmed rings, then
 // steps aside once the user is moving through them.
-test('guided hint: hidden by default, walks the first two steps, returns on reset', async ({
+test('focused hint: hidden by default, walks the first two steps, returns on reset', async ({
     page,
 }) => {
-    const hint = page.locator('#guided-hint');
+    const hint = page.locator('#focused-hint');
     await expect(hint).toBeHidden();
 
-    await page.locator('label[for="guided-mode-panel"]').click();
+    await page.locator('label[for="focused-mode-panel"]').click();
     await expect(hint).toBeVisible();
     await expect(hint).toHaveText('Choose a core feeling to open the next ring.');
     await expect(hint).toHaveAttribute('aria-hidden', 'true');
@@ -566,7 +566,7 @@ test('guided hint: hidden by default, walks the first two steps, returns on rese
     await expect(hint).toBeVisible();
     await expect(hint).toHaveText('Choose a core feeling to open the next ring.');
 
-    await page.locator('label[for="guided-mode-panel"]').click();
+    await page.locator('label[for="focused-mode-panel"]').click();
     await expect(hint).toBeHidden();
 });
 
@@ -575,13 +575,13 @@ for (const vp of [
     { width: 390, height: 844 },
     { width: 320, height: 568 },
 ]) {
-    test(`guided hint stays clear of reachable wedges at ${vp.width}x${vp.height}`, async ({
+    test(`focused hint stays clear of reachable wedges at ${vp.width}x${vp.height}`, async ({
         page,
     }) => {
         await page.setViewportSize(vp);
         await page.waitForTimeout(300);
-        await page.locator('label[for="guided-mode-panel"]').click();
-        const hint = page.locator('#guided-hint');
+        await page.locator('label[for="focused-mode-panel"]').click();
+        const hint = page.locator('#focused-hint');
         await expect(hint).toBeVisible();
         await page.waitForTimeout(500);
         const box = (await hint.boundingBox())!;
@@ -589,15 +589,15 @@ for (const vp of [
         expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
         // The hint may only ever sit over wedges that are at rest.
         const coversReachable = await page.evaluate(() => {
-            const h = document.getElementById('guided-hint')!.getBoundingClientRect();
+            const h = document.getElementById('focused-hint')!.getBoundingClientRect();
             const pts: [number, number][] = [];
             for (let x = h.left + 2; x < h.right - 2; x += 6)
                 for (let y = h.top + 2; y < h.bottom - 2; y += 6) pts.push([x, y]);
-            const hint = document.getElementById('guided-hint')!;
+            const hint = document.getElementById('focused-hint')!;
             hint.style.visibility = 'hidden';
             const hit = pts.some(([x, y]) => {
                 const el = document.elementFromPoint(x, y);
-                return !!el?.closest('.wedge:not([data-guided-rest])');
+                return !!el?.closest('.wedge:not([data-focused-rest])');
             });
             hint.style.visibility = '';
             return hit;
@@ -774,7 +774,7 @@ test('a refused fullscreen request is announced, not silent', async ({ page }) =
 test('the reading lens shows when a key is pressed on a wedge focused by script', async ({
     page,
 }) => {
-    await page.locator('label[for="guided-mode-panel"]').click();
+    await page.locator('label[for="focused-mode-panel"]').click();
     await page.locator('.core-wedge[data-emotion="Angry"]').focus();
     await page.keyboard.press('ArrowDown'); // can't move in Focused yet — still a keyboard user
     await expect(page.locator('.core-wedge[data-emotion="Angry"]')).toBeFocused();
@@ -786,17 +786,17 @@ test('an easier view says so in words, with a one-tap way back to the full wheel
 }) => {
     const status = page.locator('#view-status');
     await expect(status).toBeHidden();
-    await page.locator('label[for="guided-mode-panel"]').click();
+    await page.locator('label[for="focused-mode-panel"]').click();
     await expect(status).toBeVisible();
     await expect(status).toContainText('Focused view');
     await page.locator('label[for="simplified-mode-panel"]').click();
     await expect(status).toContainText('Focused + Simplified');
 
     await page.locator('#view-status-reset').click();
-    await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+    await expect(page.locator('#focused-mode-panel')).not.toBeChecked();
     await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
     await expect(status).toBeHidden();
-    await expect(page.locator('.wedge[data-guided-rest]')).toHaveCount(0);
+    await expect(page.locator('.wedge[data-focused-rest]')).toHaveCount(0);
     await expect(page.locator('.tertiary-wedge').first()).toBeAttached();
     await expect(page.locator('#view-explore .view-title')).toBeFocused();
 });

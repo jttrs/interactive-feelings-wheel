@@ -155,7 +155,7 @@ test('Page Down / ] jump to the next family in the same ring; Home/End to ring e
     );
 });
 
-test('guided view: navigation skips rested wedges and explains closed rings', async ({ page }) => {
+test('focused view: navigation skips rested wedges and explains closed rings', async ({ page }) => {
     await page.keyboard.press('f');
     await page.locator('.core-wedge[data-emotion="Happy"]').focus();
     await page.keyboard.press('ArrowDown');
@@ -172,7 +172,7 @@ test('guided view: navigation skips rested wedges and explains closed rings', as
         'Happy'
     );
     expect(
-        await page.evaluate(() => document.activeElement!.hasAttribute('data-guided-rest'))
+        await page.evaluate(() => document.activeElement!.hasAttribute('data-focused-rest'))
     ).toBe(false);
     await expect(page.locator('.wedge[tabindex="0"]')).toHaveCount(1);
 });
@@ -196,7 +196,7 @@ test('control buttons have accessible names', async ({ page }) => {
     await expect(page.locator('#reset-btn-panel')).toHaveAttribute('aria-label', 'Reset the wheel');
     await expect(page.locator('#fullscreen-btn-panel')).toHaveAccessibleName('Fullscreen');
     await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('#guided-mode-panel')).toHaveAccessibleName('Focused');
+    await expect(page.locator('#focused-mode-panel')).toHaveAccessibleName('Focused');
     await expect(page.locator('#simplified-mode-panel')).toHaveAccessibleName('Simplified');
     await expect(page.locator('#help-btn-panel')).toHaveAttribute(
         'aria-label',
@@ -432,7 +432,7 @@ test('on mobile, collapsing from inside the sheet moves focus to the sheet handl
 });
 
 test('shortcuts are exposed on their controls', async ({ page }) => {
-    await expect(page.locator('#guided-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'F');
+    await expect(page.locator('#focused-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'F');
     await expect(page.locator('#simplified-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'S');
     await expect(page.locator('#reset-btn-panel')).toHaveAttribute('aria-keyshortcuts', 'R');
     await expect(page.locator('#panel-hide-btn')).toHaveAttribute('aria-keyshortcuts', 'P');

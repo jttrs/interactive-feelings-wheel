@@ -226,7 +226,7 @@
     outline: none;
 }
 
-/* Easier-view status: one quiet line under the panel heading while Guided and/or
+/* Easier-view status: one quiet line under the panel heading while Focused and/or
    Simplified is on, with a text button back to the full wheel. */
 .view-status {
     display: flex;
@@ -1481,7 +1481,7 @@ body {
         min-height: 36px;
     }
 
-    /* Short sheet: the Guided/Simplified chips sit right below, so the in-copy
+    /* Short sheet: the Focused/Simplified chips sit right below, so the in-copy
        suggestion would only be clipped. */
     .empty-hint__more,
     .empty-hint--aside {
@@ -1640,7 +1640,7 @@ svg text {
     filter: saturate(1.2) brightness(1.1);
 }
 
-/* Guided view (opt-in): rings the user hasn't reached rest in the background —
+/* Focused view (opt-in): rings the user hasn't reached rest in the background —
    still visible as the wheel's map, but quiet and inert until a choice opens them. */
 /* Touch drags rotate the wheel (pointer events) instead of panning/zooming the page. */
 #wheel-container svg {
@@ -1651,12 +1651,12 @@ svg text {
     transition: opacity var(--motion-base) var(--ease-soft);
 }
 
-#wheel-container [data-guided-rest] {
+#wheel-container [data-focused-rest] {
     opacity: 0.22;
     pointer-events: none;
 }
 
-/* Guided view caption: pinned to the wheel area (never rotates with the wheel),
+/* Focused view caption: pinned to the wheel area (never rotates with the wheel),
    centred in the space beside the docked panel / above the mobile sheet. */
 /* Reading lens: a big, calm copy of one wedge's word, pinned to the bottom of the
    wheel area (never rotates; transient; never takes pointer events). */
@@ -1730,7 +1730,7 @@ svg text {
     }
 }
 
-.guided-hint {
+.focused-hint {
     position: absolute;
     top: max(var(--space-4), env(safe-area-inset-top));
     left: var(--space-4);
@@ -1753,14 +1753,14 @@ svg text {
     animation: fadeIn var(--motion-base) var(--ease-soft);
 }
 
-.guided-hint[hidden] {
+.focused-hint[hidden] {
     display: none;
 }
 
 /* Beside the circle when the wheel fills the full height (desktop): a compact,
    two-line note in the free top-left corner. */
-.guided-hint[data-place='corner'],
-.main-layout.panel-minimized .guided-hint[data-place='corner'] {
+.focused-hint[data-place='corner'],
+.main-layout.panel-minimized .focused-hint[data-place='corner'] {
     right: auto;
     margin: 0;
     max-width: 14rem;
@@ -1771,31 +1771,31 @@ svg text {
 /* No free space at all (tiny screens with the sheet open): a single small line
    hugging the top edge, over the outer ring — which is always at rest while the
    hint shows, so it never covers a choice. */
-.guided-hint[data-place='tight'],
-.main-layout.panel-minimized .guided-hint[data-place='tight'] {
+.focused-hint[data-place='tight'],
+.main-layout.panel-minimized .focused-hint[data-place='tight'] {
     top: max(var(--space-1), env(safe-area-inset-top));
     padding: var(--space-1) var(--space-3);
     font-size: 0.8rem;
 }
 
-.main-layout.panel-minimized .guided-hint {
+.main-layout.panel-minimized .focused-hint {
     right: var(--space-4);
 }
 
 @media (max-width: 767px) and (orientation: portrait) {
-    .guided-hint,
-    .main-layout.panel-minimized .guided-hint {
+    .focused-hint,
+    .main-layout.panel-minimized .focused-hint {
         right: var(--space-4);
         font-size: 0.875rem;
     }
 }
 
-/* One soft swell on the core ring when Guided turns on — runs once, never loops. */
-svg.guided-core-cue .core-wedge:not([aria-pressed='true']) {
-    animation: guided-core-cue 0.9s var(--ease-soft) 1;
+/* One soft swell on the core ring when Focused turns on — runs once, never loops. */
+svg.focused-core-cue .core-wedge:not([aria-pressed='true']) {
+    animation: focused-core-cue 0.9s var(--ease-soft) 1;
 }
 
-@keyframes guided-core-cue {
+@keyframes focused-core-cue {
     0%,
     100% {
         filter: none;
@@ -1836,8 +1836,8 @@ svg.animating {
     .info-panel,
     .panel-show-btn,
     #wheel-container,
-    .guided-hint,
-    svg.guided-core-cue .core-wedge,
+    .focused-hint,
+    svg.focused-core-cue .core-wedge,
     text,
     svg {
         transition: none !important;

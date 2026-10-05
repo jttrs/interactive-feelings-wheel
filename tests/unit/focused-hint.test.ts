@@ -1,34 +1,38 @@
 import { describe, it, expect } from 'vitest';
 import { createTestWheel, getWedge } from '../helpers/wheel.ts';
-import { createGuidedHint, guidedHintStep, GUIDED_HINT_COPY } from '../../src/ui/guided-hint.ts';
+import {
+    createFocusedHint,
+    focusedHintStep,
+    FOCUSED_HINT_COPY,
+} from '../../src/ui/focused-hint.ts';
 
 const flush = () => new Promise<void>((r) => setTimeout(r, 0));
 
-describe('guidedHintStep', () => {
+describe('focusedHintStep', () => {
     const base = { enabled: true, hasCore: false, hasDeeper: false, nextDone: false };
 
-    it('is silent when guided view is off', () => {
-        expect(guidedHintStep({ ...base, enabled: false })).toBeNull();
+    it('is silent when focused view is off', () => {
+        expect(focusedHintStep({ ...base, enabled: false })).toBeNull();
     });
     it('starts with the core ring', () => {
-        expect(guidedHintStep(base)).toBe('start');
+        expect(focusedHintStep(base)).toBe('start');
     });
     it('points to the next ring after a core, once', () => {
-        expect(guidedHintStep({ ...base, hasCore: true })).toBe('next');
-        expect(guidedHintStep({ ...base, hasCore: true, nextDone: true })).toBeNull();
+        expect(focusedHintStep({ ...base, hasCore: true })).toBe('next');
+        expect(focusedHintStep({ ...base, hasCore: true, nextDone: true })).toBeNull();
     });
     it('steps aside once a closer word is chosen', () => {
-        expect(guidedHintStep({ ...base, hasCore: true, hasDeeper: true })).toBeNull();
+        expect(focusedHintStep({ ...base, hasCore: true, hasDeeper: true })).toBeNull();
     });
 });
 
-describe('guided hint controller', () => {
+describe('focused hint controller', () => {
     function setup() {
         const { container, gen } = createTestWheel();
         const hint = document.createElement('p');
         hint.hidden = true;
         document.body.appendChild(hint);
-        const ctrl = createGuidedHint(hint, container);
+        const ctrl = createFocusedHint(hint, container);
         const select = (emotion: string) => {
             const w = getWedge(container, emotion) as SVGElement;
             gen.selectWedge(w.getAttribute('data-wedge-id')!, w);
@@ -40,14 +44,14 @@ describe('guided hint controller', () => {
         const { gen, hint, ctrl, select } = setup();
         expect(hint.hidden).toBe(true);
 
-        gen.setGuidedMode(true);
+        gen.setFocusedMode(true);
         ctrl.setEnabled(true);
         expect(hint.hidden).toBe(false);
-        expect(hint.textContent).toBe(GUIDED_HINT_COPY.start);
+        expect(hint.textContent).toBe(FOCUSED_HINT_COPY.start);
 
         select('Happy');
         await flush();
-        expect(hint.textContent).toBe(GUIDED_HINT_COPY.next);
+        expect(hint.textContent).toBe(FOCUSED_HINT_COPY.next);
 
         select('Playful');
         await flush();
@@ -56,11 +60,11 @@ describe('guided hint controller', () => {
         gen.clearSelections();
         await flush();
         expect(hint.hidden).toBe(false);
-        expect(hint.textContent).toBe(GUIDED_HINT_COPY.start);
+        expect(hint.textContent).toBe(FOCUSED_HINT_COPY.start);
         ctrl.destroy();
     });
 
-    it('hides when guided view is turned off', async () => {
+    it('hides when focused view is turned off', async () => {
         const { hint, ctrl } = setup();
         ctrl.setEnabled(true);
         expect(hint.hidden).toBe(false);

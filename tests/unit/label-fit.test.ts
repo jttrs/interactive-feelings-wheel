@@ -56,7 +56,7 @@ describe('small-screen nudge', () => {
     let nudge: HTMLElement;
     let dismissButton: HTMLButtonElement;
     let simplified: HTMLInputElement;
-    let guided: HTMLInputElement;
+    let focused: HTMLInputElement;
     let store: Map<string, string>;
     let storage: Pick<Storage, 'getItem' | 'setItem'>;
     let announce: ReturnType<typeof vi.fn>;
@@ -67,14 +67,14 @@ describe('small-screen nudge', () => {
     beforeEach(() => {
         document.body.innerHTML = `
             <div id="wheel"></div>
-            <div id="nudge" hidden><p>Small screen? Simplified or Guided view can make words easier to read.</p>
+            <div id="nudge" hidden><p>Small screen? Simplified or Focused view can make words easier to read.</p>
               <button id="x"></button></div>
             <input type="checkbox" id="s" /><input type="checkbox" id="g" />`;
         container = document.getElementById('wheel')!;
         nudge = document.getElementById('nudge')!;
         dismissButton = document.getElementById('x') as HTMLButtonElement;
         simplified = document.getElementById('s') as HTMLInputElement;
-        guided = document.getElementById('g') as HTMLInputElement;
+        focused = document.getElementById('g') as HTMLInputElement;
         store = new Map();
         storage = {
             getItem: (k) => store.get(k) ?? null,
@@ -88,7 +88,7 @@ describe('small-screen nudge', () => {
             container,
             nudge,
             dismissButton,
-            viewToggles: [simplified, guided],
+            viewToggles: [simplified, focused],
             announce,
             storage,
         });
@@ -122,7 +122,7 @@ describe('small-screen nudge', () => {
         fit(true);
         dismissButton.click();
         expect(simplified.checked).toBe(false);
-        expect(guided.checked).toBe(false);
+        expect(focused.checked).toBe(false);
     });
 
     it('dismisses persistently and moves focus to the view options', () => {
@@ -146,11 +146,11 @@ describe('small-screen nudge', () => {
     it('hides while an easier view is on, and counts trying one as dismissal', () => {
         init();
         fit(true);
-        guided.checked = true;
-        guided.dispatchEvent(new Event('change'));
+        focused.checked = true;
+        focused.dispatchEvent(new Event('change'));
         expect(nudge.hidden).toBe(true);
-        guided.checked = false;
-        guided.dispatchEvent(new Event('change'));
+        focused.checked = false;
+        focused.dispatchEvent(new Event('change'));
         expect(nudge.hidden).toBe(true);
     });
 

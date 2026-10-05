@@ -12,7 +12,7 @@ export interface SmallScreenNudgeOptions {
     container: HTMLElement; // the wheel container (emits wheel:labelfit)
     nudge: HTMLElement; // the [hidden] note element
     dismissButton: HTMLButtonElement;
-    viewToggles: HTMLInputElement[]; // Simplified + Guided checkboxes
+    viewToggles: HTMLInputElement[]; // Simplified + Focused checkboxes
     announce: (message: string) => void;
     storage?: Pick<Storage, 'getItem' | 'setItem'> | null;
 }

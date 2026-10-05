@@ -76,8 +76,8 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
         declare centerX: WheelInstance['centerX'];
         declare centerY: WheelInstance['centerY'];
         declare isSimplifiedMode: WheelInstance['isSimplifiedMode'];
-        declare isGuidedMode: WheelInstance['isGuidedMode'];
-        declare refreshGuidedFocus: () => void;
+        declare isFocusedMode: WheelInstance['isFocusedMode'];
+        declare refreshFocusedView: () => void;
         declare wedgeRegistry: WheelInstance['wedgeRegistry'];
         declare currentRotation: WheelInstance['currentRotation'];
         declare coreRadius: WheelInstance['coreRadius'];
@@ -685,7 +685,7 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             });
 
             this.setupEventListeners();
-            if (this.isGuidedMode) this.refreshGuidedFocus();
+            if (this.isFocusedMode) this.refreshFocusedView();
         }
 
         // ===== WEDGE LAYER (fill-only) =====
@@ -795,7 +795,7 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
         // reach it shrink — so one long word no longer shrinks the whole ring. Fit
         // always wins over any minimum, so no word ever spills out of its wedge.
         // Then report whether the visible rings are below a legible size, so the UI
-        // can gently offer Simplified/Guided (it never switches view by itself).
+        // can gently offer Simplified/Focused (it never switches view by itself).
         fitLabels(): void {
             const measured = this.textElements
                 .filter((te) => te.fit && te.level)

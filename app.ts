@@ -3,7 +3,7 @@
 import { FeelingsWheelGenerator } from './feelings-wheel-engine.ts';
 import { FEELINGS_DATA } from './feelings-data.ts';
 import { renderFeelingsTree } from './src/ui/feelings-tree.ts';
-import { createGuidedHint } from './src/ui/guided-hint.ts';
+import { createFocusedHint } from './src/ui/focused-hint.ts';
 import { initSmallScreenNudge } from './src/ui/small-screen-nudge.ts';
 import { createWheelLens } from './src/ui/wheel-lens.ts';
 import type { Selection, EmotionSelectedDetail } from './src/types.ts';
@@ -49,7 +49,7 @@ export class FeelingsWheelApp {
             container: wheelContainer,
             nudge: document.getElementById('screen-nudge')!,
             dismissButton: document.getElementById('screen-nudge-dismiss') as HTMLButtonElement,
-            viewToggles: ['simplified-mode-panel', 'guided-mode-panel'].map(
+            viewToggles: ['simplified-mode-panel', 'focused-mode-panel'].map(
                 (id) => document.getElementById(id) as HTMLInputElement
             ),
             announce: (message) => this.announce(message),
@@ -241,7 +241,7 @@ export class FeelingsWheelApp {
             switch (key) {
                 case 'f':
                     event.preventDefault();
-                    (document.getElementById('guided-mode-panel') as HTMLInputElement)?.click();
+                    (document.getElementById('focused-mode-panel') as HTMLInputElement)?.click();
                     break;
 
                 case 's':
@@ -325,18 +325,18 @@ export class FeelingsWheelApp {
     setupPanelControls(): void {
         // Focused view: opt-in spotlight over the full wheel, for exploring one ring at a
         // time with a therapist. Purely visual — selections and rotation are untouched, so
-        // switching it off returns the whole wheel as-is. (Internally still "guided".)
-        const guidedToggle = document.getElementById('guided-mode-panel') as HTMLInputElement;
-        guidedToggle.checked = false;
-        const guidedHint = createGuidedHint(
-            document.getElementById('guided-hint')!,
+        // switching it off returns the whole wheel as-is.
+        const focusedToggle = document.getElementById('focused-mode-panel') as HTMLInputElement;
+        focusedToggle.checked = false;
+        const focusedHint = createFocusedHint(
+            document.getElementById('focused-hint')!,
             document.getElementById('wheel-container')!
         );
-        guidedToggle.addEventListener('change', () => {
-            this.wheelGenerator.setGuidedMode(guidedToggle.checked);
-            guidedHint.setEnabled(guidedToggle.checked);
+        focusedToggle.addEventListener('change', () => {
+            this.wheelGenerator.setFocusedMode(focusedToggle.checked);
+            focusedHint.setEnabled(focusedToggle.checked);
             this.announce(
-                guidedToggle.checked
+                focusedToggle.checked
                     ? 'Focused view on. Choose a core feeling to open the next ring.'
                     : 'Focused view off. The full wheel is available.'
             );
@@ -346,7 +346,7 @@ export class FeelingsWheelApp {
         // 'Show full wheel' turns Focused and Simplified off (through the real toggles, so
         // each one announces and updates exactly as if its chip were pressed).
         document.getElementById('view-status-reset')?.addEventListener('click', () => {
-            for (const id of ['guided-mode-panel', 'simplified-mode-panel']) {
+            for (const id of ['focused-mode-panel', 'simplified-mode-panel']) {
                 const t = document.getElementById(id) as HTMLInputElement | null;
                 if (t?.checked) t.click();
             }
@@ -658,16 +658,17 @@ export class FeelingsWheelApp {
         const status = document.getElementById('view-status');
         const text = document.getElementById('view-status-text');
         if (!status || !text) return;
-        const guided = (document.getElementById('guided-mode-panel') as HTMLInputElement)?.checked;
+        const focused = (document.getElementById('focused-mode-panel') as HTMLInputElement)
+            ?.checked;
         const simplified = this.isSimplifiedActive();
-        status.hidden = !guided && !simplified;
+        status.hidden = !focused && !simplified;
         const [short, long] =
-            guided && simplified
+            focused && simplified
                 ? [
                       'Focused + Simplified on.',
                       'Focused + Simplified: outer ring hidden; rings open as feelings are chosen.',
                   ]
-                : guided
+                : focused
                   ? ['Focused view on.', 'Focused view: rings open as feelings are chosen.']
                   : simplified
                     ? [

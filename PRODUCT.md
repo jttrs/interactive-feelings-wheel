@@ -33,7 +33,7 @@ A faithful, calm, structural tool, deliberately **not** a self-help or "insight"
 - **The chosen-feelings list is read-only.** Feelings are removed only by choosing them again on the wheel.
 - **No interpretation, advice, scoring or "insights."** On-screen copy may explain how to use the tool, but never what a client's feelings mean.
 - The Ko-fi support button stays in the footer as it is.
-- Terminology: "feeling" (not "emotion") in the UI; the views are **Full wheel**, **Focused** (internally "guided") and **Simplified**.
+- Terminology: "feeling" (not "emotion") in the UI; the views are **Full wheel**, **Focused** and **Simplified**.
 
 ## Brand Commitments
 

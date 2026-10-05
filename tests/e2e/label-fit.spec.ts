@@ -99,7 +99,7 @@ test.describe('small-screen tip', () => {
         // It sits on the wheel it's about, not in the panel.
         await expect(page.locator('.wheel-container #screen-nudge')).toHaveCount(1);
         await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
-        await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+        await expect(page.locator('#focused-mode-panel')).not.toBeChecked();
         await expect(page.locator('#wheel-container svg .tertiary-wedge').first()).toBeAttached();
         await expect(page.locator('#sr-announcer')).toContainText('Press and hold any word');
     });
@@ -120,7 +120,7 @@ test.describe('small-screen tip', () => {
         await expect(page.locator('#screen-nudge')).toBeHidden();
         await expect(page.locator('#simplified-mode-panel')).toBeFocused();
         await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
-        await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+        await expect(page.locator('#focused-mode-panel')).not.toBeChecked();
 
         await page.reload();
         await page.waitForSelector('#wheel-container svg .wedge');

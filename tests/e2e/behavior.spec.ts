@@ -477,7 +477,7 @@ for (const [width, height] of [
         expect(await wheelPanelOverlap(page)).toBeLessThanOrEqual(1);
 
         const handle = page.locator('#mobile-collapse-handle');
-        const toggle = (await handle.isVisible()) ? handle : page.locator('#panel-minimize-tab');
+        const toggle = (await handle.isVisible()) ? handle : page.locator('#panel-hide-btn');
         await toggle.click();
         await page.waitForTimeout(600);
         expect(await wheelPanelOverlap(page)).toBeLessThanOrEqual(1);

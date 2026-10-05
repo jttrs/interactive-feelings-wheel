@@ -284,19 +284,52 @@ test('selecting an emotion returns from a secondary view to explore', async ({ p
     await expect(page.locator('.feeling-node.is-selected')).toHaveCount(1);
 });
 
-test('collapsing the panel keeps the expand tab reachable on screen', async ({ page }) => {
-    const tab = page.locator('#panel-minimize-tab');
-    await tab.click(); // collapse
+test('hide/show panel buttons swap places and stay on screen', async ({ page }) => {
+    const hide = page.locator('#panel-hide-btn');
+    const show = page.locator('#panel-show-btn');
+    await expect(hide).toBeVisible();
+    await expect(show).toBeHidden();
+    await hide.click(); // collapse
     await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
-    // The tab must remain within the viewport (regression: it was pushed off-screen
-    // by the panel's transform when it was a descendant).
-    const box = await tab.boundingBox();
-    const width = page.viewportSize()!.width;
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(width);
-    await tab.click(); // expand again
+    await expect(show).toBeVisible();
+    await expect(show).toHaveAttribute('aria-expanded', 'false');
+    const box = (await show.boundingBox())!;
+    const vp = page.viewportSize()!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    await show.click(); // expand again
     await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
+    await expect(hide).toHaveAttribute('aria-expanded', 'true');
 });
+
+// The old mid-edge tab sat on the wheel's widest point and covered outer-ring words
+// whenever the wheel was width-bound. The corner buttons can never touch the circle.
+for (const [width, height] of [
+    [1024, 768],
+    [1440, 900],
+    [844, 390],
+    [768, 1024],
+]) {
+    test(`panel toggles never overlap the wheel at ${width}x${height}`, async ({ page }) => {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(400);
+        const intrusion = (sel: string) =>
+            page.evaluate((sel) => {
+                const w = document.querySelector('.wheel-main-group')!.getBoundingClientRect();
+                const b = document.querySelector(sel)!.getBoundingClientRect();
+                const cx = w.left + w.width / 2;
+                const cy = w.top + w.height / 2;
+                const nx = Math.max(b.left, Math.min(cx, b.right));
+                const ny = Math.max(b.top, Math.min(cy, b.bottom));
+                return w.width / 2 - Math.hypot(nx - cx, ny - cy);
+            }, sel);
+        expect(await intrusion('#panel-hide-btn')).toBeLessThanOrEqual(0);
+        await page.locator('#panel-hide-btn').click();
+        await page.waitForTimeout(800);
+        expect(await intrusion('#panel-show-btn')).toBeLessThanOrEqual(0);
+    });
+}
 
 test('on mobile, the sheet handle is a button that stays on screen when collapsed', async ({
     page,
@@ -338,7 +371,7 @@ test('the empty-state invitation shows when empty and hides once a tile exists',
 
 test('page has an h1 and a skip link that lands in the (re-opened) panel', async ({ page }) => {
     await expect(page.locator('h1')).toHaveText('Feelings Wheel');
-    await page.locator('#panel-minimize-tab').click();
+    await page.locator('#panel-hide-btn').click();
     await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
 
     const skip = page.locator('.skip-link');
@@ -360,9 +393,10 @@ test('the skip link is the first tab stop on a fresh page', async ({ page }) => 
     await expect(page.locator('.skip-link')).toBeFocused();
 });
 
-test('desktop collapse tab is a comfortable target (>= 32px wide)', async ({ page }) => {
-    const box = (await page.locator('#panel-minimize-tab').boundingBox())!;
-    expect(box.width).toBeGreaterThanOrEqual(32);
+test('panel hide/show buttons are comfortable targets (>= 40px)', async ({ page }) => {
+    const hide = (await page.locator('#panel-hide-btn').boundingBox())!;
+    expect(hide.width).toBeGreaterThanOrEqual(40);
+    expect(hide.height).toBeGreaterThanOrEqual(40);
 });
 
 test('collapsing the panel never strands focus inside it, and its controls leave the tab order', async ({
@@ -372,18 +406,18 @@ test('collapsing the panel never strands focus inside it, and its controls leave
     await reset.focus();
     await page.keyboard.press('p'); // collapse via shortcut while focus is in the footer
     await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
-    await expect(page.locator('#panel-minimize-tab')).toBeFocused();
+    await expect(page.locator('#panel-show-btn')).toBeFocused();
 
     // Tabbing onward never lands on an off-screen panel control.
     for (let i = 0; i < 6; i++) {
         await page.keyboard.press('Tab');
-        const inPanel = await page.evaluate(
-            () => !!document.activeElement?.closest('.panel-content, .panel-footer')
-        );
+        const inPanel = await page.evaluate(() => !!document.activeElement?.closest('.info-panel'));
         expect(inPanel).toBe(false);
     }
 
-    await page.locator('#panel-minimize-tab').click(); // reopen
+    await page.locator('#panel-show-btn').focus();
+    await page.keyboard.press('Enter'); // reopen
+    await expect(page.locator('#panel-hide-btn')).toBeFocused();
     await expect(reset).not.toHaveJSProperty('inert', true);
 });
 
@@ -401,7 +435,8 @@ test('shortcuts are exposed on their controls', async ({ page }) => {
     await expect(page.locator('#guided-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'F');
     await expect(page.locator('#simplified-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'S');
     await expect(page.locator('#reset-btn-panel')).toHaveAttribute('aria-keyshortcuts', 'R');
-    await expect(page.locator('#panel-minimize-tab')).toHaveAttribute('aria-keyshortcuts', 'P');
+    await expect(page.locator('#panel-hide-btn')).toHaveAttribute('aria-keyshortcuts', 'P');
+    await expect(page.locator('#panel-show-btn')).toHaveAttribute('aria-keyshortcuts', 'P');
     await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute('aria-keyshortcuts', 'F11');
 });
 

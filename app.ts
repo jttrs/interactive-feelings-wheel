@@ -290,13 +290,14 @@ export class FeelingsWheelApp {
         // The selected-feelings tree is rebuilt wholesale from the wheel's selectedWedges
         // (the source of truth) on every change — no per-tile handle map to keep in sync.
 
-        // Setup panel minimization (desktop)
-        const minimizeTab = document.getElementById('panel-minimize-tab')!;
-        minimizeTab.addEventListener('click', () => {
-            this.togglePanelMinimization();
-        });
+        // Desktop / landscape hide (in the panel) and show (screen corner) buttons.
+        for (const id of ['panel-hide-btn', 'panel-show-btn']) {
+            document
+                .getElementById(id)
+                ?.addEventListener('click', () => this.togglePanelMinimization());
+        }
 
-        // Initialize arrow direction based on current panel state
+        // Initialize toggle state based on current panel state
         this.updateArrowDirection();
 
         // Setup mobile collapse handle
@@ -631,20 +632,11 @@ export class FeelingsWheelApp {
 
     updateArrowDirection(): void {
         const panel = document.querySelector('.info-panel');
-        const arrow = document.querySelector('.minimize-arrow');
-        const tab = document.getElementById('panel-minimize-tab');
-
-        if (!panel || !arrow) return;
+        if (!panel) return;
 
         const minimized = panel.classList.contains('minimized');
-        // Arrow points toward the action: ◀ reveals (when hidden), ▶ collapses.
-        arrow.textContent = minimized ? '◀' : '▶';
-        if (tab) {
-            tab.setAttribute('aria-expanded', String(!minimized));
-            tab.setAttribute(
-                'aria-label',
-                minimized ? 'Show feelings panel' : 'Hide feelings panel'
-            );
+        for (const id of ['panel-hide-btn', 'panel-show-btn']) {
+            document.getElementById(id)?.setAttribute('aria-expanded', String(!minimized));
         }
 
         // Mobile sheet handle: ▲ reveals the sheet, ▼ tucks it away.
@@ -717,7 +709,8 @@ export class FeelingsWheelApp {
         const before = this.wheelRect();
         const focusWasInside =
             document.activeElement instanceof Element &&
-            !!document.activeElement.closest('.panel-content, .panel-footer');
+            !!document.activeElement.closest('.panel-content, .panel-footer, .panel-hide-btn');
+        const fromShowButton = document.activeElement?.id === 'panel-show-btn';
 
         const minimized = panel.classList.toggle('minimized');
         mainLayout.classList.toggle('panel-minimized'); // For wheel centering
@@ -725,15 +718,17 @@ export class FeelingsWheelApp {
 
         // A tucked-away panel (slid off-screen on desktop) must not keep tab stops, and
         // focus must never be stranded inside it: hand it to the visible reopen control.
-        for (const sel of ['.panel-content', '.panel-footer']) {
+        for (const sel of ['.panel-content', '.panel-footer', '.panel-hide-btn']) {
             const el = panel.querySelector<HTMLElement>(sel);
             if (el) el.inert = minimized;
         }
+        // Hand focus to whichever toggle is now visible, so it's never stranded.
+        const handle = document.getElementById('mobile-collapse-handle');
+        const onSheet = !!handle && handle.offsetParent !== null;
         if (minimized && focusWasInside) {
-            const handle = document.getElementById('mobile-collapse-handle');
-            const tab = document.getElementById('panel-minimize-tab');
-            const reopen = handle && handle.offsetParent !== null ? handle : tab;
-            reopen?.focus();
+            (onSheet ? handle : document.getElementById('panel-show-btn'))?.focus();
+        } else if (!minimized && fromShowButton) {
+            document.getElementById('panel-hide-btn')?.focus();
         }
 
         // Glide the wheel to its new centre/size with a transform (FLIP) rather than

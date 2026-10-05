@@ -23,7 +23,7 @@ async function open(page: Page, width: number, height: number) {
 
 async function collapsePanel(page: Page) {
     const handle = page.locator('#mobile-collapse-handle');
-    const tab = page.locator('#panel-minimize-tab');
+    const tab = page.locator('#panel-hide-btn');
     await ((await handle.isVisible()) ? handle : tab).click();
     await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
     // Let the resize-driven regenerate + refit settle.

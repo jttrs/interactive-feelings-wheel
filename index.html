@@ -78,6 +78,23 @@
                         <span class="mobile-collapse-arrow" aria-hidden="true">▼</span>
                     </button>
 
+                    <!-- Desktop / landscape: hide the panel (the mobile sheet uses its handle). -->
+                    <button
+                        class="panel-hide-btn"
+                        id="panel-hide-btn"
+                        type="button"
+                        aria-controls="info-panel"
+                        aria-expanded="true"
+                        aria-label="Hide feelings panel"
+                        aria-keyshortcuts="P"
+                        title="Hide panel (P)"
+                    >
+                        <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="3" y="4" width="18" height="16" rx="2.5"></rect>
+                            <path d="M15 4v16"></path>
+                        </svg>
+                    </button>
+
                     <div class="panel-content" id="panel-content" tabindex="-1">
                         <!-- EXPLORE view (default): same tabbed head + body as the other
                          views (no back button — this is the home tab). -->
@@ -269,11 +286,15 @@
                                         </li>
                                         <li class="help-action">
                                             <span class="help-action__ic" aria-hidden="true">
-                                                <svg
-                                                    class="hero-ic hero-ic--fill"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path d="M9 6l6 6-6 6z"></path>
+                                                <svg class="hero-ic" viewBox="0 0 24 24">
+                                                    <rect
+                                                        x="3"
+                                                        y="4"
+                                                        width="18"
+                                                        height="16"
+                                                        rx="2.5"
+                                                    ></rect>
+                                                    <path d="M15 4v16"></path>
                                                 </svg>
                                             </span>
                                             <span class="help-action__text">
@@ -512,20 +533,24 @@
                         </div>
                     </footer>
                 </aside>
-
-                <!-- Panel collapse tab — a SIBLING of the panel (not a child), so the
-                 panel's minimized transform can't capture this fixed element and
-                 push it off-screen. -->
+                <!-- Shown only while the panel is hidden (desktop / landscape). It lives in the
+                 screen's top-right corner — a circular wheel can never reach a corner of its
+                 area, so this never covers a word. A sibling of the panel so the panel's
+                 slide-off transform can't carry it away. -->
                 <button
-                    class="panel-minimize-tab"
-                    id="panel-minimize-tab"
-                    aria-keyshortcuts="P"
-                    title="Hide or show the panel (P)"
+                    class="panel-show-btn"
+                    id="panel-show-btn"
+                    type="button"
                     aria-controls="info-panel"
-                    aria-label="Hide feelings panel"
-                    aria-expanded="true"
+                    aria-expanded="false"
+                    aria-label="Show feelings panel"
+                    aria-keyshortcuts="P"
+                    title="Show panel (P)"
                 >
-                    <span class="minimize-arrow">▶</span>
+                    <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="16" rx="2.5"></rect>
+                        <path d="M15 4v16"></path>
+                    </svg>
                 </button>
             </main>
         </div>

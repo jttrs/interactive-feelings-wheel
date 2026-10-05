@@ -7,6 +7,7 @@ import type {
     ScrollPhysics,
     EffectCtx,
 } from '../types.ts';
+import { usingKeyboard } from '../ui/input-modality.ts';
 import { applyFocusedView, FOCUSED_REST_ATTR } from './focused-view.ts';
 import {
     isNavKey,
@@ -298,7 +299,10 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             this.updateRotation();
             this.applySelectedWedges();
 
-            if (focusedId) this.restoreFocusAfterRegenerate(focusedId, focusedMeta);
+            // Keyboard users keep their place; after a click there's no place to keep.
+            if (focusedId && usingKeyboard()) {
+                this.restoreFocusAfterRegenerate(focusedId, focusedMeta);
+            }
 
             // REMOVED REDUNDANT CALL: generate() already handles all responsive scaling
             // this.updateAllResponsiveScaling(); // Not needed - generate() does this
@@ -731,6 +735,18 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         clearSelectionEffects(ctx: EffectCtx): void {
             for (const fx of SELECTION_EFFECTS) fx.clear(ctx, this);
             if (this.isFocusedMode) this.refreshFocusedView();
+        }
+
+        // Re-choose a set of feelings (Reset's undo). Drawn wedges get every selection
+        // effect; ones not drawn right now (outer ring in Simplified) just rejoin the set
+        // and are painted when their ring returns.
+        restoreSelections(ids: string[]): void {
+            for (const id of ids) {
+                if (this.selectedWedges.has(id)) continue;
+                const ctx = this.effectCtx(id);
+                if (ctx) this.applySelectionEffects(ctx);
+                else this.selectedWedges.add(id);
+            }
         }
 
         selectWedge(wedgeId: string, wedge: SVGElement): void {

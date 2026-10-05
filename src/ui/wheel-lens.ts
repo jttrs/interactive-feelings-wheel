@@ -121,14 +121,22 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
     };
     const small = (w: SVGElement) => labelPx(wheelRoot, w) < LENS_SMALL_LABEL_PX;
 
+    // When the pointer stops reading a word, hand the lens back to the keyboard-focused
+    // wedge (if any) rather than hiding it, so a keyboard user never loses their place.
+    const backToFocus = () => {
+        const f = document.activeElement;
+        const w = f instanceof Element && wheelRoot.contains(f) ? wedgeFrom(f) : null;
+        if (w) show(w, true);
+        else hide();
+    };
     const onOver = (e: PointerEvent) => {
         if (e.pointerType !== 'mouse' || down) return;
         const w = wedgeFrom(e.target);
         if (w && small(w)) show(w);
-        else if (!wheelRoot.contains(document.activeElement)) hide();
+        else backToFocus();
     };
     const onLeave = (e: PointerEvent) => {
-        if (e.pointerType === 'mouse' && !down) hide();
+        if (e.pointerType === 'mouse' && !down) backToFocus();
     };
     const onDown = (e: PointerEvent) => {
         const w = wedgeFrom(e.target);

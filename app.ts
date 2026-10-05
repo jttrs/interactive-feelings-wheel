@@ -7,6 +7,7 @@ import { createFocusedHint } from './src/ui/focused-hint.ts';
 import { initSmallScreenNudge } from './src/ui/small-screen-nudge.ts';
 import { createWheelLens } from './src/ui/wheel-lens.ts';
 import { readUrlOptions, writeUrlOptions } from './src/ui/url-options.ts';
+import { trackInputModality, usingKeyboard } from './src/ui/input-modality.ts';
 import type { Selection, EmotionSelectedDetail } from './src/types.ts';
 
 export class FeelingsWheelApp {
@@ -14,6 +15,9 @@ export class FeelingsWheelApp {
     currentView!: string;
     views!: Record<string, HTMLElement | null>;
     isResetting = false;
+    // Reset's undo: the cleared selection, kept only briefly and only in memory.
+    undoIds: string[] = [];
+    undoTimer: ReturnType<typeof setTimeout> | null = null;
     // True while applying start-up options from the URL: no announcements or animation.
     quiet = false;
 
@@ -31,6 +35,9 @@ export class FeelingsWheelApp {
     }
 
     setupApp(): void {
+        // Script-driven focus moves are for keyboard users only (see input-modality.ts).
+        trackInputModality();
+
         // Reserve the mobile sheet's real height before the first render so the wheel
         // is sized for the visible area from frame one.
         this.syncSheetHeight();
@@ -349,19 +356,11 @@ export class FeelingsWheelApp {
                     ? 'Focused view on. Choose a core feeling to open the next ring.'
                     : 'Focused view off. The full wheel is available.'
             );
-            this.updateViewStatus();
         });
 
-        // 'Show full wheel' turns Focused and Simplified off (through the real toggles, so
-        // each one announces and updates exactly as if its chip were pressed).
-        document.getElementById('view-status-reset')?.addEventListener('click', () => {
-            for (const id of ['focused-mode-panel', 'simplified-mode-panel']) {
-                const t = document.getElementById(id) as HTMLInputElement | null;
-                if (t?.checked) t.click();
-            }
-            this.announce('Full wheel shown.');
-            this.focusPanelHeading();
-        });
+        document
+            .getElementById('reset-undo-btn')
+            ?.addEventListener('click', () => this.undoReset());
 
         // Setup simplified mode toggle
         const simplifiedModeToggle = document.getElementById(
@@ -377,7 +376,6 @@ export class FeelingsWheelApp {
             this.wheelGenerator.setSimplifiedMode(isSimplified);
             this.recreateTilesFromWheelState();
             this.updateInstructionsVisibility();
-            this.updateViewStatus();
 
             const hidden = this.hiddenSelectionCount();
             this.announce(
@@ -467,11 +465,12 @@ export class FeelingsWheelApp {
 
         this.currentView = name;
 
-        // Move focus to the opened view's back button for keyboard users.
+        // Keyboard users: move focus into the opened view (its back button). After a click
+        // focus stays put, so no ring appears on a control nobody is aiming at.
         if (name !== 'explore') {
             const back = target!.querySelector('[data-view-back]') as HTMLElement | null;
-            if (back) back.focus();
-        } else if (previous && previous !== 'explore') {
+            if (back && usingKeyboard()) back.focus();
+        } else if (previous && previous !== 'explore' && usingKeyboard()) {
             // Closing Help/About/Support: return focus to the footer button that opened it
             // (it was hidden with the view, so focus would otherwise fall to <body>) —
             // unless the user has already moved on (e.g. chose a feeling on the wheel).
@@ -484,6 +483,9 @@ export class FeelingsWheelApp {
 
     handleEmotionSelection(detail: EmotionSelectedDetail): void {
         const { emotion, selected } = detail;
+
+        // A new choice after Reset starts fresh: the old selection can't be restored.
+        this.dismissUndo();
 
         // Selecting an emotion always brings the Explore view forward.
         if (this.currentView && this.currentView !== 'explore') {
@@ -539,8 +541,6 @@ export class FeelingsWheelApp {
         } else {
             container.replaceChildren(element);
         }
-        // Hidden-but-chosen feelings are named in the view status line.
-        this.updateViewStatus();
     }
 
     // Chosen feelings that exist but aren't drawn (outer ring while Simplified is on),
@@ -602,13 +602,50 @@ export class FeelingsWheelApp {
         if (this.isResetting) return;
         this.isResetting = true;
 
+        // Reset is quick to hit in a live session: keep what it clears so it can be undone.
+        const cleared = [...this.wheelGenerator.selectedWedges];
+
         // Mark wheel as animating to prevent user interaction
         this.wheelGenerator.isAnimating = true;
 
-        this.announce('Cleared all selected feelings.');
+        this.announce('Cleared all selected feelings. Undo is available for a few seconds.');
 
         // RESTORED: Full reset animation with tile unwinding + wheel rotation
         this.animateUnwindTiles();
+        if (cleared.length) this.offerUndo(cleared);
+    }
+
+    offerUndo(ids: string[]): void {
+        this.undoIds = ids;
+        const bar = document.getElementById('reset-undo');
+        if (bar) bar.hidden = false;
+        if (this.undoTimer) clearTimeout(this.undoTimer);
+        this.undoTimer = setTimeout(() => this.dismissUndo(), 8000);
+    }
+
+    dismissUndo(): void {
+        this.undoIds = [];
+        if (this.undoTimer) clearTimeout(this.undoTimer);
+        this.undoTimer = null;
+        const bar = document.getElementById('reset-undo');
+        if (!bar || bar.hidden) return;
+        // Don't strand keyboard focus on a button that's about to disappear.
+        if (bar.contains(document.activeElement) && usingKeyboard()) this.focusPanelHeading();
+        bar.hidden = true;
+    }
+
+    undoReset(): void {
+        const ids = this.undoIds;
+        if (!ids.length || this.isResetting) return;
+        this.dismissUndo();
+        this.wheelGenerator.restoreSelections(ids);
+        this.renderFeelings();
+        this.updateInstructionsVisibility();
+        this.announce(
+            ids.length === 1
+                ? 'Restored 1 chosen feeling.'
+                : `Restored ${ids.length} chosen feelings.`
+        );
     }
 
     animateUnwindTiles(): void {
@@ -617,7 +654,6 @@ export class FeelingsWheelApp {
         // as if Reset hadn't worked.
         this.wheelGenerator.clearSelections();
         this.clearAllTiles();
-        this.updateViewStatus();
         this.animateUnwindRotation();
     }
 
@@ -661,47 +697,6 @@ export class FeelingsWheelApp {
             );
         }
         if (handleArrow) handleArrow.textContent = minimized ? '▲' : '▼';
-    }
-
-    // Say in words which view is on (the chips only show it by colour), so the
-    // wheel's current shape is never a puzzle — and offer a one-tap way back.
-    updateViewStatus(): void {
-        const status = document.getElementById('view-status');
-        const text = document.getElementById('view-status-text');
-        if (!status || !text) return;
-        const focused = (document.getElementById('focused-mode-panel') as HTMLInputElement)
-            ?.checked;
-        const simplified = this.isSimplifiedActive();
-        status.hidden = !focused && !simplified;
-        const [short, long] =
-            focused && simplified
-                ? [
-                      'Focused + Simplified on.',
-                      'Focused + Simplified: outer ring hidden; rings open as feelings are chosen.',
-                  ]
-                : focused
-                  ? ['Focused view on.', 'Focused view: rings open as feelings are chosen.']
-                  : simplified
-                    ? [
-                          'Simplified view on.',
-                          'Simplified view: outer ring hidden, simpler meanings.',
-                      ]
-                    : ['', ''];
-        // Name what Simplified is hiding but still counts as chosen, so nothing chosen is
-        // ever invisible without being said.
-        const hidden = this.hiddenSelections();
-        const hiddenLong = hidden.length ? ` Still chosen but hidden: ${hidden.join(', ')}.` : '';
-        const hiddenShort = hidden.length
-            ? ` ${hidden.length} hidden choice${hidden.length === 1 ? '' : 's'}.`
-            : '';
-        // Short form for the cramped phone sheet; the full explanation everywhere else.
-        const s = document.createElement('span');
-        s.className = 'view-status__short';
-        s.textContent = short + hiddenShort;
-        const l = document.createElement('span');
-        l.className = 'view-status__long';
-        l.textContent = long + hiddenLong;
-        text.replaceChildren(s, l);
     }
 
     // Apply ?view= / ?panel= on load through the real controls (so every view behaves
@@ -772,10 +767,13 @@ export class FeelingsWheelApp {
             const el = panel.querySelector<HTMLElement>(sel);
             if (el) el.inert = minimized;
         }
-        // Hand focus to whichever toggle is now visible, so it's never stranded.
+        // Keyboard users: hand focus to whichever toggle is now visible, so it's never
+        // stranded on a control that just went inert.
         const handle = document.getElementById('mobile-collapse-handle');
         const onSheet = !!handle && handle.offsetParent !== null;
-        if (minimized && focusWasInside) {
+        if (!usingKeyboard()) {
+            // Pointer users: nothing to hand over.
+        } else if (minimized && focusWasInside) {
             (onSheet ? handle : document.getElementById('panel-show-btn'))?.focus();
         } else if (!minimized && fromShowButton) {
             document.getElementById('panel-hide-btn')?.focus();

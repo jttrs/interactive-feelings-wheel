@@ -189,7 +189,9 @@ test('simplified view: the middle ring is the outer edge', async ({ page }) => {
 test('reset is announced to screen readers', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
     await page.locator('#reset-btn-panel').click();
-    await expect(page.locator('#sr-announcer')).toHaveText('Cleared all selected feelings.');
+    await expect(page.locator('#sr-announcer')).toHaveText(
+        'Cleared all selected feelings. Undo is available for a few seconds.'
+    );
 });
 
 test('control buttons have accessible names', async ({ page }) => {
@@ -229,20 +231,33 @@ test('help opens as an in-panel view that fills the sidebar and Escape returns t
     await expect(exploreView).toBeVisible();
 });
 
-test('the back button returns an in-panel view to explore and it owns focus', async ({ page }) => {
-    await page.locator('#help-btn-panel').click();
+test('keyboard: opening a view moves focus in; closing returns it to the opener', async ({
+    page,
+}) => {
+    await page.locator('#help-btn-panel').focus();
+    await page.keyboard.press('Enter');
     const back = page.locator('#view-help [data-view-back]');
     await expect(back).toBeFocused(); // focus moves into the opened view
-    await back.click();
+    await page.keyboard.press('Enter');
     await expect(page.locator('#view-help')).toBeHidden();
     await expect(page.locator('#view-explore')).toBeVisible();
     // Focus returns to the control that opened it, never <body>.
     await expect(page.locator('#help-btn-panel')).toBeFocused();
 
-    await page.locator('#about-btn-panel').click();
+    await page.locator('#about-btn-panel').focus();
+    await page.keyboard.press('Enter');
     await page.keyboard.press('Escape');
     await expect(page.locator('#view-about')).toBeHidden();
     await expect(page.locator('#about-btn-panel')).toBeFocused();
+});
+
+test('pointer: opening a view does not paint a focus ring on its back button', async ({ page }) => {
+    await page.locator('#help-btn-panel').click();
+    await expect(page.locator('#view-help')).toBeVisible();
+    await expect(page.locator('#view-help [data-view-back]')).not.toBeFocused();
+    expect(await page.evaluate(() => !!document.querySelector(':focus-visible'))).toBe(false);
+    await page.locator('#view-help [data-view-back]').click();
+    await expect(page.locator('#view-explore')).toBeVisible();
 });
 
 test('about opens in-panel (attribution not full-time) with the credits', async ({ page }) => {
@@ -364,7 +379,9 @@ test('the empty-state invitation shows when empty and hides once a tile exists',
 }) => {
     const empty = page.locator('#panel-instructions');
     await expect(empty).toBeVisible();
-    await expect(empty).toContainText('no wrong answers');
+    // Says how the tool works, not how to feel.
+    await expect(empty).toContainText('Select a word on the wheel to see its definition');
+    await expect(empty).not.toContainText('no wrong answers');
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(empty).toBeHidden();
 });
@@ -495,4 +512,18 @@ test('switching views or hiding the panel by shortcut keeps keyboard focus on th
     await page.keyboard.press('p'); // hide the panel: the wheel resizes and rebuilds
     await page.waitForTimeout(500);
     await expect(page.locator('.wedge:focus')).toHaveCount(1);
+});
+
+test('Help leads with views and start-up links; keyboard keys are always shown', async ({
+    page,
+}) => {
+    await page.locator('#help-btn-panel').click();
+    const help = page.locator('#view-help');
+    const titles = await help.locator('.help-group__title').allInnerTexts();
+    expect(titles.slice(0, 3)).toEqual(['Using the wheel', 'Views', 'Start a session in a view']);
+    await expect(help).toContainText('For younger clients');
+    await expect(help).toContainText('?view=simplified');
+    expect(titles).toContain('Keyboard');
+    await expect(help.locator('details')).toHaveCount(0);
+    await expect(help.getByText('Step out to more specific feelings')).toBeVisible();
 });

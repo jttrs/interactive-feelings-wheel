@@ -112,10 +112,6 @@ components:
         textColor: '{colors.ink-muted}'
         rounded: '{rounded.md}'
         size: '40px'
-    status-line:
-        backgroundColor: '{colors.surface-sand}'
-        textColor: '{colors.ink-muted}'
-        padding: '0.75rem 1.5rem'
     reading-lens:
         backgroundColor: '{colors.surface}'
         textColor: '{colors.warm-charcoal}'
@@ -159,14 +155,14 @@ A warm, low-glare neutral world with a single calm teal accent. The vivid colour
 
 - **Calm Teal** (#2f6f6e): the one UI accent. It fills a toggled-on view chip, a pressed icon button (fullscreen on), the skip link and selected states. White text on it reaches 5.8:1.
 - **Calm Teal Deep** (#245957): the hover/active shade for teal-filled controls.
-- **Calm Teal Ink** (#1f4e4d): teal used as text on light surfaces (hover text on icon buttons, the "Show full wheel" link). 9.3:1 on white.
+- **Calm Teal Ink** (#1f4e4d): teal used as text on light surfaces (hover text on icon buttons, Help links). 9.3:1 on white.
 - **Focus Teal** (#1b4d4c): every keyboard focus ring (3px, 2px offset). At least 3:1 against both paper and surface.
 
 ### Neutral
 
 - **Warm Paper** (#f7f4ef): the page background behind the wheel; warm, to avoid halation.
 - **Surface** (#ffffff): the side panel, bottom sheet, chips, tip, lens and corner buttons.
-- **Sand** (#f2eee7): inset or raised fills, such as the view-status band, hover fills and the keyboard-key chips.
+- **Sand** (#f2eee7): inset or raised fills, such as hover fills and the keyboard-key chips.
 - **Warm Charcoal** (#2b2a28): primary text and wheel labels. 14.3:1 on white.
 - **Muted Ink** (#5e574c): secondary text, including empty-state copy, definitions and resting icons.
 - **Faint Ink** (#736b5e): tertiary text, including context-only ancestors in the list, quiet hints and chevrons.
@@ -197,9 +193,10 @@ The seven pastel family colours come from the source wheel: Angry #FFB3B3, Disgu
 - **Headline** (700, 1.5rem, 1.25): the panel's one question, "How are you feeling?", and secondary view titles. 1.15rem on very short phones.
 - **Title** (700, 1.05rem, 1.3): Help section headings, in sentence case.
 - **Feeling – core / secondary / outer** (700 / 600 / 600 at 1.25 / 1.05 / 0.9rem, leading 1.2): the chosen-feelings list, where depth is carried by size, weight and indent.
-- **Body** (400, 0.95rem, 1.5): empty-state invitation and Help text.
+- **Body** (400, 0.95rem, 1.5): empty-state instructions and Help text.
 - **Definition** (400, 0.85rem, 1.45, max 42ch): the meaning under a chosen feeling, in Muted Ink.
-- **Label** (600, 0.85rem): view chips, Reset and status-line links.
+- **Label** (600, 0.85rem): view chips and Reset.
+- **Group label** (600, 0.75rem, uppercase, 0.06em tracking, Muted Ink): the "Views" label over the view chips, so Focused and Simplified don't read as feeling words.
 - **Lens word** (700, 1.75rem, 1.15): the enlarged word in the reading lens.
 - **Wheel labels**: sized per wedge in code so each word fits its wedge (never a fixed size), bold when selected.
 
@@ -269,10 +266,6 @@ Gently rounded and friendly, never sharp, never blobby. Small pieces use 8px, co
 - One tinted stem per feeling family, a 3px line in the family colour. Under it, core, secondary and outer-ring words are stepped by size, weight and indent. Context-only ancestors are shown in Faint Ink.
 - Names with a meaning carry a small chevron (› hidden, ⌄ shown). The definition expands below in Muted Ink.
 - The list is read-only, with one Faint Ink line underneath: "To remove one, choose it again on the wheel."
-
-### View status line
-
-- A Sand band under the heading while Focused and/or Simplified is on. It says what's different in words, names any hidden choices, and has an underlined teal "Show full wheel" link. On phones it's one compact row.
 
 ### Reading lens (signature)
 

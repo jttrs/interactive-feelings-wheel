@@ -226,62 +226,6 @@
     outline: none;
 }
 
-/* Easier-view status: one quiet line under the panel heading while Focused and/or
-   Simplified is on, with a text button back to the full wheel. */
-.view-status {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--space-1) var(--space-3);
-    padding: var(--space-3) var(--space-5);
-    background: var(--color-surface-alt);
-    border-bottom: 1px solid var(--color-border);
-}
-.view-status[hidden] {
-    display: none;
-}
-.view-status__text {
-    flex: 1 1 14rem;
-    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.4;
-    color: var(--color-ink-muted);
-}
-.view-status__short {
-    display: none;
-}
-
-/* Phone bottom sheet: one compact row so the chosen feelings keep their room. */
-@media (max-width: 767px) and (orientation: portrait) {
-    .view-status {
-        flex-wrap: nowrap;
-        align-items: center;
-        padding: var(--space-1) var(--space-5);
-    }
-    .view-status__short {
-        display: inline;
-    }
-    .view-status__long {
-        display: none;
-    }
-    .view-status__text {
-        flex: 1 1 auto;
-    }
-}
-
-.view-status__reset {
-    padding: var(--space-1) 0;
-    font: inherit;
-    font-size: 0.875rem;
-    font-weight: var(--weight-medium);
-    color: var(--color-accent-text);
-    background: none;
-    border: none;
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-    cursor: pointer;
-}
-
 /* Skip-link landing spot: the visible view's heading shows the standard ring. */
 .view-title:focus-visible {
     outline: var(--focus-ring-width) solid var(--color-focus);
@@ -737,6 +681,11 @@ body {
     cursor: pointer;
     transition: background-color var(--motion-fast) var(--ease-soft);
 }
+.view-back:focus-visible {
+    /* Inset ring: hugs the 44px target instead of floating a box around it. */
+    outline-offset: calc(-1 * var(--focus-ring-width));
+    border-radius: var(--radius-md);
+}
 .view-back:hover {
     background: var(--color-surface-alt);
     color: var(--color-accent-text);
@@ -902,6 +851,50 @@ body {
 @media (pointer: coarse) {
     .empty-hint__keys {
         display: none;
+    }
+}
+
+/* Reset's undo: one quiet line at the top of the list area for a few seconds. */
+.reset-undo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-shrink: 0;
+    margin: var(--space-3) var(--space-4) 0;
+    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+    background: var(--color-surface-alt);
+    border-radius: var(--radius-pill);
+    font-size: 0.875rem;
+    color: var(--color-ink-muted);
+}
+.reset-undo[hidden] {
+    display: none;
+}
+.reset-undo__btn {
+    min-height: 36px;
+    padding: 0 var(--space-4);
+    font: inherit;
+    font-weight: var(--weight-medium);
+    color: var(--color-accent-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+}
+@media (hover: hover) {
+    .reset-undo__btn:hover {
+        background: var(--color-surface-alt);
+    }
+}
+@media (pointer: coarse) {
+    .reset-undo__btn {
+        min-height: var(--touch-target-min);
+    }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .reset-undo:not([hidden]) {
+        animation: fadeIn var(--motion-base) var(--ease-soft);
     }
 }
 
@@ -1149,6 +1142,17 @@ body {
     border-top: 1px solid var(--color-border);
 }
 
+/* Names the chip group, so Focused/Simplified read as views, not feeling words. */
+.footer-label {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: var(--weight-medium);
+    line-height: 1.2;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+}
+
 .view-toggles {
     display: flex;
     flex-wrap: wrap;
@@ -1312,8 +1316,21 @@ body {
 }
 
 /* CSS-only tooltip from data-tip. Appears above the button on hover/focus. */
-.hero-btn[data-tip]::after {
+/* Shared by icon buttons, view chips, Reset and the panel toggles, so every
+   control shows its name + shortcut on hover AND keyboard focus (native title
+   tooltips are slow and never show on focus). */
+.view-chip[data-tip] {
+    position: relative; /* anchor for the tooltip (the panel toggles are already positioned) */
+}
+.hero-btn[data-tip]::after,
+.view-chip[data-tip]::after,
+.panel-hide-btn[data-tip]::after,
+.panel-show-btn[data-tip]::after {
     content: attr(data-tip);
+    /* Visual only: aria-label / aria-keyshortcuts already carry the name and shortcut,
+       so screen readers must not fold this into the accessible name. */
+    content: attr(data-tip) / '';
+    z-index: 5;
     position: absolute;
     bottom: calc(100% + 8px);
     left: 50%;
@@ -1333,9 +1350,38 @@ body {
 }
 
 .hero-btn[data-tip]:hover::after,
-.hero-btn[data-tip]:focus-visible::after {
+.hero-btn[data-tip]:focus-visible::after,
+.view-chip[data-tip]:hover::after,
+.hero-toggle-input:focus-visible + .view-chip[data-tip]::after {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+}
+
+/* Panel toggles sit at the top edge: their tooltips drop below, aligned right. */
+.panel-hide-btn[data-tip]::after,
+.panel-show-btn[data-tip]::after {
+    top: calc(100% + 8px);
+    bottom: auto;
+    left: auto;
+    right: 0;
+    transform: translateY(-4px);
+}
+.panel-hide-btn[data-tip]:hover::after,
+.panel-hide-btn[data-tip]:focus-visible::after,
+.panel-show-btn[data-tip]:hover::after,
+.panel-show-btn[data-tip]:focus-visible::after {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Tooltips are for pointers and keyboards; touch has no hover and the label is
+   already visible on the chips. */
+@media (hover: none) {
+    .view-chip[data-tip]::after,
+    .panel-hide-btn[data-tip]::after,
+    .panel-show-btn[data-tip]::after {
+        display: none;
+    }
 }
 
 .refs-text {
@@ -1384,51 +1430,52 @@ body {
     margin-bottom: 0;
 }
 
-/* View-option rows: the ACTUAL footer icon + a short description + the keyboard
-   shortcut. Icon (left) tells you which button to press; kbd (right) is visually
-   distinct from the control name, so the two are no longer confused. */
-.help-actions {
-    list-style: none;
+/* Views as a short definition list: name, then one line of what it's for. */
+.help-defs {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-2) var(--space-3);
     margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-}
-
-.help-action {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-3);
     font-size: 0.95rem;
     line-height: 1.45;
+}
+.help-defs dt {
+    font-weight: var(--weight-strong);
+    color: var(--color-ink);
+}
+.help-defs dd {
+    margin: 0;
     color: var(--color-ink-muted);
 }
 
-.help-action__ic {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-    border-radius: var(--radius-md);
-    background: var(--color-surface-alt);
-    color: var(--color-accent-text);
+/* Shortcut tables: keycaps in a fixed column, what they do beside them. */
+.help-keys {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--color-ink-muted);
 }
-.help-action__ic .hero-ic {
-    width: 18px;
-    height: 18px;
+.help-keys th {
+    width: 1%;
+    padding: var(--space-1) var(--space-3) var(--space-1) 0;
+    text-align: left;
+    white-space: nowrap;
+    font-weight: normal;
+    vertical-align: top;
+}
+.help-keys td {
+    padding: var(--space-1) 0;
 }
 
-.help-action__text {
-    flex: 1;
-    min-width: 0;
-}
-
-.help-action__name {
-    font-weight: 700;
+.help-code {
+    padding: 0.05em 0.3em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85em;
     color: var(--color-ink);
+    background: var(--color-surface-alt);
+    border-radius: 4px;
+    white-space: nowrap;
 }
 
 /* Keyboard key — a raised keycap, clearly NOT a control lozenge. */
@@ -1481,11 +1528,40 @@ body {
         min-height: 36px;
     }
 
-    /* Short sheet: the Focused/Simplified chips sit right below, so the in-copy
-       suggestion would only be clipped. */
-    .empty-hint__more,
+    /* Short sheet: keep only the one line that says how the wheel works. */
     .empty-hint--aside {
         display: none;
+    }
+}
+
+/* Short landscape screens (phones on their side, small split windows). The wheel
+   is height-bound here, so panel width doesn't limit it; instead, trim the panel's
+   vertical chrome so the chosen-feelings list keeps room. Touch targets stay 44px.
+   (Small outer words are handled by the reading lens + its tip.) */
+@media (orientation: landscape) and (max-height: 500px) {
+    /* Header row is exactly one control tall so the title and hide button line up. */
+    .info-panel .view-head {
+        min-height: var(--touch-target-min);
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .panel-hide-btn {
+        top: 0;
+    }
+
+    .view-title {
+        font-size: 1.1rem;
+    }
+
+    .panel-empty {
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .panel-footer {
+        gap: var(--space-1);
+        padding-top: var(--space-2);
+        padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
     }
 }
 
@@ -1831,6 +1907,9 @@ svg.animating {
     .selected,
     .hero-btn,
     .hero-btn[data-tip]::after,
+    .view-chip[data-tip]::after,
+    .panel-hide-btn[data-tip]::after,
+    .panel-show-btn[data-tip]::after,
     .view-chip,
     .mobile-collapse-handle,
     .info-panel,

@@ -607,7 +607,7 @@ for (const vp of [
 }
 
 // One shared selection across views: Simplified only hides the outer ring.
-test('Simplified view keeps outer-ring choices chosen and says so; full view shows them again', async ({
+test('Simplified view keeps outer-ring choices chosen (still listed); full view shows them again', async ({
     page,
 }) => {
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
@@ -618,7 +618,7 @@ test('Simplified view keeps outer-ring choices chosen and says so; full view sho
     await expect(page.locator('.tertiary-wedge')).toHaveCount(0);
     await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(2);
     await expect(page.locator('.feeling-node.is-selected')).toHaveCount(3);
-    await expect(page.locator('#view-status')).toContainText('Still chosen but hidden: Cheeky.');
+    await expect(page.locator('.feeling-node.is-selected', { hasText: 'Cheeky' })).toBeVisible();
     await expect(page.locator('#sr-announcer')).toContainText(
         '1 chosen feeling is in the hidden outer ring and stays chosen.'
     );
@@ -628,7 +628,6 @@ test('Simplified view keeps outer-ring choices chosen and says so; full view sho
         'aria-pressed',
         'true'
     );
-    await expect(page.locator('#view-status')).toBeHidden();
 });
 
 // Drag vs tap: a drag that starts and ends on wedges rotates but never selects;
@@ -781,34 +780,13 @@ test('the reading lens shows when a key is pressed on a wedge focused by script'
     await expect(page.locator('#wheel-lens .wheel-lens__word')).toHaveText('Angry');
 });
 
-test('an easier view says so in words, with a one-tap way back to the full wheel', async ({
-    page,
-}) => {
-    const status = page.locator('#view-status');
-    await expect(status).toBeHidden();
+test('no status banner: views are shown by their pressed chips alone', async ({ page }) => {
     await page.locator('label[for="focused-mode-panel"]').click();
-    await expect(status).toBeVisible();
-    await expect(status).toContainText('Focused view');
     await page.locator('label[for="simplified-mode-panel"]').click();
-    await expect(status).toContainText('Focused + Simplified');
-
-    await page.locator('#view-status-reset').click();
-    await expect(page.locator('#focused-mode-panel')).not.toBeChecked();
-    await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
-    await expect(status).toBeHidden();
-    await expect(page.locator('.wedge[data-focused-rest]')).toHaveCount(0);
-    await expect(page.locator('.tertiary-wedge').first()).toBeAttached();
-    await expect(page.locator('#view-explore .view-title')).toBeFocused();
-});
-
-test('on a phone the status line counts hidden choices in its short form', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.waitForTimeout(200);
-    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
-    await page.locator('label[for="simplified-mode-panel"]').click();
-    await expect(page.locator('.view-status__short')).toHaveText(
-        'Simplified view on. 1 hidden choice.'
-    );
+    await expect(page.locator('#view-status')).toHaveCount(0);
+    await expect(page.locator('#focused-mode-panel')).toBeChecked();
+    await expect(page.locator('#simplified-mode-panel')).toBeChecked();
+    await expect(page.locator('.view-toggles')).toHaveAccessibleName('Views');
 });
 
 test('Reset clears the list at once (the wheel unwinds after)', async ({ page }) => {
@@ -860,7 +838,6 @@ test('?view=simplified starts in Simplified view, quietly', async ({ page }) => 
     await page.waitForSelector('#wheel-container svg .wedge');
     await expect(page.locator('#simplified-mode-panel')).toBeChecked();
     await expect(page.locator('.tertiary-wedge')).toHaveCount(0);
-    await expect(page.locator('#view-status')).toContainText('Simplified view');
     await expect(page.locator('#sr-announcer')).toHaveText(''); // no announcement on load
     expect(new URL(page.url()).search).toBe('?view=simplified');
 });
@@ -888,11 +865,101 @@ test('the address bar follows view changes, with no history entries', async ({ p
         .poll(() => new URL(page.url()).search)
         .toBe('?view=simplified,focused&panel=hidden');
     await page.locator('#panel-show-btn').click();
-    await page.locator('#view-status-reset').click();
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await page.locator('label[for="focused-mode-panel"]').click();
     await expect.poll(() => new URL(page.url()).search).toBe('');
     expect(await page.evaluate(() => history.length)).toBe(before);
 
     // Chosen feelings are not stored in the URL.
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     expect(new URL(page.url()).search).toBe('');
+});
+
+test('short landscape screens trim the panel header without shrinking touch targets', async ({
+    browser,
+}) => {
+    const ctx = await browser.newContext({
+        viewport: { width: 844, height: 390 },
+        hasTouch: true,
+        isMobile: true,
+    });
+    const page = await ctx.newPage();
+    await page.goto('/index.html');
+    await page.waitForSelector('#wheel-container svg .wedge');
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(300);
+    const r = await page.evaluate(() => {
+        const t = document.querySelector('#view-explore .view-title')!.getBoundingClientRect();
+        const h = document.getElementById('panel-hide-btn')!.getBoundingClientRect();
+        const sizes = [
+            ...document.querySelectorAll('.panel-footer button, .panel-footer label'),
+        ].map((e) => {
+            const b = e.getBoundingClientRect();
+            return Math.min(b.width, b.height);
+        });
+        return {
+            misalign: Math.abs(t.top + t.height / 2 - (h.top + h.height / 2)),
+            minTarget: Math.min(...sizes),
+        };
+    });
+    expect(r.misalign).toBeLessThanOrEqual(3);
+    expect(r.minTarget).toBeGreaterThanOrEqual(44);
+    await ctx.close();
+});
+
+test('after the mouse reads a word, the lens returns to the keyboard-focused feeling', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.waitForTimeout(400);
+    await page.locator('.core-wedge[data-emotion="Angry"]').focus();
+    await page.keyboard.press('ArrowRight');
+    const focused = (await page.evaluate(() =>
+        document.activeElement?.getAttribute('data-emotion')
+    ))!;
+    const word = page.locator('#wheel-lens .wheel-lens__word');
+    await expect(word).toHaveText(focused);
+
+    const box = (await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(word).toHaveText('Cheeky');
+    await page.mouse.move(2, 2); // off the wheel
+    await expect(page.locator('#wheel-lens')).toBeVisible();
+    await expect(word).toHaveText(focused);
+});
+
+// Reset is easy to hit mid-session: a brief, in-memory Undo brings the choices back.
+test('Undo after Reset restores every chosen feeling, including ones hidden by Simplified', async ({
+    page,
+}) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
+    await page.locator('label[for="simplified-mode-panel"]').click(); // Cheeky now hidden
+    await page.locator('#reset-btn-panel').click();
+    const undo = page.locator('#reset-undo');
+    await expect(undo).toBeVisible();
+    await expect(page.locator('.feeling-node')).toHaveCount(0);
+
+    await page.waitForTimeout(1200); // let the unwind finish
+    await page.locator('#reset-undo-btn').click();
+    await expect(undo).toBeHidden();
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(3);
+    await expect(page.locator('.feeling-node.is-selected', { hasText: 'Cheeky' })).toBeVisible();
+    await expect(page.locator('#sr-announcer')).toHaveText('Restored 3 chosen feelings.');
+
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect(page.locator('.tertiary-wedge[data-emotion="Cheeky"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    );
+});
+
+test('the Undo offer ends with a new choice', async ({ page }) => {
+    await page.locator('.core-wedge[data-emotion="Sad"]').click();
+    await page.locator('#reset-btn-panel').click();
+    await expect(page.locator('#reset-undo')).toBeVisible();
+    await page.waitForTimeout(1200);
+    await page.locator('.core-wedge[data-emotion="Angry"]').click();
+    await expect(page.locator('#reset-undo')).toBeHidden();
 });

@@ -38,7 +38,7 @@ A faithful, calm, structural tool, deliberately **not** a self-help or "insight"
 
 ## Brand Commitments
 
-- Calm, gentle and non-judgmental voice ("there are no wrong answers").
+- Calm, plain voice. The UI explains how to use the tool ("Select a word on the wheel to see its definition here"); it never coaches feelings. The therapist guides the conversation.
 - Credit to Geoffrey Roberts (wheel design) and feelingswheel.com (concept) stays in About.
 - Atkinson Hyperlegible typeface (chosen for low-vision legibility).
 

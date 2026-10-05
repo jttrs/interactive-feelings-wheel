@@ -236,6 +236,13 @@ test('the back button returns an in-panel view to explore and it owns focus', as
     await back.click();
     await expect(page.locator('#view-help')).toBeHidden();
     await expect(page.locator('#view-explore')).toBeVisible();
+    // Focus returns to the control that opened it, never <body>.
+    await expect(page.locator('#help-btn-panel')).toBeFocused();
+
+    await page.locator('#about-btn-panel').click();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#view-about')).toBeHidden();
+    await expect(page.locator('#about-btn-panel')).toBeFocused();
 });
 
 test('about opens in-panel (attribution not full-time) with the credits', async ({ page }) => {
@@ -413,4 +420,6 @@ test('the keyboard lens teaches the keys for the first few feelings, then gets q
 
 test('the empty state mentions that the wheel turns', async ({ page }) => {
     await expect(page.locator('#panel-instructions')).toContainText('Drag the wheel to turn it.');
+    await expect(page.locator('#panel-instructions')).toContainText('Try Guided view.');
+    await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
 });

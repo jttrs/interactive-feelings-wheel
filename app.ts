@@ -431,6 +431,11 @@ export class FeelingsWheelApp {
 
     showView(name: string): void {
         const target = this.views[name] || this.views.explore;
+        const previous = this.currentView;
+        const closing = previous ? this.views[previous] : null;
+        // Was focus inside the view we're about to hide (e.g. its Back button)?
+        const focusWasInClosing =
+            !!closing && closing !== target && closing.contains(document.activeElement);
 
         Object.entries(this.views).forEach(([key, el]) => {
             if (!el) return;
@@ -454,6 +459,14 @@ export class FeelingsWheelApp {
         if (name !== 'explore') {
             const back = target!.querySelector('[data-view-back]') as HTMLElement | null;
             if (back) back.focus();
+        } else if (previous && previous !== 'explore') {
+            // Closing Help/About/Support: return focus to the footer button that opened it
+            // (it was hidden with the view, so focus would otherwise fall to <body>) —
+            // unless the user has already moved on (e.g. chose a feeling on the wheel).
+            const active = document.activeElement;
+            if (focusWasInClosing || !active || active === document.body) {
+                document.querySelector<HTMLElement>(`.hero-btn[data-view="${previous}"]`)?.focus();
+            }
         }
     }
 

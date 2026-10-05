@@ -300,4 +300,46 @@ describe('renderFeelingsTree — DOM output', () => {
         // Nothing renders for an empty selection; no throw.
         expect(element.querySelectorAll('.feeling-family')).toHaveLength(0);
     });
+
+    it('keeps ids unique when the same word is selected under two parents', () => {
+        // Embarrassed, Overwhelmed and Inferior each appear under two parents in the data.
+        const allDefs = { ...opts, getDefinition: (e: string) => `Definition of ${e}.` };
+        const { element } = renderFeelingsTree({
+            selections: [
+                sel('tertiary', 'Embarrassed', 'Disapproving', 'Disgusted'),
+                sel('tertiary', 'Embarrassed', 'Hurt', 'Sad'),
+                sel('tertiary', 'Overwhelmed', 'Stressed', 'Bad'),
+                sel('tertiary', 'Overwhelmed', 'Anxious', 'Fearful'),
+                sel('tertiary', 'Inferior', 'Depressed', 'Sad'),
+                sel('tertiary', 'Inferior', 'Insecure', 'Fearful'),
+                sel('secondary', 'Let Down', 'Sad', 'Sad'),
+            ],
+            ...allDefs,
+        });
+        document.body.appendChild(element);
+        try {
+            const ids = [...element.querySelectorAll('[id]')].map((el) => el.id);
+            expect(ids.length).toBeGreaterThan(0);
+            expect(new Set(ids).size).toBe(ids.length);
+            for (const id of ids) expect(id).toMatch(/^[A-Za-z][A-Za-z0-9_-]*$/);
+
+            const toggles = [...element.querySelectorAll('.feeling-name--toggle')];
+            for (const t of toggles) {
+                const target = document.getElementById(t.getAttribute('aria-controls')!);
+                expect(target).not.toBeNull();
+                expect(target!.closest('.feeling-node')).toBe(t.closest('.feeling-node'));
+            }
+
+            // Toggling one Embarrassed leaves the other untouched.
+            const embarrassed = [...element.querySelectorAll('.feeling-node--tertiary')].filter(
+                (n) => n.getAttribute('data-emotion') === 'Embarrassed'
+            );
+            expect(embarrassed).toHaveLength(2);
+            (embarrassed[0].querySelector('.feeling-name--toggle') as HTMLButtonElement).click();
+            expect(embarrassed[0].classList.contains('is-collapsed')).toBe(true);
+            expect(embarrassed[1].classList.contains('is-collapsed')).toBe(false);
+        } finally {
+            element.remove();
+        }
+    });
 });

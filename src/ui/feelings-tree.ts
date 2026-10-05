@@ -131,6 +131,25 @@ export function buildForest(
     return forest;
 }
 
+const toIdSegment = (s: string | null | undefined): string =>
+    (s || '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
+
+// The same word can sit under two parents (e.g. Embarrassed under Disapproving and Hurt),
+// so the id is keyed on the node's full structural path, not just level + word. Structural
+// (not wedgeId) because context nodes carry no wedgeId and the id must stay stable.
+export function definitionId(family: string, node: ForestNode): string {
+    return [
+        'def',
+        family,
+        node.level,
+        node.level === 'tertiary' ? node.parentEmotion : null,
+        node.emotion,
+    ]
+        .filter((part) => part !== null)
+        .map(toIdSegment)
+        .join('-');
+}
+
 // Render the whole tree into a fresh element.
 //
 // opts:
@@ -188,7 +207,7 @@ export function renderFeelingsTree({
                 const collapsed = !node.terminal;
                 if (collapsed) li.classList.add('is-collapsed');
 
-                const defId = `def-${node.level}-${(node.emotion || 'x').replace(/\s+/g, '-')}`;
+                const defId = definitionId(group.family, node);
 
                 const toggle = document.createElement('button');
                 toggle.type = 'button';

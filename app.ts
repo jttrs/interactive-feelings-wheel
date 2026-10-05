@@ -284,6 +284,15 @@ export class FeelingsWheelApp {
             this.togglePanelMinimization();
         });
 
+        // Skip link: jumps past the wheel to the panel, opening it first if tucked away.
+        document.querySelector('.skip-link')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (document.getElementById('info-panel')?.classList.contains('minimized')) {
+                this.togglePanelMinimization();
+            }
+            document.getElementById('panel-content')?.focus();
+        });
+
         // Setup panel controls (moved from floating controls)
         this.setupPanelControls();
 

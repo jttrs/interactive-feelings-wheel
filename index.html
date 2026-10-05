@@ -10,8 +10,10 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <a class="skip-link" href="#panel-content">Skip to your feelings</a>
     <div class="container">
         <main class="main-layout">
+            <h1 class="sr-only">Feelings Wheel</h1>
             <!-- Left Column: Wheel Area (70%) -->
             <section class="wheel-section" aria-label="Feelings wheel">
                 <div class="wheel-container">
@@ -32,7 +34,7 @@
                     <span class="mobile-collapse-arrow" aria-hidden="true">▼</span>
                 </button>
 
-                <div class="panel-content" id="panel-content">
+                <div class="panel-content" id="panel-content" tabindex="-1">
                     <!-- EXPLORE view (default): same tabbed head + body as the other
                          views (no back button — this is the home tab). -->
                     <div class="panel-view panel-view--explore" id="view-explore" role="region"

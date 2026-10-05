@@ -230,3 +230,28 @@ test('the empty-state invitation shows when empty and hides once a tile exists',
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(empty).toBeHidden();
 });
+
+test('page has an h1 and a skip link that lands in the (re-opened) panel', async ({ page }) => {
+    await expect(page.locator('h1')).toHaveText('Feelings Wheel');
+    await page.locator('#panel-minimize-tab').click();
+    await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
+
+    const skip = page.locator('.skip-link');
+    await skip.focus();
+    await expect(skip).toBeInViewport();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
+    await expect(page.locator('#panel-content')).toBeFocused();
+});
+
+test('the skip link is the first tab stop on a fresh page', async ({ page }) => {
+    await page.reload();
+    await page.waitForSelector('#wheel-container svg .wedge');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('.skip-link')).toBeFocused();
+});
+
+test('desktop collapse tab is a comfortable target (>= 32px wide)', async ({ page }) => {
+    const box = (await page.locator('#panel-minimize-tab').boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(32);
+});

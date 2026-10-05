@@ -172,14 +172,9 @@ export class FeelingsWheelApp {
         const fullscreenButton = document.getElementById('fullscreen-btn-panel');
 
         if (fullscreenButton) {
-            fullscreenButton.setAttribute('aria-pressed', String(this.isCurrentlyFullscreen()));
-            if (this.isCurrentlyFullscreen()) {
-                fullscreenButton.classList.add('active');
-                fullscreenButton.title = 'Exit fullscreen (ESC)';
-            } else {
-                fullscreenButton.classList.remove('active');
-                fullscreenButton.title = 'Enter fullscreen (F11)';
-            }
+            const on = this.isCurrentlyFullscreen();
+            fullscreenButton.setAttribute('aria-pressed', String(on));
+            fullscreenButton.title = on ? 'Exit fullscreen (Esc)' : 'Enter fullscreen (F11)';
         }
     }
 
@@ -584,12 +579,49 @@ export class FeelingsWheelApp {
         const panel = document.querySelector('.info-panel')!;
         const mainLayout = document.querySelector('.main-layout')!;
 
+        const wheelBox = document.getElementById('wheel-container');
+        const before = this.wheelRect();
+
         panel.classList.toggle('minimized');
         mainLayout.classList.toggle('panel-minimized'); // For wheel centering
+        this.syncSheetHeight(); // mobile: reserve the new sheet height before measuring
+
+        // Glide the wheel to its new centre/size with a transform (FLIP) rather than
+        // animating layout: the box snaps to its final layout, then we play the
+        // difference back from where it was.
+        const after = this.wheelRect();
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (wheelBox && before && after && after.width > 0 && !reduce) {
+            const c = wheelBox.getBoundingClientRect();
+            const k = before.width / after.width;
+            const tx = before.left - c.left - k * (after.left - c.left);
+            const ty = before.top - c.top - k * (after.top - c.top);
+            if (Math.abs(tx) > 0.5 || Math.abs(ty) > 0.5 || Math.abs(k - 1) > 0.005) {
+                wheelBox.style.transition = 'none';
+                wheelBox.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+                requestAnimationFrame(() => {
+                    wheelBox.style.transition = 'transform var(--motion-panel) var(--ease-soft)';
+                    wheelBox.style.transform = '';
+                });
+                wheelBox.addEventListener(
+                    'transitionend',
+                    () => {
+                        wheelBox.style.transition = '';
+                    },
+                    { once: true }
+                );
+            }
+        }
 
         // Update arrow direction
         this.updateArrowDirection();
         // Wheel re-fit happens via the layout observer once the panel settles.
+    }
+
+    // On-screen box of the drawn wheel (the circle, not its letterboxed <svg>).
+    wheelRect(): DOMRect | null {
+        const group = document.querySelector('#wheel-container .wheel-main-group');
+        return group ? group.getBoundingClientRect() : null;
     }
 
     // Publish the panel's rendered height as --sheet-h. Only the portrait bottom-sheet

@@ -449,8 +449,13 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
         computeAvailableWheelSize(): number {
             // The wheel section's CSS already reserves the mobile bottom sheet's live
             // height (--sheet-h), so the container rect IS the visible wheel area.
+            // Layout size, not getBoundingClientRect: the panel FLIP glide transforms
+            // the container, and a mid-glide resize must not read the scaled box.
+            const el = this.container as HTMLElement;
             const rect = this.container.getBoundingClientRect();
-            return Math.max(150, Math.min(rect.width, rect.height));
+            const width = el.clientWidth || rect.width;
+            const height = el.clientHeight || rect.height;
+            return Math.max(150, Math.min(width, height));
         }
 
         generate(): void {

@@ -202,13 +202,18 @@ export function renderFeelingsTree({
                 });
                 row.appendChild(toggle);
 
+                // The wrapper is a one-row grid whose track animates 1fr <-> 0fr, so the
+                // reveal never animates a layout property like max-height.
+                const wrap = document.createElement('div');
+                wrap.className = 'feeling-def-wrap';
+                wrap.id = defId;
                 const p = document.createElement('p');
                 p.className = 'feeling-def';
-                p.id = defId;
                 p.textContent = def;
+                wrap.appendChild(p);
                 // Row first, then the definition it controls.
                 li.appendChild(row);
-                li.appendChild(p);
+                li.appendChild(wrap);
             } else {
                 // No definition to reveal — a plain, non-interactive label.
                 const name = document.createElement('span');

@@ -628,3 +628,67 @@ test('Simplified view keeps outer-ring choices chosen and says so; full view sho
     );
     await expect(page.locator('.hidden-ring-note')).toHaveCount(0);
 });
+
+// Drag vs tap: a drag that starts and ends on wedges rotates but never selects;
+// a plain click still selects; touch drags rotate (pointer events, touch-action: none).
+test('dragging across wedges rotates without selecting; a click still selects', async ({
+    page,
+}) => {
+    const box = (await page.locator('.core-wedge[data-emotion="Happy"]').boundingBox())!;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    const rot0 = await readRotation(page);
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 40, y + 60, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(100);
+    await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(0);
+    const rot1 = await readRotation(page);
+    expect(rot1).not.toBe(rot0);
+
+    // A tiny wobble under the threshold is still a click.
+    const box2 = (await page.locator('.core-wedge[data-emotion="Sad"]').boundingBox())!;
+    const cx = box2.x + box2.width / 2;
+    const cy = box2.y + box2.height / 2;
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + 2, cy + 1);
+    await page.mouse.up();
+    await expect(page.locator('.core-wedge[data-emotion="Sad"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    );
+});
+
+test('a touch drag rotates the wheel', async ({ page }) => {
+    const before = await readRotation(page);
+    await page.evaluate(() => {
+        const svg = document.querySelector('#wheel-container svg')!;
+        const r = svg.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const opts = (x: number, y: number) => ({
+            bubbles: true,
+            isPrimary: true,
+            pointerId: 7,
+            pointerType: 'touch',
+            button: 0,
+            clientX: x,
+            clientY: y,
+        });
+        svg.dispatchEvent(new PointerEvent('pointerdown', opts(cx + 150, cy)));
+        for (let i = 1; i <= 10; i++) {
+            const a = (i * 4 * Math.PI) / 180;
+            document.dispatchEvent(
+                new PointerEvent(
+                    'pointermove',
+                    opts(cx + 150 * Math.cos(a), cy + 150 * Math.sin(a))
+                )
+            );
+        }
+        document.dispatchEvent(new PointerEvent('pointerup', opts(cx, cy + 150)));
+    });
+    const after = await readRotation(page);
+    expect(after).not.toBe(before);
+});

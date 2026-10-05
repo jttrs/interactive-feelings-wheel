@@ -28,6 +28,9 @@ export class FeelingsWheelGenerator extends InteractionMixin(
         // Rotation state
         this.currentRotation = 0;
         this.isDragging = false;
+        this.dragMoved = false;
+        this.dragStart = null;
+        this.suppressClick = false;
         this.lastMouseAngle = 0;
         this.svg = null;
         this.wheelGroup = null;

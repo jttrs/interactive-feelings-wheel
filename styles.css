@@ -1470,6 +1470,11 @@ svg text {
 
 /* Guided view (opt-in): rings the user hasn't reached rest in the background —
    still visible as the wheel's map, but quiet and inert until a choice opens them. */
+/* Touch drags rotate the wheel (pointer events) instead of panning/zooming the page. */
+#wheel-container svg {
+    touch-action: none;
+}
+
 #wheel-container svg text {
     transition: opacity var(--motion-base) var(--ease-soft);
 }

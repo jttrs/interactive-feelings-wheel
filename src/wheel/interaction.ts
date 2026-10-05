@@ -135,6 +135,9 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         declare container: WheelInstance['container'];
         declare containerSize: WheelInstance['containerSize'];
         declare isDragging: WheelInstance['isDragging'];
+        declare dragMoved: WheelInstance['dragMoved'];
+        declare dragStart: WheelInstance['dragStart'];
+        declare suppressClick: WheelInstance['suppressClick'];
         declare isAnimating: WheelInstance['isAnimating'];
         declare scrollVelocity: WheelInstance['scrollVelocity'];
         declare momentumRafId: WheelInstance['momentumRafId'];
@@ -286,14 +289,18 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             // always non-null here even though the shared field type is nullable.
             const svg = this.svg as SVGSVGElement;
 
-            // Mouse down to begin a drag-rotation.
-            svg.addEventListener('mousedown', (e: MouseEvent) => {
-                if (this.isAnimating) return;
+            // Pointer down (mouse, touch or pen) arms a drag-rotation. Rotation only starts
+            // once the pointer travels past a small threshold, so a tap still selects and a
+            // drag never does (see the click handler).
+            svg.addEventListener('pointerdown', (e: PointerEvent) => {
+                if (this.isAnimating || !e.isPrimary || e.button !== 0) return;
 
                 // Grabbing the wheel arrests any in-flight scroll glide.
                 this.stopMomentum();
 
                 this.isDragging = true;
+                this.dragMoved = false;
+                this.dragStart = { x: e.clientX, y: e.clientY, touch: e.pointerType !== 'mouse' };
                 svg.style.cursor = 'grabbing';
 
                 const rect = svg.getBoundingClientRect();
@@ -322,6 +329,11 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             // (e.g. the reset unwind) — a mid-reset click would otherwise select a wedge
             // the in-flight reset won't clean up, leaving it stuck-selected.
             svg.addEventListener('click', (e: MouseEvent) => {
+                // The click that ends a real drag is not a choice.
+                if (this.suppressClick) {
+                    this.suppressClick = false;
+                    return;
+                }
                 if (this.isDragging || this.isAnimating) return;
 
                 const target = e.target as Element;
@@ -370,6 +382,17 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 const P = (this.constructor as unknown as { ScrollPhysics: ScrollPhysics })
                     .ScrollPhysics;
 
+                // Below the threshold this is still a tap/click: don't rotate yet. Fingers
+                // jitter more than mice, so touch gets a wider allowance.
+                if (!this.dragMoved && this.dragStart) {
+                    const dist = Math.hypot(
+                        e.clientX - this.dragStart.x,
+                        e.clientY - this.dragStart.y
+                    );
+                    if (dist < (this.dragStart.touch ? 10 : 5)) return;
+                    this.dragMoved = true;
+                }
+
                 const rect = this.svg.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left - rect.width / 2;
                 const mouseY = e.clientY - rect.top - rect.height / 2;
@@ -395,9 +418,17 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 this.updateRotation();
             };
             this._onMouseUp = () => {
-                if (!this.svg) return;
+                if (!this.svg || !this.isDragging) return;
                 this.isDragging = false;
                 this.svg.style.cursor = 'grab';
+                // A real drag's trailing click must not select; clear the flag after this
+                // task in case the release landed off the wheel and no click follows.
+                if (this.dragMoved) {
+                    this.suppressClick = true;
+                    setTimeout(() => (this.suppressClick = false), 0);
+                }
+                this.dragMoved = false;
+                this.dragStart = null;
 
                 // Release into a decaying glide, matching a scroll flick. A slow/still release
                 // (velocity below the settle threshold) just stops. mousedown already called
@@ -451,8 +482,9 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 this.heldRotationDir = 0;
             };
 
-            document.addEventListener('mousemove', this._onMouseMove);
-            document.addEventListener('mouseup', this._onMouseUp);
+            document.addEventListener('pointermove', this._onMouseMove);
+            document.addEventListener('pointerup', this._onMouseUp);
+            document.addEventListener('pointercancel', this._onMouseUp);
             document.addEventListener('keydown', this._onKeyDown);
             document.addEventListener('keyup', this._onKeyUp);
             window.addEventListener('resize', this._onResize);

@@ -160,6 +160,11 @@ export interface WheelInstance {
     // Rotation + pointer state
     currentRotation: number;
     isDragging: boolean;
+    // Drag-vs-tap: rotation starts only past a movement threshold; a real drag's
+    // trailing click is suppressed so it can't select a wedge.
+    dragMoved: boolean;
+    dragStart: { x: number; y: number; touch: boolean } | null;
+    suppressClick: boolean;
     lastMouseAngle: number;
     svg: SVGSVGElement | null;
     wheelGroup: SVGGElement | null;

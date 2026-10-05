@@ -484,7 +484,7 @@ for (const [width, height] of [
     });
 }
 
-// Guided view is OPT-IN: the full wheel is the default (therapists use the whole
+// Focused view (internally "guided") is OPT-IN: the full wheel is the default (therapists use the whole
 // spectrum). When on, it spotlights the path without changing geometry or selection.
 test('guided view is off by default: the full wheel is fully interactive', async ({ page }) => {
     await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
@@ -519,7 +519,7 @@ test('guided view opens rings along the chosen path and toggles off losslessly',
     );
 
     // G toggles it off (even with focus left on the checkbox): full wheel back, selection kept.
-    await page.keyboard.press('g');
+    await page.keyboard.press('f');
     await expect(rest).toHaveCount(0);
     await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(2);
 });
@@ -542,7 +542,7 @@ test('keyboard toggling keeps focus on the wheel, even when guided view rests th
     await expect(happy).toBeFocused();
 });
 
-// Guided view hint: a calm on-wheel caption that explains the dimmed rings, then
+// Focused view hint: a calm on-wheel caption that explains the dimmed rings, then
 // steps aside once the user is moving through them.
 test('guided hint: hidden by default, walks the first two steps, returns on reset', async ({
     page,
@@ -776,7 +776,7 @@ test('the reading lens shows when a key is pressed on a wedge focused by script'
 }) => {
     await page.locator('label[for="guided-mode-panel"]').click();
     await page.locator('.core-wedge[data-emotion="Angry"]').focus();
-    await page.keyboard.press('ArrowDown'); // can't move in Guided yet — still a keyboard user
+    await page.keyboard.press('ArrowDown'); // can't move in Focused yet — still a keyboard user
     await expect(page.locator('.core-wedge[data-emotion="Angry"]')).toBeFocused();
     await expect(page.locator('#wheel-lens .wheel-lens__word')).toHaveText('Angry');
 });
@@ -788,9 +788,9 @@ test('an easier view says so in words, with a one-tap way back to the full wheel
     await expect(status).toBeHidden();
     await page.locator('label[for="guided-mode-panel"]').click();
     await expect(status).toBeVisible();
-    await expect(status).toContainText('Guided view');
+    await expect(status).toContainText('Focused view');
     await page.locator('label[for="simplified-mode-panel"]').click();
-    await expect(status).toContainText('Guided + Simplified');
+    await expect(status).toContainText('Focused + Simplified');
 
     await page.locator('#view-status-reset').click();
     await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
@@ -843,15 +843,12 @@ test('on a short phone the sheet peeks so the wheel keeps most of the height', a
     expect(sheet.height).toBeLessThanOrEqual(240);
 });
 
-test('the phone tip names Simplified and switches only when that word is pressed', async ({
-    page,
-}) => {
+test('the phone tip teaches the reading lens only — it never pitches a view', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(400);
     const tip = page.locator('#screen-nudge');
-    await expect(tip).toContainText('or try Simplified');
+    await expect(tip).toContainText('to read it');
+    await expect(tip).not.toContainText('Simplified');
+    await expect(tip).not.toContainText('Focused');
     await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
-    await tip.locator('.inline-action').click();
-    await expect(page.locator('#simplified-mode-panel')).toBeChecked();
-    await expect(tip).toBeHidden(); // done its job
 });

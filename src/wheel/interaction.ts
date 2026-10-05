@@ -212,6 +212,40 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             }
         }
 
+        // Re-focus the same feeling after a rebuild. If it no longer exists (an outer-ring
+        // word while Simplified hides that ring) or is resting in Focused view, fall back
+        // to its nearest reachable ancestor so keyboard users keep their place.
+        restoreFocusAfterRegenerate(
+            wedgeId: string,
+            meta?: { level: Level; emotion: string; parent: string | null; family: string }
+        ): void {
+            const reachable = this.getFocusableWedges();
+            const byId = (id: string | null) =>
+                id ? reachable.find((w) => w.getAttribute('data-wedge-id') === id) : undefined;
+            let target = byId(wedgeId);
+            if (!target) {
+                const level = meta?.level;
+                const parent = meta?.parent ?? null;
+                const family = meta?.family;
+                if (level === 'tertiary' && parent) {
+                    target = reachable.find(
+                        (w) =>
+                            w.classList.contains('secondary-wedge') &&
+                            w.getAttribute('data-emotion') === parent
+                    );
+                }
+                target ??= reachable.find(
+                    (w) =>
+                        w.classList.contains('core-wedge') &&
+                        w.getAttribute('data-emotion') === (family ?? parent)
+                );
+                target ??= reachable[0];
+            }
+            if (!target) return;
+            reachable.forEach((w) => w.setAttribute('tabindex', w === target ? '0' : '-1'));
+            (target as SVGElement).focus();
+        }
+
         // After a keyboard toggle, put focus back: selection re-layers the wedge (which
         // blurs it), and in guided view a just-deselected wedge may have gone to rest —
         // then focus falls back to its family's core so the user isn't dropped to <body>.
@@ -237,6 +271,18 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             // A momentum loop from the previous SVG would write to stale groups.
             this.stopMomentum();
 
+            // The <svg> is rebuilt, so a focused wedge would vanish and drop keyboard focus
+            // to <body>. Remember it and land back on the same feeling afterwards.
+            const active = document.activeElement;
+            const focusedId =
+                active instanceof Element &&
+                this.container.contains(active) &&
+                active.classList.contains('wedge')
+                    ? active.getAttribute('data-wedge-id')
+                    : null;
+            // Captured now: the registry is rebuilt (and may lack this id) after generate().
+            const focusedMeta = focusedId ? this.wedgeRegistry.get(focusedId) : undefined;
+
             // Clear existing wheel
             this.textElements = [];
 
@@ -251,6 +297,8 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             // Apply current state to the new wheel
             this.updateRotation();
             this.applySelectedWedges();
+
+            if (focusedId) this.restoreFocusAfterRegenerate(focusedId, focusedMeta);
 
             // REMOVED REDUNDANT CALL: generate() already handles all responsive scaling
             // this.updateAllResponsiveScaling(); // Not needed - generate() does this

@@ -101,7 +101,7 @@ test.describe('small-screen tip', () => {
         await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
         await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
         await expect(page.locator('#wheel-container svg .tertiary-wedge').first()).toBeAttached();
-        await expect(page.locator('#sr-announcer')).toContainText('Simplified or Guided');
+        await expect(page.locator('#sr-announcer')).toContainText('Press and hold any word');
     });
 
     test('is hidden on a desktop wheel', async ({ page }) => {

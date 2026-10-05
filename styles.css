@@ -876,25 +876,6 @@ body {
     color: var(--color-ink-faint);
 }
 
-/* A suggestion you can act on in place: reads as part of the sentence, behaves as a
-   button (toggles the real view chip). */
-.inline-action {
-    padding: 0;
-    font: inherit;
-    font-weight: var(--weight-medium);
-    color: var(--color-accent-text);
-    background: none;
-    border: none;
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-    cursor: pointer;
-}
-
-/* Once a view is on, the status line takes over — no need to suggest it again. */
-.panel-view--explore:has(#view-status:not([hidden])) .empty-hint--aside {
-    display: none;
-}
-
 /* The bottom sheet is short: keep the invitation compact so it never crowds the footer. */
 @media (max-width: 767px) and (orientation: portrait) {
     .panel-empty {
@@ -1173,8 +1154,7 @@ body {
     }
 }
 
-.hero-toggle-input:checked + .view-chip,
-.view-chip[aria-pressed='true'] {
+.hero-toggle-input:checked + .view-chip {
     background: var(--color-accent);
     border-color: var(--color-accent);
     color: var(--color-on-accent);
@@ -1238,6 +1218,12 @@ body {
 
 .hero-btn:active {
     background: var(--color-border);
+}
+
+/* Toggle-state icon buttons (Fullscreen): filled while on. */
+.hero-btn[aria-pressed='true'] {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
 }
 
 .hero-btn--labelled {

@@ -156,7 +156,7 @@ test('Page Down / ] jump to the next family in the same ring; Home/End to ring e
 });
 
 test('guided view: navigation skips rested wedges and explains closed rings', async ({ page }) => {
-    await page.keyboard.press('g');
+    await page.keyboard.press('f');
     await page.locator('.core-wedge[data-emotion="Happy"]').focus();
     await page.keyboard.press('ArrowDown');
     expect(await focusedId(page)).toBe('core-Happy');
@@ -196,7 +196,7 @@ test('control buttons have accessible names', async ({ page }) => {
     await expect(page.locator('#reset-btn-panel')).toHaveAttribute('aria-label', 'Reset the wheel');
     await expect(page.locator('#fullscreen-btn-panel')).toHaveAccessibleName('Fullscreen');
     await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('#guided-mode-panel')).toHaveAccessibleName('Guided');
+    await expect(page.locator('#guided-mode-panel')).toHaveAccessibleName('Focused');
     await expect(page.locator('#simplified-mode-panel')).toHaveAccessibleName('Simplified');
     await expect(page.locator('#help-btn-panel')).toHaveAttribute(
         'aria-label',
@@ -398,7 +398,7 @@ test('on mobile, collapsing from inside the sheet moves focus to the sheet handl
 });
 
 test('shortcuts are exposed on their controls', async ({ page }) => {
-    await expect(page.locator('#guided-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'G');
+    await expect(page.locator('#guided-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'F');
     await expect(page.locator('#simplified-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'S');
     await expect(page.locator('#reset-btn-panel')).toHaveAttribute('aria-keyshortcuts', 'R');
     await expect(page.locator('#panel-minimize-tab')).toHaveAttribute('aria-keyshortcuts', 'P');
@@ -426,14 +426,38 @@ test('the keyboard lens teaches the keys for the first few feelings, then gets q
     await expect(keys).toHaveText('Press ? for keys');
 });
 
-test('the empty state mentions that the wheel turns', async ({ page }) => {
-    await expect(page.locator('#panel-instructions')).toContainText('Drag the wheel to turn it.');
-    await expect(page.locator('#panel-instructions')).toContainText('Too much at once?');
-    await expect(page.locator('#panel-instructions')).toContainText('Tab to the wheel');
-    await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+test('the empty state says how to turn and reach the wheel, and never pitches a view', async ({
+    page,
+}) => {
+    const empty = page.locator('#panel-instructions');
+    await expect(empty).toContainText('Drag the wheel to turn it.');
+    await expect(empty).toContainText('Tab to the wheel');
+    // Views are the therapist's call (Simplified = younger clients), not a client prompt.
+    await expect(empty).not.toContainText('Focused');
+    await expect(empty).not.toContainText('Simplified');
+    await expect(empty.locator('button')).toHaveCount(0);
+});
 
-    // The suggestion is an action — but only when pressed.
-    await page.locator('.inline-action[data-toggle="guided-mode-panel"]').click();
-    await expect(page.locator('#guided-mode-panel')).toBeChecked();
-    await expect(page.locator('.empty-hint--aside')).toBeHidden(); // status line takes over
+test('switching views or hiding the panel by shortcut keeps keyboard focus on the wheel', async ({
+    page,
+}) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').focus();
+    await page.keyboard.press('ArrowDown'); // a secondary under Happy
+    await page.keyboard.press('ArrowDown'); // an outer-ring word
+    const outer = await page.evaluate(() => document.activeElement?.getAttribute('data-emotion'));
+    expect(outer).toBeTruthy();
+
+    await page.keyboard.press('s'); // Simplified rebuilds the wheel and hides that ring
+    const afterS = await page.evaluate(() => ({
+        cls: document.activeElement?.getAttribute('class') ?? '',
+        tag: document.activeElement?.tagName,
+    }));
+    expect(afterS.cls).toContain('secondary-wedge'); // its parent, not <body>
+
+    await page.keyboard.press('s'); // back to the full wheel
+    await expect(page.locator('.wedge:focus')).toHaveCount(1);
+
+    await page.keyboard.press('p'); // hide the panel: the wheel resizes and rebuilds
+    await page.waitForTimeout(500);
+    await expect(page.locator('.wedge:focus')).toHaveCount(1);
 });

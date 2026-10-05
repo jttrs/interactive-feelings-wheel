@@ -135,9 +135,9 @@ export class FeelingsWheelApp {
             } else {
                 await this.requestFullscreen();
             }
-        } catch (error) {
-            // Fullscreen operation failed - handled gracefully
-            // Optionally show user feedback here
+        } catch {
+            // Fullscreen can be refused (iframe, user gesture, platform); the button's
+            // aria-pressed stays truthful because it's driven by fullscreenchange.
         }
     }
 

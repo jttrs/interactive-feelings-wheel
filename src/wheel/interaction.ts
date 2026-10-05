@@ -606,7 +606,6 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             const wedge = event.target as SVGElement;
             const emotion = wedge.getAttribute('data-emotion') as string;
             const level = wedge.getAttribute('data-level') as Level;
-            const parent = wedge.getAttribute('data-parent');
 
             // CRITICAL FIX: Use the actual wedge ID from the element, don't recreate it!
             // This ensures consistency between generation and click handling

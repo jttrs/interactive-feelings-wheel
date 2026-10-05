@@ -94,6 +94,43 @@ test('clicking a feeling word toggles its definition open and closed', async ({ 
     await expect(coreWord).toHaveAttribute('aria-expanded', 'false');
 });
 
+test('a word under two parents gets independent definitions with unique ids', async ({ page }) => {
+    // Embarrassed sits under both Disapproving (Disgusted) and Hurt (Sad).
+    const embarrassed = (parent: string) =>
+        page.locator(
+            `.tertiary-wedge[data-emotion="Embarrassed"][data-parent="${parent}"]:not(.shadow-wedge)`
+        );
+    await embarrassed('Disapproving').click();
+    await embarrassed('Hurt').click();
+    await expect(page.locator('.wedge.selected:not(.shadow-wedge)')).toHaveCount(2);
+
+    const nodes = page.locator('.feeling-node--tertiary[data-emotion="Embarrassed"]');
+    await expect(nodes).toHaveCount(2);
+
+    const ids = await page.$$eval('#emotion-tiles [id]', (els) => els.map((e) => e.id));
+    expect(new Set(ids).size).toBe(ids.length);
+
+    const [a, b] = [nodes.nth(0), nodes.nth(1)];
+    const toggleA = a.locator('.feeling-name--toggle');
+    const toggleB = b.locator('.feeling-name--toggle');
+    const ctrlA = await toggleA.getAttribute('aria-controls');
+    const ctrlB = await toggleB.getAttribute('aria-controls');
+    expect(ctrlA).not.toBe(ctrlB);
+    await expect(a.locator('.feeling-def-wrap')).toHaveAttribute('id', ctrlA!);
+    await expect(b.locator('.feeling-def-wrap')).toHaveAttribute('id', ctrlB!);
+
+    await toggleA.click();
+    await expect(toggleA).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggleB).toHaveAttribute('aria-expanded', 'true');
+    await expect(b.locator('.feeling-def')).toBeVisible();
+
+    await toggleB.click();
+    await expect(toggleB).toHaveAttribute('aria-expanded', 'false');
+    await toggleA.click();
+    await expect(toggleA).toHaveAttribute('aria-expanded', 'true');
+    await expect(toggleB).toHaveAttribute('aria-expanded', 'false');
+});
+
 test('separate families each render their own stem in wheel order', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await page.locator('.core-wedge[data-emotion="Angry"]').click();

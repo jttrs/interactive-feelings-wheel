@@ -1480,6 +1480,12 @@ body {
 .view-body--help {
     gap: var(--space-6);
 }
+/* The Help body is focusable so keyboard users can scroll it; the ring goes
+   inward so the scroll container doesn't clip it. */
+.view-body--help:focus-visible {
+    outline-offset: calc(-1 * var(--focus-ring-width));
+    border-radius: 0;
+}
 .help-part {
     display: flex;
     flex-direction: column;

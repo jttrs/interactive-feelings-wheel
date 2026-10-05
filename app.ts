@@ -5,6 +5,7 @@ import { FEELINGS_DATA } from './feelings-data.ts';
 import { renderFeelingsTree } from './src/ui/feelings-tree.ts';
 import { createGuidedHint } from './src/ui/guided-hint.ts';
 import { initSmallScreenNudge } from './src/ui/small-screen-nudge.ts';
+import { createWheelLens } from './src/ui/wheel-lens.ts';
 import type { Selection, EmotionSelectedDetail } from './src/types.ts';
 
 export class FeelingsWheelApp {
@@ -41,6 +42,9 @@ export class FeelingsWheelApp {
         this.setupInformationPanel();
 
         // Cramped full wheel → gently suggest Simplified/Guided (never switches by itself).
+        // Reading lens: large copy of the pressed / hovered-small / keyboard-focused word.
+        createWheelLens(document.getElementById('wheel-lens')!, wheelContainer);
+
         initSmallScreenNudge({
             container: wheelContainer,
             nudge: document.getElementById('screen-nudge')!,

@@ -21,6 +21,12 @@
                 <section class="wheel-section" aria-label="Feelings wheel">
                     <div class="wheel-container">
                         <div id="wheel-container"></div>
+                        <!-- Reading lens: a large copy of the pressed/focused wedge's word
+                             (visual only; wedges carry their own accessible names) -->
+                        <div class="wheel-lens" id="wheel-lens" aria-hidden="true" hidden>
+                            <span class="wheel-lens__path"></span>
+                            <span class="wheel-lens__word"></span>
+                        </div>
                     </div>
                     <!-- Guided view caption (visual only; the live region speaks for screen readers) -->
                     <p class="guided-hint" id="guided-hint" aria-hidden="true" hidden></p>
@@ -133,6 +139,10 @@
                                     <p class="help-line">
                                         In your list, tap a feeling’s name to show or hide its
                                         meaning.
+                                    </p>
+                                    <p class="help-line">
+                                        Words too small to read? Press and hold one to see it larger
+                                        — slide away to cancel.
                                     </p>
                                 </section>
 

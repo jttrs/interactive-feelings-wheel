@@ -17,6 +17,7 @@ An interactive web application displaying a therapeutic feelings wheel based on 
 - **Guided View** (opt-in, `G`): Starts with the core feelings and opens each ring as you choose — the full wheel stays the default
 - **Simplified View** (`S`): Hides the outer ring for a calmer wheel
 - **Fullscreen** (`F11`), **Reset** (`R`), **Hide panel** (`P`)
+- **Reading Lens**: Press and hold a word (or focus it with the keyboard) to see it large, with its family path — handy when outer-ring words are small on phones
 - **Keyboard & Screen Readers**: The wheel is one tab-stop. ← → move around a ring, ↓ steps out to more specific feelings and ↑ back in, `[` `]` (or Page Up/Down) jump between families, Home/End go to the ends of a ring, Enter/Space chooses. Each feeling is read with its place, e.g. "Playful, under Happy, 1 of 6"
 
 ### Advanced Visual Features

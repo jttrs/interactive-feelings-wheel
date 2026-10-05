@@ -692,3 +692,55 @@ test('a touch drag rotates the wheel', async ({ page }) => {
     const after = await readRotation(page);
     expect(after).not.toBe(before);
 });
+
+// Reading lens: a large copy of the focused/pressed word (labels can be tiny on phones).
+test('keyboard focus shows the focused word large in the reading lens, clear of the wedge', async ({
+    page,
+}) => {
+    const lens = page.locator('#wheel-lens');
+    await expect(lens).toBeHidden();
+    await page.locator('.core-wedge[data-emotion="Angry"]').focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(lens).toBeVisible();
+    const focused = page.locator('.wedge:focus');
+    await expect(lens.locator('.wheel-lens__word')).toHaveText(
+        (await focused.getAttribute('data-emotion'))!
+    );
+    const size = await lens
+        .locator('.wheel-lens__word')
+        .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(size).toBeGreaterThanOrEqual(16);
+    // The lens never sits on top of the wedge it's describing.
+    const a = (await lens.boundingBox())!;
+    const b = (await focused.boundingBox())!;
+    const cx = b.x + b.width / 2;
+    const cy = b.y + b.height / 2;
+    expect(cx >= a.x && cx <= a.x + a.width && cy >= a.y && cy <= a.y + a.height).toBe(false);
+
+    await page.locator('#reset-btn-panel').focus();
+    await expect(lens).toBeHidden();
+});
+
+test('on a phone, pressing a wedge shows its word large and a tap still chooses it', async ({
+    browser,
+}) => {
+    const ctx = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+    });
+    const page = await ctx.newPage();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/index.html');
+    await page.waitForSelector('#wheel-container svg .wedge');
+    const wedge = page.locator('.tertiary-wedge[data-emotion="Cheeky"]');
+    const box = (await wedge.boundingBox())!;
+    const cdp = await ctx.newCDPSession(page);
+    const pt = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt] });
+    await expect(page.locator('#wheel-lens .wheel-lens__word')).toHaveText('Cheeky');
+    await expect(page.locator('#wheel-lens .wheel-lens__path')).toHaveText('Happy › Playful');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(wedge).toHaveAttribute('aria-pressed', 'true');
+    await ctx.close();
+});

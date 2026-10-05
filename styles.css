@@ -27,6 +27,8 @@
    white/accent 5.8:1 — all clear AA (4.5 text / 3.0 UI). Warm charcoal on warm
    paper (not #000/#fff) avoids halation/visual vibration for activated users. */
 :root {
+    color-scheme: light;
+
     /* Surfaces & ink */
     --color-bg: #f7f4ef; /* warm paper */
     --color-surface: #ffffff; /* panel / card */
@@ -89,8 +91,9 @@
     --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Fonts */
-    --font-body: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, -apple-system,
-        'Segoe UI', Roboto, sans-serif;
+    --font-body:
+        'Atkinson Hyperlegible', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+        sans-serif;
 
     /* Type scale — the feelings-tree tiers + definition, tokenized so every size/weight/
        leading lives in ONE place (was scattered literals). Same-level words share these
@@ -102,7 +105,7 @@
     --weight-strong: 700;
     --weight-medium: 600;
     --leading-tight: 1.2; /* feeling names */
-    --leading-def: 1.25; /* definition body */
+    --leading-def: 1.45; /* definition body (multi-line reading text) */
     --tracking-tight: 0.01em;
     --indent-def: var(--space-4); /* definition's uniform offset from its feeling word */
 
@@ -120,7 +123,7 @@
     --touch-target-min: max(44px, 3vmin); /* WCAG accessibility compliance */
     --spacing-unit: max(8px, 0.5vmin);
     --border-radius-base: max(8px, 0.5vmin);
-    
+
     /* DPI-aware scaling factors */
     --dpi-scale: 1;
     --font-scale: 1;
@@ -137,7 +140,7 @@
     }
 }
 
-/* Very high DPI displays (iPhone Plus, many Android flagships) */  
+/* Very high DPI displays (iPhone Plus, many Android flagships) */
 @media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 288dpi) {
     :root {
         --dpi-scale: 1.25;
@@ -200,6 +203,36 @@
 }
 
 /* Visually-hidden content that remains available to screen readers. */
+/* Skip link: off-screen until keyboard focus, then a clear pill top-left. Jumps
+   past the ~130-wedge wheel straight to the chosen-feelings panel. */
+.skip-link {
+    position: absolute;
+    top: var(--space-2);
+    left: var(--space-2);
+    z-index: 1000;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font-weight: var(--weight-strong);
+    text-decoration: none;
+    transform: translateY(calc(-100% - var(--space-4)));
+}
+.skip-link:focus {
+    transform: none;
+}
+
+.panel-content:focus {
+    outline: none;
+}
+
+/* Skip-link landing spot: the visible view's heading shows the standard ring. */
+.view-title:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: var(--focus-ring-offset);
+    border-radius: var(--radius-sm);
+}
+
 .sr-only {
     position: absolute;
     width: 1px;
@@ -230,7 +263,7 @@
 
 @media (prefers-contrast: more) {
     :where(a, button, [tabindex], [role='button']):focus-visible,
-    .hero-toggle-input:focus-visible + .hero-toggle,
+    .hero-toggle-input:focus-visible + .view-chip,
     .wedge:focus-visible {
         outline-width: 4px;
     }
@@ -288,7 +321,12 @@ body {
     overflow: hidden;
     /* Offset wheel left to center in the space beside the docked panel */
     padding-right: var(--panel-width);
-    transition: padding-right var(--motion-panel) var(--ease-soft);
+}
+
+/* FLIP target: app.ts animates the wheel from its old box to its new one with a
+   transform when the panel opens/closes, instead of animating padding (layout). */
+#wheel-container {
+    transform-origin: 0 0;
 }
 
 /* When panel is minimized, no offset needed since panel is hidden */
@@ -296,16 +334,17 @@ body {
     padding-right: 0;
 }
 
-/* Mobile: No offset needed since panel is at bottom */
-@media (max-width: 767px) {
-    .wheel-section {
-        padding-right: 0;
-        padding-bottom: 50px; /* Reduced padding - JavaScript will handle precise sizing */
-    }
-    
+/* Mobile (portrait) bottom sheet: the wheel area stops where the sheet begins.
+   --sheet-h is the sheet's live rendered height, written by app.ts from a
+   ResizeObserver, so expanded, collapsed and short-screen sheets all reserve
+   exactly their own space and the wheel centres in what's actually visible.
+   Landscape phones keep the side panel: a sheet there would bury the wheel. */
+@media (max-width: 767px) and (orientation: portrait) {
+    .wheel-section,
     .main-layout.panel-minimized .wheel-section {
         padding-right: 0;
-        padding-bottom: 0; /* No padding when panel is hidden */
+        padding-bottom: calc(var(--sheet-h, 280px) + var(--space-2));
+        transition: none;
     }
 }
 
@@ -337,7 +376,7 @@ body {
 }
 
 /* Mobile: Bottom sheet style with enhanced visibility */
-@media (max-width: 767px) {
+@media (max-width: 767px) and (orientation: portrait) {
     .info-panel {
         position: fixed;
         top: auto;
@@ -349,42 +388,46 @@ body {
         height: auto;
         min-height: 280px;
         max-height: 350px;
-        border-radius: 20px 20px 0 0;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         margin: 0;
-        border: 2px solid rgba(255, 255, 255, 0.8);
-        border-bottom: none;
-        box-shadow: 
-            0 -25px 50px -12px rgba(0, 0, 0, 0.25),
-            0 -20px 25px -5px rgba(0, 0, 0, 0.1),
-            0 -10px 10px -5px rgba(0, 0, 0, 0.04),
-            inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
+        border: none;
+        border-top: 1px solid var(--color-border);
+        box-shadow:
+            0 -8px 24px rgba(43, 42, 40, 0.1),
+            0 -1px 4px rgba(43, 42, 40, 0.06);
+        padding-bottom: env(safe-area-inset-bottom);
     }
-    
-    /* Mobile collapsed: Hide panel, show only centered expand button */
+
+    /* Mobile collapsed: the sheet folds down to just its handle, a pill resting
+       above the bottom safe area. The panel box itself goes click-through so the
+       wheel behind stays usable; only the handle takes taps. */
     .info-panel.minimized {
+        top: auto;
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        align-items: center;
+        padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
         background: transparent;
         border: none;
         box-shadow: none;
-        height: auto;
-        transform: none;
+        pointer-events: none;
     }
-    
+
     .info-panel.minimized .panel-content,
     .info-panel.minimized .panel-footer {
         display: none;
     }
-    
+
     .info-panel.minimized .mobile-collapse-handle {
-        display: flex; /* Keep handle visible */
-        position: fixed; /* Center it on the screen */
-        top: auto; /* Override any top positioning */
-        bottom: 1rem; /* Position at bottom of screen */
-        left: 50%;
-        right: auto; /* Override any right positioning */
-        transform: translateX(-50%);
-        border-radius: 12px;
-        border: 2px solid rgba(255, 255, 255, 0.6);
-        z-index: 1000; /* Ensure it's above everything */
+        position: relative;
+        top: auto;
+        left: auto;
+        transform: none;
+        border: 1px solid var(--color-border-strong);
+        border-radius: var(--radius-pill);
+        box-shadow: var(--elev-2);
+        pointer-events: auto;
     }
 }
 
@@ -404,8 +447,8 @@ body {
     right: var(--panel-width);
     top: 50%;
     transform: translateY(-50%);
-    width: 24px;
-    height: 56px;
+    width: 32px;
+    height: 64px;
 
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -422,7 +465,7 @@ body {
     transition:
         background-color var(--motion-fast) var(--ease-soft),
         color var(--motion-fast) var(--ease-soft),
-        right var(--motion-panel) var(--ease-soft);
+        transform var(--motion-panel) var(--ease-soft);
     box-shadow: -4px 0 12px rgba(43, 42, 40, 0.04);
 }
 
@@ -439,85 +482,89 @@ body {
 /* Desktop Minimized state — the whole populated panel slides off-screen as one
    surface (content stays rendered so it travels with it, rather than vanishing
    before the slide). The tab rides to the screen edge and stays reachable
-   (it lives outside the transformed panel). */
-.info-panel.minimized {
-    transform: translateX(100%);
-    box-shadow: none;
+   (it lives outside the transformed panel). Desktop only: on mobile the sheet
+   folds down instead of sliding sideways. */
+@media (min-width: 768px), (orientation: landscape) {
+    .info-panel.minimized {
+        transform: translateX(100%);
+        box-shadow: none;
+    }
 }
 
 .main-layout.panel-minimized .panel-minimize-tab {
-    right: 0;
+    transform: translate(var(--panel-width), -50%);
 }
 
-/* Mobile Collapse Handle */
+/* Mobile sheet handle — a real button. 28px visual tab with an invisible
+   hit area extending it to a 44px touch target. */
 .mobile-collapse-handle {
     display: none; /* Hidden on desktop */
     position: absolute;
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 80px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 0 0 12px 12px;
-    border: 2px solid rgba(255, 255, 255, 0.6);
+    width: 88px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    background: var(--color-surface);
+    color: var(--color-ink-muted);
+    border: 1px solid var(--color-border);
     border-top: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
     cursor: pointer;
     z-index: 102;
-    
+
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    gap: var(--space-2);
+
+    transition:
+        background-color var(--motion-fast) var(--ease-soft),
+        color var(--motion-fast) var(--ease-soft);
+    box-shadow: var(--elev-1);
+}
+
+.mobile-collapse-handle::after {
+    content: '';
+    position: absolute;
+    inset: -8px -4px;
 }
 
 .collapse-indicator {
-    width: 32px;
+    width: 28px;
     height: 4px;
-    background: #cbd5e0;
-    border-radius: 2px;
-    transition: background-color 0.2s ease;
+    background: var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    transition: background-color var(--motion-fast) var(--ease-soft);
 }
 
-/* Mobile: Arrow points DOWN when expanded (will collapse DOWN), UP when collapsed (will expand UP) */
+/* ▼ when expanded (tucks down), ▲ when collapsed (lifts up) — set in app.ts. */
 .mobile-collapse-arrow {
-    font-size: 0.8rem;
-    color: #4a5568;
-    font-weight: bold;
-    /* Removed transition to eliminate arrow animation */
+    font-size: 0.75rem;
+    line-height: 1;
 }
 
-.mobile-collapse-handle:hover .collapse-indicator {
-    background: #4a90e2;
-}
+@media (hover: hover) {
+    .mobile-collapse-handle:hover {
+        background: var(--color-surface-alt);
+        color: var(--color-accent-text);
+    }
 
-.mobile-collapse-handle:hover .mobile-collapse-arrow {
-    color: #4a90e2;
-    transform: translateY(1px);
+    .mobile-collapse-handle:hover .collapse-indicator {
+        background: var(--color-accent);
+    }
 }
 
 /* Mobile: Show collapse handle and hide desktop tab */
-@media (max-width: 767px) {
+@media (max-width: 767px) and (orientation: portrait) {
     .mobile-collapse-handle {
         display: flex;
-        position: absolute; /* Ensure proper positioning context */
-        top: 0; /* At top of panel when expanded */
     }
-    
+
     .panel-minimize-tab {
         display: none; /* Hide desktop tab on mobile */
-    }
-    
-    /* Override desktop positioning for mobile - not needed */
-    .info-panel.minimized .panel-minimize-tab {
-        display: none;
-    }
-    
-    /* Mobile collapsed: Arrow points UP (will expand up) */
-    .info-panel.minimized .mobile-collapse-arrow {
-        transform: rotate(180deg); /* ▼ becomes ▲ */
     }
 }
 
@@ -530,15 +577,21 @@ body {
 }
 
 /* Mobile: Add top padding to prevent overlap with collapse handle */
-@media (max-width: 767px) {
+@media (max-width: 767px) and (orientation: portrait) {
     .panel-content {
         padding-top: 32px; /* Space for mobile collapse handle */
     }
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ===== IN-PANEL VIEWS =====
@@ -595,8 +648,10 @@ body {
 }
 
 .view-title {
-    font-size: 1.05rem;
+    font-size: 1.5rem;
     font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
     margin: 0;
     color: var(--color-ink);
 }
@@ -673,6 +728,92 @@ body {
     margin: 0;
     max-width: 34ch;
     line-height: 1.5;
+}
+
+/* Small-screen tip: a quiet inset note under the empty-state hint. It only ever
+   appears on cramped (phone) wheels, so it is compact by default. Calm surface +
+   muted ink so it reads as help, not an alert. */
+.screen-nudge {
+    display: flex;
+    align-items: center;
+    align-self: stretch;
+    gap: var(--space-1);
+    padding: var(--space-1) 0 var(--space-1) var(--space-3);
+    text-align: left;
+    background: var(--color-surface-alt);
+    border-radius: var(--radius-sm);
+}
+.screen-nudge[hidden] {
+    display: none;
+}
+.screen-nudge__text {
+    flex: 1;
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    color: var(--color-ink-muted);
+}
+.screen-nudge__dismiss {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    color: var(--color-ink-muted);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+}
+.screen-nudge__dismiss .hero-ic {
+    width: 16px;
+    height: 16px;
+}
+.screen-nudge__dismiss:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: -2px;
+}
+@media (hover: hover) {
+    .screen-nudge__dismiss:hover {
+        color: var(--color-accent-text);
+        background: var(--color-surface);
+    }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .screen-nudge {
+        animation: screen-nudge-in var(--motion-slow) var(--ease-soft);
+    }
+}
+@keyframes screen-nudge-in {
+    from {
+        opacity: 0;
+    }
+}
+/* While the tip shows, the optional second sentence steps aside so the hint and
+   the tip both fit the phone sheet without scrolling. */
+.panel-empty:has(.screen-nudge:not([hidden])) {
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+}
+.panel-empty:has(.screen-nudge:not([hidden])) .empty-hint__more {
+    display: none;
+}
+
+/* The bottom sheet is short: keep the invitation compact so it never crowds the footer. */
+@media (max-width: 767px) and (orientation: portrait) {
+    .panel-empty {
+        padding: var(--space-4) var(--space-5);
+    }
+}
+
+/* Shown when Simplified view hides chosen outer-ring feelings: they stay chosen. */
+.hidden-ring-note {
+    margin: 0;
+    font-size: var(--text-def);
+    line-height: var(--leading-def);
+    color: var(--color-ink-muted);
 }
 
 /* ===== FEELINGS TREE =====
@@ -784,6 +925,9 @@ body {
    type is owned by .feeling-name above). Do NOT use the `font` shorthand: it also sets
    line-height and would clobber the baseline. */
 .feeling-name--toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
     background: transparent;
     border: none;
     padding: 0;
@@ -792,8 +936,37 @@ body {
     cursor: pointer;
     transition: color var(--motion-fast) var(--ease-soft);
 }
-.feeling-name--toggle:hover {
-    color: var(--color-accent-text);
+/* Disclosure chevron: says "this opens" without needing hover. Points right when the
+   meaning is hidden, down when shown; drawn from borders so it inherits text colour. */
+.feeling-name--toggle::after {
+    content: '';
+    flex: none;
+    width: 0.42em;
+    height: 0.42em;
+    margin-top: -0.1em;
+    border-right: 2px solid var(--color-ink-faint);
+    border-bottom: 2px solid var(--color-ink-faint);
+    transform: rotate(-45deg);
+    transition:
+        transform var(--motion-base) var(--ease-soft),
+        border-color var(--motion-fast) var(--ease-soft);
+}
+.feeling-name--toggle[aria-expanded='true']::after {
+    margin-top: -0.3em;
+    transform: rotate(45deg);
+}
+@media (hover: hover) {
+    .feeling-name--toggle:hover {
+        color: var(--color-accent-text);
+    }
+    .feeling-name--toggle:hover::after {
+        border-color: var(--color-accent);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .feeling-name--toggle::after {
+        transition: none;
+    }
 }
 .feeling-node--core .feeling-name {
     font-size: var(--text-core);
@@ -816,26 +989,34 @@ body {
 }
 
 /* The definition: quiet, readable, and collapsible by clicking its feeling word.
-   Collapse animates via max-height/opacity; the expanded ceiling is generous enough
-   for the longest definitions. */
+   The wrapper's single grid row animates 1fr <-> 0fr (no max-height guesswork, no
+   layout-property transition); collapsed text also leaves the accessibility tree. */
+.feeling-def-wrap {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition:
+        grid-template-rows var(--motion-base) var(--ease-soft),
+        opacity var(--motion-fast) var(--ease-soft),
+        visibility 0s linear 0s;
+}
+.feeling-node.is-collapsed .feeling-def-wrap {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        grid-template-rows var(--motion-base) var(--ease-soft),
+        opacity var(--motion-fast) var(--ease-soft),
+        visibility 0s linear var(--motion-base);
+}
 .feeling-def {
     margin: 0;
+    min-height: 0;
+    overflow: hidden;
     font-family: var(--font-body);
     font-size: var(--text-def);
     line-height: var(--leading-def);
     color: var(--color-ink-muted);
     max-width: 42ch;
-    max-height: 16rem;
-    overflow: hidden;
-    transition:
-        max-height var(--motion-base) var(--ease-soft),
-        opacity var(--motion-fast) var(--ease-soft),
-        margin var(--motion-base) var(--ease-soft);
-}
-.feeling-node.is-collapsed .feeling-def {
-    max-height: 0;
-    margin-top: 0;
-    opacity: 0;
 }
 /* Uniform relative indent from the feeling word, at EVERY level (the node's own
    per-level padding already carries tree depth; this is just the def's offset). */
@@ -846,7 +1027,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .feeling-family,
     .emotion-tiles.is-clearing,
-    .feeling-def {
+    .feeling-def-wrap {
         animation: none;
         transition: none;
     }
@@ -856,28 +1037,100 @@ body {
    Controls are labelled (icon + word), so they explain themselves without a
    standing manual. Wrap so they stay tappable on narrow panels; each meets the
    44px target-size we already commit to. */
-/* ===== PANEL FOOTER: HERO-ICON ACTION ROW =====
-   A quiet strip of icon buttons. Icon-only (with tooltip + aria-label), evenly
-   spaced, each a 44px target. This replaces the clunky labelled pills. */
+/* ===== PANEL FOOTER =====
+   Two chunks, each <= 4 controls: labelled view toggles (they change how the
+   wheel looks, so their names are always visible), then the action row — a
+   labelled Reset, with help/about/support as quiet icons on the right. */
 .panel-footer {
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
     padding: var(--space-3) var(--space-4);
+    padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
+}
+
+.view-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.view-chip {
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: var(--weight-medium);
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--color-ink-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition:
+        background-color var(--motion-fast) var(--ease-soft),
+        border-color var(--motion-fast) var(--ease-soft),
+        color var(--motion-fast) var(--ease-soft);
+}
+
+.view-chip .hero-ic {
+    width: 16px;
+    height: 16px;
+}
+
+@media (hover: hover) {
+    .view-chip:hover {
+        background: var(--color-surface-alt);
+        color: var(--color-accent-text);
+    }
+}
+
+.hero-toggle-input:checked + .view-chip,
+.view-chip[aria-pressed='true'] {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-on-accent);
+}
+
+.hero-toggle-input:focus-visible + .view-chip {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: var(--focus-ring-offset);
+}
+
+/* Touch: chips grow to the full 44px target. */
+@media (pointer: coarse) {
+    .view-chip {
+        min-height: var(--touch-target-min);
+    }
+}
+
+/* Narrow panels (small phones): drop chip icons so all three stay on one row. */
+@container (max-width: 359px) {
+    .view-chip {
+        padding: 0 var(--space-2);
+    }
+    .view-chip .hero-ic {
+        display: none;
+    }
 }
 
 .hero-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: var(--space-1);
 }
 
-.hero-sep {
-    width: 1px;
-    align-self: stretch;
-    margin: var(--space-1) var(--space-2);
-    background: var(--color-border);
+.hero-spacer {
+    flex: 1;
 }
 
 .hero-btn {
@@ -908,6 +1161,15 @@ body {
     background: var(--color-border);
 }
 
+.hero-btn--labelled {
+    width: auto;
+    gap: var(--space-2);
+    padding: 0 var(--space-3) 0 var(--space-2);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: var(--weight-medium);
+}
+
 .hero-ic {
     width: 22px;
     height: 22px;
@@ -933,8 +1195,8 @@ body {
     color: var(--color-on-accent);
 }
 
-/* Simplified-view toggle rendered as an icon button; the checkbox is hidden but
-   keyboard-focusable, and the label carries the focus ring + active state. */
+/* View toggles are visually-hidden checkboxes; the label (.view-chip) carries the
+   focus ring + checked state. */
 .hero-toggle-input {
     position: absolute;
     width: 1px;
@@ -945,22 +1207,6 @@ body {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
-}
-
-.hero-toggle-input:focus-visible + .hero-toggle {
-    outline: var(--focus-ring-width) solid var(--color-focus);
-    outline-offset: var(--focus-ring-offset);
-}
-
-.hero-toggle-input:checked + .hero-toggle {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
-}
-
-/* Fullscreen active state (JS toggles .active). */
-.hero-btn.active {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
 }
 
 /* CSS-only tooltip from data-tip. Appears above the button on hover/focus. */
@@ -985,8 +1231,7 @@ body {
 }
 
 .hero-btn[data-tip]:hover::after,
-.hero-btn[data-tip]:focus-visible::after,
-.hero-toggle-input:focus-visible + .hero-btn[data-tip]::after {
+.hero-btn[data-tip]:focus-visible::after {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
@@ -1019,11 +1264,10 @@ body {
 }
 
 .help-group__title {
-    font-size: 0.8rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--color-accent-text);
+    line-height: 1.3;
+    color: var(--color-ink);
     margin: 0 0 var(--space-2);
 }
 
@@ -1108,42 +1352,35 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .panel-empty { animation: none; }
+    .panel-empty {
+        animation: none;
+    }
 }
 
 /* Mobile-specific panel adjustments */
 @media (max-width: 767px) {
-    .panel-minimize-tab {
-        display: none; /* Hide minimization on mobile - use the collapse handle */
-    }
-
     .emotion-tiles {
         padding: 0 1rem 1rem 1rem;
         gap: 0.5rem;
     }
-
-    .card-header {
-        padding: 0.6rem 0.6rem 0.6rem 0.9rem;
-    }
-
-    .card-name {
-        font-size: 0.9rem;
-    }
-
-    .card-body {
-        padding: 0 0.9rem 0.9rem;
-    }
-
-    .card-definition {
-        font-size: 0.85rem;
-    }
 }
 
 /* Responsive panel height on mobile */
-@media (max-width: 767px) and (max-height: 600px) {
+/* Short portrait screens (e.g. 320x568): a little more sheet so the chosen feelings
+   still have room above the two-row footer; compact chips (36px still clears the
+   24px WCAG 2.5.8 target) and a one-sentence invitation. */
+@media (max-width: 767px) and (max-height: 600px) and (orientation: portrait) {
     .info-panel {
         min-height: 180px;
-        max-height: 240px;
+        max-height: 280px;
+    }
+
+    .view-chip {
+        min-height: 36px;
+    }
+
+    .empty-hint__more {
+        display: none;
     }
 }
 
@@ -1164,28 +1401,12 @@ body {
     height: 100%;
 }
 
-/* Selection styling - moved to micro-interactions section for enhanced animations */
-
-/* Device-capability based responsive design (not pixel-based) */
-@media (hover: none) and (pointer: coarse) {
-    /* Touch devices - ensure proper touch targets */
-    .card-btn {
-        min-width: var(--touch-target-min);
-        min-height: var(--touch-target-min);
-    }
-}
-
-/* Very small screens regardless of device type */
-@media (max-width: 480px) {
+/* Very small portrait screens */
+@media (max-width: 480px) and (orientation: portrait) {
     .main-layout {
         flex-direction: column;
     }
-    
-    .wheel-container {
-        padding-right: 0;
-        padding-bottom: var(--panel-width);
-    }
-    
+
     .info-panel {
         position: fixed;
         bottom: 0;
@@ -1195,11 +1416,7 @@ body {
         height: var(--panel-width);
         border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
     }
-    
-    .minimize-tab {
-        display: none; /* Hide desktop minimization on mobile */
-    }
-} 
+}
 
 /* ===== SVG ANTI-ALIASING & RENDERING OPTIMIZATION ===== */
 
@@ -1255,20 +1472,26 @@ svg text {
 
 /* Performance optimization for reduced motion users */
 @media (prefers-reduced-motion: reduce) {
-    svg, path:not(.shadow-wedge), text, .wheel-main-group {
+    /* Not `text`: a label's rotate() is its static radial layout, not motion —
+       removing it lays every word flat across its neighbours. */
+    svg,
+    path:not(.shadow-wedge),
+    .wheel-main-group {
         /* Disable hardware acceleration if user prefers reduced motion */
         will-change: auto;
         transform: none;
     }
 }
 
-/* ===== END SVG OPTIMIZATION ===== */ 
+/* ===== END SVG OPTIMIZATION ===== */
 
 /* ===== MICRO-INTERACTIONS & SMOOTH ANIMATIONS ===== */
 
 /* Wedge hover effects - subtle and smooth */
 .wedge {
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+        filter var(--motion-fast) var(--ease-soft),
+        opacity var(--motion-base) var(--ease-soft);
     cursor: pointer;
 }
 
@@ -1277,46 +1500,162 @@ svg text {
     filter: saturate(1.2) brightness(1.1);
 }
 
+/* Guided view (opt-in): rings the user hasn't reached rest in the background —
+   still visible as the wheel's map, but quiet and inert until a choice opens them. */
+/* Touch drags rotate the wheel (pointer events) instead of panning/zooming the page. */
+#wheel-container svg {
+    touch-action: none;
+}
+
+#wheel-container svg text {
+    transition: opacity var(--motion-base) var(--ease-soft);
+}
+
+#wheel-container [data-guided-rest] {
+    opacity: 0.22;
+    pointer-events: none;
+}
+
+/* Guided view caption: pinned to the wheel area (never rotates with the wheel),
+   centred in the space beside the docked panel / above the mobile sheet. */
+/* Reading lens: a big, calm copy of one wedge's word, pinned to the bottom of the
+   wheel area (never rotates; transient; never takes pointer events). */
+.wheel-lens {
+    position: absolute;
+    left: 50%;
+    bottom: var(--space-3);
+    z-index: 3;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    max-width: calc(100% - var(--space-6));
+    padding: var(--space-2) var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--elev-2);
+    text-align: center;
+    pointer-events: none;
+    animation: fadeIn var(--motion-fast) var(--ease-soft);
+}
+
+.wheel-lens--top {
+    top: max(var(--space-3), env(safe-area-inset-top));
+    bottom: auto;
+}
+
+.wheel-lens[hidden] {
+    display: none;
+}
+
+.wheel-lens__path {
+    font-size: 0.85rem;
+    line-height: 1.3;
+    color: var(--color-ink-muted);
+}
+
+.wheel-lens__path[hidden] {
+    display: none;
+}
+
+.wheel-lens__word {
+    font-size: 1.75rem;
+    font-weight: var(--weight-strong);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wheel-lens {
+        animation: none;
+    }
+}
+
+.guided-hint {
+    position: absolute;
+    top: max(var(--space-4), env(safe-area-inset-top));
+    left: var(--space-4);
+    right: calc(var(--panel-width) + var(--space-4));
+    z-index: 2;
+    width: fit-content;
+    max-width: 32rem;
+    margin: 0 auto;
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    box-shadow: var(--elev-1);
+    color: var(--color-ink-muted);
+    font-size: 0.95rem;
+    line-height: 1.35;
+    text-align: center;
+    text-wrap: balance;
+    pointer-events: none;
+    animation: fadeIn var(--motion-base) var(--ease-soft);
+}
+
+.guided-hint[hidden] {
+    display: none;
+}
+
+/* Beside the circle when the wheel fills the full height (desktop): a compact,
+   two-line note in the free top-left corner. */
+.guided-hint[data-place='corner'],
+.main-layout.panel-minimized .guided-hint[data-place='corner'] {
+    right: auto;
+    margin: 0;
+    max-width: 14rem;
+    border-radius: var(--radius-md);
+    text-align: left;
+}
+
+/* No free space at all (tiny screens with the sheet open): a single small line
+   hugging the top edge, over the outer ring — which is always at rest while the
+   hint shows, so it never covers a choice. */
+.guided-hint[data-place='tight'],
+.main-layout.panel-minimized .guided-hint[data-place='tight'] {
+    top: max(var(--space-1), env(safe-area-inset-top));
+    padding: var(--space-1) var(--space-3);
+    font-size: 0.8rem;
+}
+
+.main-layout.panel-minimized .guided-hint {
+    right: var(--space-4);
+}
+
+@media (max-width: 767px) and (orientation: portrait) {
+    .guided-hint,
+    .main-layout.panel-minimized .guided-hint {
+        right: var(--space-4);
+        font-size: 0.875rem;
+    }
+}
+
+/* One soft swell on the core ring when Guided turns on — runs once, never loops. */
+svg.guided-core-cue .core-wedge:not([aria-pressed='true']) {
+    animation: guided-core-cue 0.9s var(--ease-soft) 1;
+}
+
+@keyframes guided-core-cue {
+    0%,
+    100% {
+        filter: none;
+    }
+    45% {
+        filter: saturate(1.25) brightness(1.12);
+    }
+}
+
 /* Enhanced selection styling with smooth transitions. The glow is a REAL
    drop-shadow() filter (the old `drop-shadow:` property was invalid and did
    nothing) chained after the saturate/brightness lift, tinted with the accent. */
 .selected {
     stroke: var(--wheel-line) !important;
     filter: saturate(1.4) brightness(1.12) var(--wheel-selected-glow);
-    transition: filter 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-/* Selection animation enhancement */
-.wedge.selecting {
-    /* Temporary class during selection animation */
-    animation: selectionPop 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-@keyframes selectionPop {
-    0% { filter: saturate(1.4) brightness(1.12) var(--wheel-selected-glow); }
-    50% { filter: saturate(1.6) brightness(1.22) var(--wheel-selected-glow); }
-    100% { filter: saturate(1.4) brightness(1.12) var(--wheel-selected-glow); }
-}
-
-/* Smooth deselection animation */
-.wedge.deselecting {
-    animation: deselectionFade 0.15s ease-out;
-}
-
-@keyframes deselectionFade {
-    0% { 
-        filter: saturate(1.4) brightness(1.15);
-        /* RESPONSIVE STROKE: Removed hardcoded stroke-width, JavaScript manages responsive values */
-    }
-    100% { 
-        filter: saturate(1) brightness(1);
-        /* RESPONSIVE STROKE: JavaScript will handle stroke width transitions */
-    }
-}
-
-/* Text smooth transitions */
-text {
-    transition: opacity 0.1s ease;
+    transition: filter var(--motion-base) var(--ease-soft);
 }
 
 /* Selected wedge's label: bump to bold so the choice reads in the text too, not
@@ -1330,25 +1669,19 @@ svg.animating {
     cursor: wait !important;
 }
 
-svg.grabbing {
-    cursor: grabbing !important;
-}
-
-/* Smooth animation for mode transitions */
-.wheel-container.transitioning {
-    pointer-events: none;
-}
-
-.wheel-container.transitioning svg {
-    transition: opacity 0.3s ease;
-}
-
 /* Accessibility - respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
     .wedge,
     .selected,
     .hero-btn,
     .hero-btn[data-tip]::after,
+    .view-chip,
+    .mobile-collapse-handle,
+    .info-panel,
+    .panel-minimize-tab,
+    #wheel-container,
+    .guided-hint,
+    svg.guided-core-cue .core-wedge,
     text,
     svg {
         transition: none !important;
@@ -1360,4 +1693,4 @@ svg.grabbing {
     }
 }
 
-/* ===== END MICRO-INTERACTIONS ===== */ 
+/* ===== END MICRO-INTERACTIONS ===== */

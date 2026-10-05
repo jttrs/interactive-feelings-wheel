@@ -3,6 +3,9 @@
 import { FeelingsWheelGenerator } from './feelings-wheel-engine.ts';
 import { FEELINGS_DATA } from './feelings-data.ts';
 import { renderFeelingsTree } from './src/ui/feelings-tree.ts';
+import { createGuidedHint } from './src/ui/guided-hint.ts';
+import { initSmallScreenNudge } from './src/ui/small-screen-nudge.ts';
+import { createWheelLens } from './src/ui/wheel-lens.ts';
 import type { Selection, EmotionSelectedDetail } from './src/types.ts';
 
 export class FeelingsWheelApp {
@@ -25,13 +28,32 @@ export class FeelingsWheelApp {
     }
 
     setupApp(): void {
+        // Reserve the mobile sheet's real height before the first render so the wheel
+        // is sized for the visible area from frame one.
+        this.syncSheetHeight();
+
         // Initialize the wheel
         const wheelContainer = document.getElementById('wheel-container')!;
         this.wheelGenerator = new FeelingsWheelGenerator(wheelContainer, FEELINGS_DATA);
         this.wheelGenerator.generate();
+        this.observeLayout(wheelContainer);
 
         // Setup information panel (this will handle all controls now)
         this.setupInformationPanel();
+
+        // Cramped full wheel → gently suggest Simplified/Guided (never switches by itself).
+        // Reading lens: large copy of the pressed / hovered-small / keyboard-focused word.
+        createWheelLens(document.getElementById('wheel-lens')!, wheelContainer);
+
+        initSmallScreenNudge({
+            container: wheelContainer,
+            nudge: document.getElementById('screen-nudge')!,
+            dismissButton: document.getElementById('screen-nudge-dismiss') as HTMLButtonElement,
+            viewToggles: ['simplified-mode-panel', 'guided-mode-panel'].map(
+                (id) => document.getElementById(id) as HTMLInputElement
+            ),
+            announce: (message) => this.announce(message),
+        });
 
         // Setup fullscreen functionality
         this.setupFullscreenFeature();
@@ -117,9 +139,13 @@ export class FeelingsWheelApp {
             } else {
                 await this.requestFullscreen();
             }
-        } catch (error) {
-            // Fullscreen operation failed - handled gracefully
-            // Optionally show user feedback here
+        } catch {
+            // Fullscreen can be refused (embedded frame, permissions, platform). The
+            // button's aria-pressed stays truthful (driven by fullscreenchange); say why
+            // nothing happened instead of failing silently.
+            this.announce("Fullscreen isn't available here.");
+            const btn = document.getElementById('fullscreen-btn-panel');
+            if (btn) btn.title = "Fullscreen isn't available here";
         }
     }
 
@@ -167,13 +193,9 @@ export class FeelingsWheelApp {
         const fullscreenButton = document.getElementById('fullscreen-btn-panel');
 
         if (fullscreenButton) {
-            if (this.isCurrentlyFullscreen()) {
-                fullscreenButton.classList.add('active');
-                fullscreenButton.title = 'Exit fullscreen (ESC)';
-            } else {
-                fullscreenButton.classList.remove('active');
-                fullscreenButton.title = 'Enter fullscreen (F11)';
-            }
+            const on = this.isCurrentlyFullscreen();
+            fullscreenButton.setAttribute('aria-pressed', String(on));
+            fullscreenButton.title = on ? 'Exit fullscreen (Esc)' : 'Enter fullscreen (F11)';
         }
     }
 
@@ -200,15 +222,28 @@ export class FeelingsWheelApp {
     setupKeyboardShortcuts(): void {
         // Global keyboard event listener for all shortcuts
         document.addEventListener('keydown', (event) => {
-            // Skip if user is typing in an input field
+            // Skip if the user is typing (checkbox toggles must not swallow shortcuts).
             const target = event.target as HTMLElement;
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+            const typing =
+                target.tagName === 'TEXTAREA' ||
+                target.isContentEditable ||
+                (target instanceof HTMLInputElement &&
+                    !['checkbox', 'radio', 'button'].includes(target.type));
+            if (typing) {
                 return;
             }
+
+            // Leave browser/OS chords (Cmd+R, Ctrl+G, …) alone.
+            if (event.metaKey || event.ctrlKey || event.altKey) return;
 
             const key = event.key.toLowerCase();
 
             switch (key) {
+                case 'g':
+                    event.preventDefault();
+                    (document.getElementById('guided-mode-panel') as HTMLInputElement)?.click();
+                    break;
+
                 case 's':
                     event.preventDefault();
                     this.toggleSimplifiedMode();
@@ -270,6 +305,15 @@ export class FeelingsWheelApp {
             this.togglePanelMinimization();
         });
 
+        // Skip link: jumps past the wheel to the panel, opening it first if tucked away.
+        document.querySelector('.skip-link')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (document.getElementById('info-panel')?.classList.contains('minimized')) {
+                this.togglePanelMinimization();
+            }
+            this.focusPanelHeading();
+        });
+
         // Setup panel controls (moved from floating controls)
         this.setupPanelControls();
 
@@ -278,6 +322,24 @@ export class FeelingsWheelApp {
     }
 
     setupPanelControls(): void {
+        // Guided view: opt-in spotlight over the full wheel. Purely visual — selections
+        // and rotation are untouched, so switching it off returns the whole wheel as-is.
+        const guidedToggle = document.getElementById('guided-mode-panel') as HTMLInputElement;
+        guidedToggle.checked = false;
+        const guidedHint = createGuidedHint(
+            document.getElementById('guided-hint')!,
+            document.getElementById('wheel-container')!
+        );
+        guidedToggle.addEventListener('change', () => {
+            this.wheelGenerator.setGuidedMode(guidedToggle.checked);
+            guidedHint.setEnabled(guidedToggle.checked);
+            this.announce(
+                guidedToggle.checked
+                    ? 'Guided view on. Choose a core feeling to open the next ring.'
+                    : 'Guided view off. The full wheel is available.'
+            );
+        });
+
         // Setup simplified mode toggle
         const simplifiedModeToggle = document.getElementById(
             'simplified-mode-panel'
@@ -285,17 +347,23 @@ export class FeelingsWheelApp {
         simplifiedModeToggle.addEventListener('change', (event) => {
             const isSimplified = (event.target as HTMLInputElement).checked;
 
-            // CRITICAL FIX: Clear app state completely and let wheel engine manage everything
+            // One shared selection across views: the engine only changes which rings it
+            // draws, so the panel is simply re-rendered (with simpler meanings).
             this.clearAllTilesWithoutInstructions(); // Don't auto-show instructions during mode switch
-
-            // Let wheel engine handle mode switching and state restoration
             this.wheelGenerator.setSimplifiedMode(isSimplified);
-
-            // Recreate tiles from wheel engine's restored state
             this.recreateTilesFromWheelState();
-
-            // Update instruction visibility based on final tile state
             this.updateInstructionsVisibility();
+
+            const hidden = this.hiddenSelectionCount();
+            this.announce(
+                isSimplified
+                    ? hidden
+                        ? hidden === 1
+                            ? 'Simplified view on. 1 chosen feeling is in the hidden outer ring and stays chosen.'
+                            : `Simplified view on. ${hidden} chosen feelings are in the hidden outer ring and stay chosen.`
+                        : 'Simplified view on.'
+                    : 'Full wheel shown.'
+            );
         });
 
         // Setup reset button
@@ -423,7 +491,26 @@ export class FeelingsWheelApp {
             getFamilyColor: (family) => FEELINGS_DATA.getCoreEmotionColor(family),
         });
 
-        container.replaceChildren(element);
+        const hidden = this.hiddenSelectionCount();
+        if (hidden) {
+            const note = document.createElement('p');
+            note.className = 'hidden-ring-note';
+            note.textContent =
+                hidden === 1
+                    ? 'One of these is in the outer ring, which Simplified view hides. It stays chosen.'
+                    : `${hidden} of these are in the outer ring, which Simplified view hides. They stay chosen.`;
+            container.replaceChildren(note, element);
+        } else {
+            container.replaceChildren(element);
+        }
+    }
+
+    // Chosen feelings that exist but aren't drawn (outer ring while Simplified is on).
+    hiddenSelectionCount(): number {
+        if (!this.wheelGenerator?.isSimplifiedMode) return 0;
+        return [...this.wheelGenerator.selectedWedges].filter(
+            (id) => this.wheelGenerator.parseUniqueWedgeId(id).level === 'tertiary'
+        ).length;
     }
 
     isSimplifiedActive(): boolean {
@@ -474,7 +561,7 @@ export class FeelingsWheelApp {
         // Mark wheel as animating to prevent user interaction
         this.wheelGenerator.isAnimating = true;
 
-        this.announce('Cleared all selected emotions.');
+        this.announce('Cleared all selected feelings.');
 
         // RESTORED: Full reset animation with tile unwinding + wheel rotation
         this.animateUnwindTiles();
@@ -527,27 +614,118 @@ export class FeelingsWheelApp {
         const minimized = panel.classList.contains('minimized');
         // Arrow points toward the action: ◀ reveals (when hidden), ▶ collapses.
         arrow.textContent = minimized ? '◀' : '▶';
-        if (tab) tab.setAttribute('aria-expanded', String(!minimized));
+        if (tab) {
+            tab.setAttribute('aria-expanded', String(!minimized));
+            tab.setAttribute(
+                'aria-label',
+                minimized ? 'Show feelings panel' : 'Hide feelings panel'
+            );
+        }
+
+        // Mobile sheet handle: ▲ reveals the sheet, ▼ tucks it away.
+        const handle = document.getElementById('mobile-collapse-handle');
+        const handleArrow = handle?.querySelector('.mobile-collapse-arrow');
+        if (handle) {
+            handle.setAttribute('aria-expanded', String(!minimized));
+            handle.setAttribute(
+                'aria-label',
+                minimized ? 'Show feelings panel' : 'Hide feelings panel'
+            );
+        }
+        if (handleArrow) handleArrow.textContent = minimized ? '▲' : '▼';
+    }
+
+    // Land keyboard/screen-reader focus on the visible panel view's heading, with a
+    // visible ring, so arriving in the panel is announced and seen.
+    focusPanelHeading(): void {
+        const title = document.querySelector<HTMLElement>('.panel-view:not([hidden]) .view-title');
+        if (!title) return;
+        title.tabIndex = -1;
+        title.focus();
     }
 
     togglePanelMinimization(): void {
         const panel = document.querySelector('.info-panel')!;
         const mainLayout = document.querySelector('.main-layout')!;
 
-        panel.classList.toggle('minimized');
+        const wheelBox = document.getElementById('wheel-container');
+        const before = this.wheelRect();
+        const focusWasInside =
+            document.activeElement instanceof Element &&
+            !!document.activeElement.closest('.panel-content, .panel-footer');
+
+        const minimized = panel.classList.toggle('minimized');
         mainLayout.classList.toggle('panel-minimized'); // For wheel centering
+        this.syncSheetHeight(); // mobile: reserve the new sheet height before measuring
+
+        // A tucked-away panel (slid off-screen on desktop) must not keep tab stops, and
+        // focus must never be stranded inside it: hand it to the visible reopen control.
+        for (const sel of ['.panel-content', '.panel-footer']) {
+            const el = panel.querySelector<HTMLElement>(sel);
+            if (el) el.inert = minimized;
+        }
+        if (minimized && focusWasInside) {
+            const handle = document.getElementById('mobile-collapse-handle');
+            const tab = document.getElementById('panel-minimize-tab');
+            const reopen = handle && handle.offsetParent !== null ? handle : tab;
+            reopen?.focus();
+        }
+
+        // Glide the wheel to its new centre/size with a transform (FLIP) rather than
+        // animating layout: the box snaps to its final layout, then we play the
+        // difference back from where it was.
+        const after = this.wheelRect();
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (wheelBox && before && after && after.width > 0 && !reduce) {
+            const c = wheelBox.getBoundingClientRect();
+            const k = before.width / after.width;
+            const tx = before.left - c.left - k * (after.left - c.left);
+            const ty = before.top - c.top - k * (after.top - c.top);
+            if (Math.abs(tx) > 0.5 || Math.abs(ty) > 0.5 || Math.abs(k - 1) > 0.005) {
+                wheelBox.style.transition = 'none';
+                wheelBox.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+                requestAnimationFrame(() => {
+                    wheelBox.style.transition = 'transform var(--motion-panel) var(--ease-soft)';
+                    wheelBox.style.transform = '';
+                });
+                wheelBox.addEventListener(
+                    'transitionend',
+                    () => {
+                        wheelBox.style.transition = '';
+                    },
+                    { once: true }
+                );
+            }
+        }
 
         // Update arrow direction
         this.updateArrowDirection();
+        // Wheel re-fit happens via the layout observer once the panel settles.
+    }
 
-        // MOBILE FIX: Trigger wheel resize after panel state change
-        // This ensures the wheel recalculates its size based on new available space
-        if (this.wheelGenerator && window.innerWidth <= 767) {
-            // Small delay to allow CSS transitions to settle
-            setTimeout(() => {
-                this.wheelGenerator.handleResize();
-            }, 350); // Slightly longer than CSS transition (0.3s)
-        }
+    // On-screen box of the drawn wheel (the circle, not its letterboxed <svg>).
+    wheelRect(): DOMRect | null {
+        const group = document.querySelector('#wheel-container .wheel-main-group');
+        return group ? group.getBoundingClientRect() : null;
+    }
+
+    // Publish the panel's rendered height as --sheet-h. Only the portrait bottom-sheet
+    // CSS reads it; elsewhere it's inert.
+    syncSheetHeight(): void {
+        const panel = document.getElementById('info-panel');
+        if (!panel) return;
+        const h = Math.round(panel.getBoundingClientRect().height);
+        document.documentElement.style.setProperty('--sheet-h', `${h}px`);
+    }
+
+    // Keep the wheel fitted to its visible area: the sheet's height feeds --sheet-h,
+    // and any resulting change to the wheel container's box triggers a (debounced,
+    // size-guarded) re-fit — covers collapse/expand, rotation and short screens alike.
+    observeLayout(wheelContainer: HTMLElement): void {
+        if (typeof ResizeObserver === 'undefined') return;
+        const panel = document.getElementById('info-panel');
+        if (panel) new ResizeObserver(() => this.syncSheetHeight()).observe(panel);
+        new ResizeObserver(() => this.wheelGenerator?.handleResize()).observe(wheelContainer);
     }
 
     // REMOVED: getEmotionFamily() and getFamilyColor() methods

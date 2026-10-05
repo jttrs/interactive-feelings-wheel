@@ -94,6 +94,43 @@ test('clicking a feeling word toggles its definition open and closed', async ({ 
     await expect(coreWord).toHaveAttribute('aria-expanded', 'false');
 });
 
+test('a word under two parents gets independent definitions with unique ids', async ({ page }) => {
+    // Embarrassed sits under both Disapproving (Disgusted) and Hurt (Sad).
+    const embarrassed = (parent: string) =>
+        page.locator(
+            `.tertiary-wedge[data-emotion="Embarrassed"][data-parent="${parent}"]:not(.shadow-wedge)`
+        );
+    await embarrassed('Disapproving').click();
+    await embarrassed('Hurt').click();
+    await expect(page.locator('.wedge.selected:not(.shadow-wedge)')).toHaveCount(2);
+
+    const nodes = page.locator('.feeling-node--tertiary[data-emotion="Embarrassed"]');
+    await expect(nodes).toHaveCount(2);
+
+    const ids = await page.$$eval('#emotion-tiles [id]', (els) => els.map((e) => e.id));
+    expect(new Set(ids).size).toBe(ids.length);
+
+    const [a, b] = [nodes.nth(0), nodes.nth(1)];
+    const toggleA = a.locator('.feeling-name--toggle');
+    const toggleB = b.locator('.feeling-name--toggle');
+    const ctrlA = await toggleA.getAttribute('aria-controls');
+    const ctrlB = await toggleB.getAttribute('aria-controls');
+    expect(ctrlA).not.toBe(ctrlB);
+    await expect(a.locator('.feeling-def-wrap')).toHaveAttribute('id', ctrlA!);
+    await expect(b.locator('.feeling-def-wrap')).toHaveAttribute('id', ctrlB!);
+
+    await toggleA.click();
+    await expect(toggleA).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggleB).toHaveAttribute('aria-expanded', 'true');
+    await expect(b.locator('.feeling-def')).toBeVisible();
+
+    await toggleB.click();
+    await expect(toggleB).toHaveAttribute('aria-expanded', 'false');
+    await toggleA.click();
+    await expect(toggleA).toHaveAttribute('aria-expanded', 'true');
+    await expect(toggleB).toHaveAttribute('aria-expanded', 'false');
+});
+
 test('separate families each render their own stem in wheel order', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Happy"]').click();
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
@@ -413,4 +450,333 @@ test('a fast drag-and-release makes the wheel coast, then settle', async ({ page
     await page.waitForTimeout(200);
     const r3 = await readRotation(page);
     expect(Math.abs(r3 - r2)).toBeLessThan(0.5); // settled
+});
+
+// The wheel must never sit under the panel: portrait sheets reserve their live
+// height (--sheet-h), landscape phones fall back to the side panel.
+async function wheelPanelOverlap(page: Page) {
+    return page.evaluate(() => {
+        const w = document.querySelector('.wheel-main-group')!.getBoundingClientRect();
+        const p = document.getElementById('info-panel')!.getBoundingClientRect();
+        const sheet = matchMedia('(max-width: 767px) and (orientation: portrait)').matches;
+        if (sheet) return Math.max(0, w.bottom - p.top);
+        return p.left < innerWidth - 1 ? Math.max(0, w.right - p.left) : 0;
+    });
+}
+
+for (const [width, height] of [
+    [390, 844],
+    [600, 900],
+    [740, 360],
+]) {
+    test(`wheel stays clear of the panel at ${width}x${height}, expanded and collapsed`, async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(500);
+        expect(await wheelPanelOverlap(page)).toBeLessThanOrEqual(1);
+
+        const handle = page.locator('#mobile-collapse-handle');
+        const toggle = (await handle.isVisible()) ? handle : page.locator('#panel-minimize-tab');
+        await toggle.click();
+        await page.waitForTimeout(600);
+        expect(await wheelPanelOverlap(page)).toBeLessThanOrEqual(1);
+    });
+}
+
+// Guided view is OPT-IN: the full wheel is the default (therapists use the whole
+// spectrum). When on, it spotlights the path without changing geometry or selection.
+test('guided view is off by default: the full wheel is fully interactive', async ({ page }) => {
+    await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
+    await expect(page.locator('.wedge[data-guided-rest]')).toHaveCount(0);
+});
+
+test('guided view opens rings along the chosen path and toggles off losslessly', async ({
+    page,
+}) => {
+    const rest = page.locator('.wedge[data-guided-rest]');
+    await page.locator('label[for="guided-mode-panel"]').click();
+    // Only the 7 cores are reachable at first.
+    await expect(page.locator('.wedge:not(.shadow-wedge):not([data-guided-rest])')).toHaveCount(7);
+    await expect(page.locator('.secondary-wedge[data-emotion="Playful"]')).toHaveAttribute(
+        'aria-hidden',
+        'true'
+    );
+
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await expect(page.locator('.secondary-wedge[data-emotion="Playful"]')).not.toHaveAttribute(
+        'data-guided-rest',
+        ''
+    );
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await expect(
+        page.locator('.tertiary-wedge[data-parent="Playful"]').first()
+    ).not.toHaveAttribute('data-guided-rest', '');
+    // Unrelated families stay at rest.
+    await expect(page.locator('.secondary-wedge[data-emotion="Lonely"]')).toHaveAttribute(
+        'data-guided-rest',
+        ''
+    );
+
+    // G toggles it off (even with focus left on the checkbox): full wheel back, selection kept.
+    await page.keyboard.press('g');
+    await expect(rest).toHaveCount(0);
+    await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(2);
+});
+
+test('keyboard toggling keeps focus on the wheel, even when guided view rests the wedge', async ({
+    page,
+}) => {
+    const happy = page.locator('.core-wedge[data-emotion="Happy"]');
+    await happy.focus();
+    await page.keyboard.press('Enter');
+    await expect(happy).toBeFocused();
+
+    await page.locator('label[for="guided-mode-panel"]').click();
+    const playful = page.locator('.secondary-wedge[data-emotion="Playful"]');
+    await playful.click();
+    await happy.click(); // deselect core; Playful stays reachable because it's selected
+    await playful.focus();
+    await page.keyboard.press('Enter'); // deselect -> Playful goes to rest
+    await expect(playful).toHaveAttribute('data-guided-rest', '');
+    await expect(happy).toBeFocused();
+});
+
+// Guided view hint: a calm on-wheel caption that explains the dimmed rings, then
+// steps aside once the user is moving through them.
+test('guided hint: hidden by default, walks the first two steps, returns on reset', async ({
+    page,
+}) => {
+    const hint = page.locator('#guided-hint');
+    await expect(hint).toBeHidden();
+
+    await page.locator('label[for="guided-mode-panel"]').click();
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveText('Choose a core feeling to open the next ring.');
+    await expect(hint).toHaveAttribute('aria-hidden', 'true');
+
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await expect(hint).toHaveText('Now choose a closer word in the next ring.');
+
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await expect(hint).toBeHidden();
+
+    await page.locator('#reset-btn-panel').click();
+    await expect(page.locator('.wedge.selected')).toHaveCount(0);
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveText('Choose a core feeling to open the next ring.');
+
+    await page.locator('label[for="guided-mode-panel"]').click();
+    await expect(hint).toBeHidden();
+});
+
+for (const vp of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+    { width: 320, height: 568 },
+]) {
+    test(`guided hint stays clear of reachable wedges at ${vp.width}x${vp.height}`, async ({
+        page,
+    }) => {
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(300);
+        await page.locator('label[for="guided-mode-panel"]').click();
+        const hint = page.locator('#guided-hint');
+        await expect(hint).toBeVisible();
+        await page.waitForTimeout(500);
+        const box = (await hint.boundingBox())!;
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+        // The hint may only ever sit over wedges that are at rest.
+        const coversReachable = await page.evaluate(() => {
+            const h = document.getElementById('guided-hint')!.getBoundingClientRect();
+            const pts: [number, number][] = [];
+            for (let x = h.left + 2; x < h.right - 2; x += 6)
+                for (let y = h.top + 2; y < h.bottom - 2; y += 6) pts.push([x, y]);
+            const hint = document.getElementById('guided-hint')!;
+            hint.style.visibility = 'hidden';
+            const hit = pts.some(([x, y]) => {
+                const el = document.elementFromPoint(x, y);
+                return !!el?.closest('.wedge:not([data-guided-rest])');
+            });
+            hint.style.visibility = '';
+            return hit;
+        });
+        expect(coversReachable).toBe(false);
+    });
+}
+
+// One shared selection across views: Simplified only hides the outer ring.
+test('Simplified view keeps outer-ring choices chosen and says so; full view shows them again', async ({
+    page,
+}) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await page.locator('.tertiary-wedge[data-emotion="Cheeky"]').click();
+
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect(page.locator('.tertiary-wedge')).toHaveCount(0);
+    await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(2);
+    await expect(page.locator('.feeling-node.is-selected')).toHaveCount(3);
+    await expect(page.locator('.hidden-ring-note')).toContainText('stays chosen');
+    await expect(page.locator('#sr-announcer')).toContainText(
+        '1 chosen feeling is in the hidden outer ring and stays chosen.'
+    );
+
+    await page.locator('label[for="simplified-mode-panel"]').click();
+    await expect(page.locator('.tertiary-wedge[data-emotion="Cheeky"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    );
+    await expect(page.locator('.hidden-ring-note')).toHaveCount(0);
+});
+
+// Drag vs tap: a drag that starts and ends on wedges rotates but never selects;
+// a plain click still selects; touch drags rotate (pointer events, touch-action: none).
+test('dragging across wedges rotates without selecting; a click still selects', async ({
+    page,
+}) => {
+    const box = (await page.locator('.core-wedge[data-emotion="Happy"]').boundingBox())!;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    const rot0 = await readRotation(page);
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 40, y + 60, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(100);
+    await expect(page.locator('.wedge[aria-pressed="true"]')).toHaveCount(0);
+    const rot1 = await readRotation(page);
+    expect(rot1).not.toBe(rot0);
+
+    // A tiny wobble under the threshold is still a click.
+    const box2 = (await page.locator('.core-wedge[data-emotion="Sad"]').boundingBox())!;
+    const cx = box2.x + box2.width / 2;
+    const cy = box2.y + box2.height / 2;
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + 2, cy + 1);
+    await page.mouse.up();
+    await expect(page.locator('.core-wedge[data-emotion="Sad"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    );
+});
+
+test('a touch drag rotates the wheel', async ({ page }) => {
+    const before = await readRotation(page);
+    await page.evaluate(() => {
+        const svg = document.querySelector('#wheel-container svg')!;
+        const r = svg.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const opts = (x: number, y: number) => ({
+            bubbles: true,
+            isPrimary: true,
+            pointerId: 7,
+            pointerType: 'touch',
+            button: 0,
+            clientX: x,
+            clientY: y,
+        });
+        svg.dispatchEvent(new PointerEvent('pointerdown', opts(cx + 150, cy)));
+        for (let i = 1; i <= 10; i++) {
+            const a = (i * 4 * Math.PI) / 180;
+            document.dispatchEvent(
+                new PointerEvent(
+                    'pointermove',
+                    opts(cx + 150 * Math.cos(a), cy + 150 * Math.sin(a))
+                )
+            );
+        }
+        document.dispatchEvent(new PointerEvent('pointerup', opts(cx, cy + 150)));
+    });
+    const after = await readRotation(page);
+    expect(after).not.toBe(before);
+});
+
+// Reading lens: a large copy of the focused/pressed word (labels can be tiny on phones).
+test('keyboard focus shows the focused word large in the reading lens, clear of the wedge', async ({
+    page,
+}) => {
+    const lens = page.locator('#wheel-lens');
+    await expect(lens).toBeHidden();
+    await page.locator('.core-wedge[data-emotion="Angry"]').focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(lens).toBeVisible();
+    const focused = page.locator('.wedge:focus');
+    await expect(lens.locator('.wheel-lens__word')).toHaveText(
+        (await focused.getAttribute('data-emotion'))!
+    );
+    const size = await lens
+        .locator('.wheel-lens__word')
+        .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(size).toBeGreaterThanOrEqual(16);
+    // The lens never sits on top of the wedge it's describing.
+    const a = (await lens.boundingBox())!;
+    const b = (await focused.boundingBox())!;
+    const cx = b.x + b.width / 2;
+    const cy = b.y + b.height / 2;
+    expect(cx >= a.x && cx <= a.x + a.width && cy >= a.y && cy <= a.y + a.height).toBe(false);
+
+    await page.locator('#reset-btn-panel').focus();
+    await expect(lens).toBeHidden();
+});
+
+test('on a phone, pressing a wedge shows its word large and a tap still chooses it', async ({
+    browser,
+}) => {
+    const ctx = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+    });
+    const page = await ctx.newPage();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/index.html');
+    await page.waitForSelector('#wheel-container svg .wedge');
+    const wedge = page.locator('.tertiary-wedge[data-emotion="Cheeky"]');
+    const box = (await wedge.boundingBox())!;
+    const cdp = await ctx.newCDPSession(page);
+    const pt = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt] });
+    await expect(page.locator('#wheel-lens .wheel-lens__word')).toHaveText('Cheeky');
+    await expect(page.locator('#wheel-lens .wheel-lens__path')).toHaveText('Happy › Playful');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(wedge).toHaveAttribute('aria-pressed', 'true');
+    await ctx.close();
+});
+
+test('feeling names that reveal a meaning carry a chevron that turns with the state', async ({
+    page,
+}) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    const toggle = page.locator('.feeling-node--core .feeling-name--toggle');
+    const chevron = () => toggle.evaluate((el) => getComputedStyle(el, '::after').transform);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    const closed = await chevron();
+    expect(closed).not.toBe('none');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(await chevron()).not.toBe(closed);
+});
+
+test('a refused fullscreen request is announced, not silent', async ({ page }) => {
+    await page.evaluate(() => {
+        Element.prototype.requestFullscreen = () => Promise.reject(new Error('denied'));
+    });
+    await page.locator('#fullscreen-btn-panel').click();
+    await expect(page.locator('#sr-announcer')).toHaveText("Fullscreen isn't available here.");
+    await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('the reading lens shows when a key is pressed on a wedge focused by script', async ({
+    page,
+}) => {
+    await page.locator('label[for="guided-mode-panel"]').click();
+    await page.locator('.core-wedge[data-emotion="Angry"]').focus();
+    await page.keyboard.press('ArrowDown'); // can't move in Guided yet — still a keyboard user
+    await expect(page.locator('.core-wedge[data-emotion="Angry"]')).toBeFocused();
+    await expect(page.locator('#wheel-lens .wheel-lens__word')).toHaveText('Angry');
 });

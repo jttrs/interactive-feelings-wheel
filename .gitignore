@@ -10,3 +10,8 @@ mcp-server.log
 .temp_wiki_content/
 *.log
 .DS_Store
+
+# Local agent/browser tooling
+.playwright-mcp/
+.impeccable/hook.cache.json
+.impeccable/live/

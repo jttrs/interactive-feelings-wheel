@@ -1,262 +1,492 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feelings Wheel</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <main class="main-layout">
-            <!-- Left Column: Wheel Area (70%) -->
-            <section class="wheel-section" aria-label="Feelings wheel">
-                <div class="wheel-container">
-                    <div id="wheel-container"></div>
-                </div>
-            </section>
-
-            <!-- Visually-hidden live region: announces selection changes to screen readers -->
-            <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-
-            <!-- Right Column: Information Panel (30%) -->
-            <aside class="info-panel" id="info-panel">
-                <!-- Mobile Collapse Handle -->
-                <div class="mobile-collapse-handle" id="mobile-collapse-handle">
-                    <span class="collapse-indicator"></span>
-                    <span class="mobile-collapse-arrow">▼</span>
-                </div>
-
-                <div class="panel-content">
-                    <!-- EXPLORE view (default): same tabbed head + body as the other
-                         views (no back button — this is the home tab). -->
-                    <div class="panel-view panel-view--explore" id="view-explore" role="region"
-                         aria-label="How are you feeling?">
-                        <div class="view-head">
-                            <h2 class="view-title">How are you feeling?</h2>
-                        </div>
-                        <div class="view-body view-body--explore">
-                            <div class="panel-empty" id="panel-instructions">
-                                <p class="empty-hint">Tap or spin the wheel to explore a feeling.</p>
-                            </div>
-                            <div class="emotion-tiles" id="emotion-tiles">
-                                <!-- The selected-feelings tree is rendered here dynamically -->
-                            </div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta name="theme-color" content="#f7f4ef" />
+        <meta name="color-scheme" content="light" />
+        <meta
+            name="description"
+            content="An interactive feelings wheel for finding words for what you feel."
+        />
+        <title>Feelings Wheel</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <a class="skip-link" href="#panel-content">Skip to your feelings</a>
+        <div class="container">
+            <main class="main-layout">
+                <h1 class="sr-only">Feelings Wheel</h1>
+                <!-- Left Column: Wheel Area (70%) -->
+                <section class="wheel-section" aria-label="Feelings wheel">
+                    <div class="wheel-container">
+                        <div id="wheel-container"></div>
+                        <!-- Reading lens: a large copy of the pressed/focused wedge's word
+                             (visual only; wedges carry their own accessible names) -->
+                        <div class="wheel-lens" id="wheel-lens" aria-hidden="true" hidden>
+                            <span class="wheel-lens__path"></span>
+                            <span class="wheel-lens__word"></span>
                         </div>
                     </div>
+                    <!-- Guided view caption (visual only; the live region speaks for screen readers) -->
+                    <p class="guided-hint" id="guided-hint" aria-hidden="true" hidden></p>
+                </section>
 
-                    <!-- HELP view (in-panel, fills the space) -->
-                    <div class="panel-view panel-view--secondary" id="view-help" role="region"
-                         aria-label="How to use the wheel" hidden>
-                        <div class="view-head">
-                            <button class="view-back" type="button" data-view-back
-                                    aria-label="Back to feelings">
-                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M15 18l-6-6 6-6"></path>
-                                </svg>
-                            </button>
-                            <h2 class="view-title">How to use the wheel</h2>
+                <!-- Visually-hidden live region: announces selection changes to screen readers -->
+                <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+                <!-- Right Column: Information Panel (30%) -->
+                <aside class="info-panel" id="info-panel">
+                    <!-- Mobile Collapse Handle -->
+                    <button
+                        class="mobile-collapse-handle"
+                        id="mobile-collapse-handle"
+                        type="button"
+                        aria-controls="panel-content"
+                        aria-expanded="true"
+                        aria-label="Hide feelings panel"
+                    >
+                        <span class="collapse-indicator" aria-hidden="true"></span>
+                        <span class="mobile-collapse-arrow" aria-hidden="true">▼</span>
+                    </button>
+
+                    <div class="panel-content" id="panel-content" tabindex="-1">
+                        <!-- EXPLORE view (default): same tabbed head + body as the other
+                         views (no back button — this is the home tab). -->
+                        <div
+                            class="panel-view panel-view--explore"
+                            id="view-explore"
+                            role="region"
+                            aria-label="How are you feeling?"
+                        >
+                            <div class="view-head">
+                                <h2 class="view-title">How are you feeling?</h2>
+                            </div>
+                            <div class="view-body view-body--explore">
+                                <div class="panel-empty" id="panel-instructions">
+                                    <p class="empty-hint">
+                                        Choose any word on the wheel that feels close.<span
+                                            class="empty-hint__more"
+                                        >
+                                            Pick as many as fit — there are no wrong answers.</span
+                                        >
+                                    </p>
+                                    <!-- Shown only when the full wheel's words render too small to read
+                                     comfortably. A suggestion only — the view chips are the action. -->
+                                    <div
+                                        class="screen-nudge"
+                                        id="screen-nudge"
+                                        hidden
+                                        data-announce="Small screen? Simplified or Guided view can make words easier to read."
+                                    >
+                                        <p class="screen-nudge__text">
+                                            Small screen? Try Simplified or Guided.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            class="screen-nudge__dismiss"
+                                            id="screen-nudge-dismiss"
+                                            aria-label="Dismiss tip"
+                                        >
+                                            <svg
+                                                class="hero-ic"
+                                                viewBox="0 0 24 24"
+                                                aria-hidden="true"
+                                            >
+                                                <path d="M6 6l12 12M18 6L6 18"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="emotion-tiles" id="emotion-tiles">
+                                    <!-- The selected-feelings tree is rendered here dynamically -->
+                                </div>
+                            </div>
                         </div>
-                        <div class="view-body">
-                            <section class="help-group">
-                                <h3 class="help-group__title">Explore feelings</h3>
-                                <p class="help-line">Tap or click any emotion to select it and read its meaning.</p>
-                                <p class="help-line">Select several to compare — tap a tile’s ✕ (or the emotion again) to remove it.</p>
-                            </section>
 
-                            <section class="help-group">
-                                <h3 class="help-group__title">Rotate the wheel</h3>
-                                <p class="help-line">
-                                    Drag it, scroll over it, or press the
-                                    <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> arrow keys
-                                    to spin it — hold to keep spinning. When a wedge is
-                                    focused, the arrows step between wedges instead.
+                        <!-- HELP view (in-panel, fills the space) -->
+                        <div
+                            class="panel-view panel-view--secondary"
+                            id="view-help"
+                            role="region"
+                            aria-label="How to use the wheel"
+                            hidden
+                        >
+                            <div class="view-head">
+                                <button
+                                    class="view-back"
+                                    type="button"
+                                    data-view-back
+                                    aria-label="Back to feelings"
+                                >
+                                    <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M15 18l-6-6 6-6"></path>
+                                    </svg>
+                                </button>
+                                <h2 class="view-title">How to use the wheel</h2>
+                            </div>
+                            <div class="view-body">
+                                <section class="help-group">
+                                    <h3 class="help-group__title">Explore feelings</h3>
+                                    <p class="help-line">
+                                        Choose any feeling on the wheel to add it to your list, with
+                                        what it means.
+                                    </p>
+                                    <p class="help-line">
+                                        Pick as many as fit. To remove one, choose it on the wheel
+                                        again — or press Reset to start over.
+                                    </p>
+                                    <p class="help-line">
+                                        In your list, tap a feeling’s name to show or hide its
+                                        meaning.
+                                    </p>
+                                    <p class="help-line">
+                                        Words too small to read? Press and hold one to see it larger
+                                        — slide away to cancel.
+                                    </p>
+                                </section>
+
+                                <section class="help-group">
+                                    <h3 class="help-group__title">Rotate the wheel</h3>
+                                    <p class="help-line">
+                                        Drag it, scroll over it, or press the
+                                        <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> arrow keys
+                                        to spin it — hold to keep spinning.
+                                    </p>
+                                </section>
+
+                                <section class="help-group">
+                                    <h3 class="help-group__title">Move with the keyboard</h3>
+                                    <p class="help-line">
+                                        Press <kbd class="kbd">Tab</kbd> to reach the wheel, then
+                                        <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> to move
+                                        around a ring, <kbd class="kbd">↓</kbd> to step out to more
+                                        specific feelings and <kbd class="kbd">↑</kbd> to step back
+                                        in.
+                                    </p>
+                                    <p class="help-line">
+                                        <kbd class="kbd">[</kbd><kbd class="kbd">]</kbd> or Page Up
+                                        / Page Down jump to the next family;
+                                        <kbd class="kbd">Enter</kbd> or
+                                        <kbd class="kbd">Space</kbd> chooses a feeling.
+                                    </p>
+                                </section>
+
+                                <section class="help-group">
+                                    <h3 class="help-group__title">View and actions</h3>
+                                    <ul class="help-actions">
+                                        <li class="help-action">
+                                            <span class="help-action__ic" aria-hidden="true">
+                                                <svg class="hero-ic" viewBox="0 0 24 24">
+                                                    <circle
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="9"
+                                                        stroke-dasharray="2 3"
+                                                    ></circle>
+                                                    <circle cx="12" cy="12" r="3.5"></circle>
+                                                </svg>
+                                            </span>
+                                            <span class="help-action__text">
+                                                <span class="help-action__name">Guided view</span>
+                                                starts with the core feelings and opens each ring as
+                                                you choose — the full wheel stays in view behind it.
+                                            </span>
+                                            <kbd class="kbd">G</kbd>
+                                        </li>
+                                        <li class="help-action">
+                                            <span class="help-action__ic" aria-hidden="true">
+                                                <svg class="hero-ic" viewBox="0 0 24 24">
+                                                    <circle cx="12" cy="12" r="9"></circle>
+                                                    <circle cx="12" cy="12" r="4"></circle>
+                                                </svg>
+                                            </span>
+                                            <span class="help-action__text">
+                                                <span class="help-action__name"
+                                                    >Simplified view</span
+                                                >
+                                                hides the outer ring for a calmer wheel and uses
+                                                simpler meanings. Anything you chose there stays
+                                                chosen.
+                                            </span>
+                                            <kbd class="kbd">S</kbd>
+                                        </li>
+                                        <li class="help-action">
+                                            <span class="help-action__ic" aria-hidden="true">
+                                                <svg class="hero-ic" viewBox="0 0 24 24">
+                                                    <path
+                                                        d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"
+                                                    ></path>
+                                                </svg>
+                                            </span>
+                                            <span class="help-action__text">
+                                                <span class="help-action__name">Fullscreen</span>
+                                                gives the wheel the whole screen; press Esc to
+                                                leave.
+                                            </span>
+                                            <kbd class="kbd">F11</kbd>
+                                        </li>
+                                        <li class="help-action">
+                                            <span class="help-action__ic" aria-hidden="true">
+                                                <svg class="hero-ic" viewBox="0 0 24 24">
+                                                    <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+                                                    <path d="M3 3v5h5"></path>
+                                                </svg>
+                                            </span>
+                                            <span class="help-action__text">
+                                                <span class="help-action__name">Reset</span>
+                                                clears your chosen feelings and re-centres the
+                                                wheel.
+                                            </span>
+                                            <kbd class="kbd">R</kbd>
+                                        </li>
+                                        <li class="help-action">
+                                            <span class="help-action__ic" aria-hidden="true">
+                                                <svg
+                                                    class="hero-ic hero-ic--fill"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path d="M9 6l6 6-6 6z"></path>
+                                                </svg>
+                                            </span>
+                                            <span class="help-action__text">
+                                                <span class="help-action__name">Hide panel</span>
+                                                tucks this panel away to give the wheel more room.
+                                            </span>
+                                            <kbd class="kbd">P</kbd>
+                                        </li>
+                                    </ul>
+                                </section>
+                            </div>
+                        </div>
+
+                        <!-- ABOUT view (in-panel) -->
+                        <div
+                            class="panel-view panel-view--secondary"
+                            id="view-about"
+                            role="region"
+                            aria-label="About"
+                            hidden
+                        >
+                            <div class="view-head">
+                                <button
+                                    class="view-back"
+                                    type="button"
+                                    data-view-back
+                                    aria-label="Back to feelings"
+                                >
+                                    <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M15 18l-6-6 6-6"></path>
+                                    </svg>
+                                </button>
+                                <h2 class="view-title">About</h2>
+                            </div>
+                            <div class="view-body">
+                                <p class="refs-text">
+                                    An interactive take on the feelings wheel — a gentle way to find
+                                    words for what you feel.
                                 </p>
-                            </section>
-
-                            <section class="help-group">
-                                <h3 class="help-group__title">View options</h3>
-                                <ul class="help-actions">
-                                    <li class="help-action">
-                                        <span class="help-action__ic" aria-hidden="true">
-                                            <svg class="hero-ic" viewBox="0 0 24 24">
-                                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
-                                            </svg>
-                                        </span>
-                                        <span class="help-action__text">
-                                            <span class="help-action__name">Reset</span>
-                                            clears your selections and re-centres the wheel.
-                                        </span>
-                                        <kbd class="kbd">R</kbd>
+                                <ul class="refs-list">
+                                    <li>
+                                        Wheel design by
+                                        <a
+                                            href="https://www.whitehousechurch.com.au/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >Geoffrey Roberts</a
+                                        >, with appreciation.
                                     </li>
-                                    <li class="help-action">
-                                        <span class="help-action__ic" aria-hidden="true">
-                                            <svg class="hero-ic" viewBox="0 0 24 24">
-                                                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
-                                            </svg>
-                                        </span>
-                                        <span class="help-action__text">
-                                            <span class="help-action__name">Fullscreen</span>
-                                            gives the wheel the whole screen.
-                                        </span>
-                                        <kbd class="kbd">F11</kbd>
-                                    </li>
-                                    <li class="help-action">
-                                        <span class="help-action__ic" aria-hidden="true">
-                                            <svg class="hero-ic" viewBox="0 0 24 24">
-                                                <circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle>
-                                            </svg>
-                                        </span>
-                                        <span class="help-action__text">
-                                            <span class="help-action__name">Simplified view</span>
-                                            hides the outer ring for a calmer wheel.
-                                        </span>
-                                        <kbd class="kbd">S</kbd>
-                                    </li>
-                                    <li class="help-action">
-                                        <span class="help-action__ic" aria-hidden="true">
-                                            <svg class="hero-ic hero-ic--fill" viewBox="0 0 24 24">
-                                                <path d="M9 6l6 6-6 6z"></path>
-                                            </svg>
-                                        </span>
-                                        <span class="help-action__text">
-                                            <span class="help-action__name">Collapse panel</span>
-                                            tuck the sidebar away any time.
-                                        </span>
-                                        <kbd class="kbd">P</kbd>
+                                    <li>
+                                        Internet concept by
+                                        <a
+                                            href="https://feelingswheel.com"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >feelingswheel.com</a
+                                        >.
                                     </li>
                                 </ul>
-                            </section>
+                                <p class="refs-text refs-text--muted">
+                                    Type set in Atkinson Hyperlegible (Braille Institute).
+                                </p>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- ABOUT view (in-panel) -->
-                    <div class="panel-view panel-view--secondary" id="view-about" role="region"
-                         aria-label="About" hidden>
-                        <div class="view-head">
-                            <button class="view-back" type="button" data-view-back
-                                    aria-label="Back to feelings">
-                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M15 18l-6-6 6-6"></path>
-                                </svg>
-                            </button>
-                            <h2 class="view-title">About</h2>
-                        </div>
-                        <div class="view-body">
-                            <p class="refs-text">
-                                An interactive take on the feelings wheel — a gentle way to
-                                find words for what you feel.
-                            </p>
-                            <ul class="refs-list">
-                                <li>Wheel design by
-                                    <a href="https://www.whitehousechurch.com.au/" target="_blank" rel="noopener noreferrer">Geoffrey Roberts</a>,
-                                    with appreciation.</li>
-                                <li>Internet concept by
-                                    <a href="https://feelingswheel.com" target="_blank" rel="noopener noreferrer">feelingswheel.com</a>.</li>
-                            </ul>
-                            <p class="refs-text refs-text--muted">
-                                Type set in Atkinson Hyperlegible (Braille Institute).
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- SUPPORT view (in-panel Ko-fi embed) -->
-                    <div class="panel-view panel-view--support" id="view-support" role="region"
-                         aria-label="Support this project" hidden>
-                        <div class="view-head">
-                            <button class="view-back" type="button" data-view-back
-                                    aria-label="Back to feelings">
-                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M15 18l-6-6 6-6"></path>
-                                </svg>
-                            </button>
-                            <h2 class="view-title">Support this project</h2>
-                        </div>
-                        <div class="view-body view-body--flush">
-                            <!-- Ko-fi in-page embed. src is set lazily by app.js the first
+                        <!-- SUPPORT view (in-panel Ko-fi embed) -->
+                        <div
+                            class="panel-view panel-view--support"
+                            id="view-support"
+                            role="region"
+                            aria-label="Support this project"
+                            hidden
+                        >
+                            <div class="view-head">
+                                <button
+                                    class="view-back"
+                                    type="button"
+                                    data-view-back
+                                    aria-label="Back to feelings"
+                                >
+                                    <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M15 18l-6-6 6-6"></path>
+                                    </svg>
+                                </button>
+                                <h2 class="view-title">Support this project</h2>
+                            </div>
+                            <div class="view-body view-body--flush">
+                                <!-- Ko-fi in-page embed. src is set lazily by app.js the first
                                  time the view opens (so we don't load it until asked). The
                                  iframe URL is Ko-fi's documented embed endpoint. If it can't
                                  be framed / is offline, the fallback link below is always a
                                  working way to give. -->
-                            <iframe id="kofi-frame" class="kofi-frame" title="Support on Ko-fi"
+                                <iframe
+                                    id="kofi-frame"
+                                    class="kofi-frame"
+                                    title="Support on Ko-fi"
                                     data-src="https://ko-fi.com/jttrs/?hidefeed=true&widget=true&embed=true"
-                                    loading="lazy"></iframe>
-                            <p class="kofi-fallback">
-                                Trouble loading?
-                                <a href="https://ko-fi.com/jttrs" target="_blank" rel="noopener noreferrer">Open Ko-fi in a new tab</a>.
-                            </p>
+                                    loading="lazy"
+                                ></iframe>
+                                <p class="kofi-fallback">
+                                    Trouble loading?
+                                    <a
+                                        href="https://ko-fi.com/jttrs"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        >Open Ko-fi in a new tab</a
+                                    >.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Panel Footer: hero-icon action row. Icon-only with tooltip + aria-label. -->
-                <footer class="panel-footer">
-                    <div class="hero-actions" role="toolbar" aria-label="Wheel actions">
-                        <button id="reset-btn-panel" class="hero-btn" type="button"
-                                data-tip="Reset" aria-label="Reset the wheel">
-                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
-                            </svg>
-                        </button>
+                    <!-- Panel Footer: two small chunks. View options are labelled toggles
+                     (they change how the wheel looks); actions sit beneath. -->
+                    <footer class="panel-footer">
+                        <div class="view-toggles" role="group" aria-label="View options">
+                            <input
+                                type="checkbox"
+                                id="guided-mode-panel"
+                                class="hero-toggle-input"
+                            />
+                            <label for="guided-mode-panel" class="view-chip">
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="9" stroke-dasharray="2 3"></circle>
+                                    <circle cx="12" cy="12" r="3.5"></circle>
+                                </svg>
+                                Guided
+                            </label>
 
-                        <button id="fullscreen-btn-panel" class="hero-btn" type="button"
-                                data-tip="Fullscreen" aria-label="Toggle fullscreen">
-                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
-                            </svg>
-                        </button>
+                            <input
+                                type="checkbox"
+                                id="simplified-mode-panel"
+                                class="hero-toggle-input"
+                            />
+                            <label for="simplified-mode-panel" class="view-chip">
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="9"></circle>
+                                    <circle cx="12" cy="12" r="4"></circle>
+                                </svg>
+                                Simplified
+                            </label>
 
-                        <!-- Simplified view: accessible checkbox styled as an icon toggle -->
-                        <input type="checkbox" id="simplified-mode-panel" class="hero-toggle-input" />
-                        <label for="simplified-mode-panel" class="hero-btn hero-toggle"
-                               data-tip="Simplified view" aria-label="Simplified view">
-                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                <circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle>
-                            </svg>
-                        </label>
+                            <button
+                                id="fullscreen-btn-panel"
+                                class="view-chip"
+                                type="button"
+                                aria-pressed="false"
+                            >
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path
+                                        d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"
+                                    ></path>
+                                </svg>
+                                Fullscreen
+                            </button>
+                        </div>
 
-                        <span class="hero-sep" aria-hidden="true"></span>
+                        <div class="hero-actions" role="toolbar" aria-label="Wheel actions">
+                            <button
+                                id="reset-btn-panel"
+                                class="hero-btn hero-btn--labelled"
+                                type="button"
+                                aria-label="Reset the wheel"
+                            >
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+                                    <path d="M3 3v5h5"></path>
+                                </svg>
+                                <span aria-hidden="true">Reset</span>
+                            </button>
 
-                        <button id="help-btn-panel" class="hero-btn" type="button"
-                                data-view="help" aria-label="How to use the wheel">
-                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                <circle cx="12" cy="12" r="9"></circle>
-                                <path d="M9.3 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.7 2.4-2.7 4"></path>
-                                <path d="M12 17.4h.01"></path>
-                            </svg>
-                        </button>
+                            <span class="hero-spacer" aria-hidden="true"></span>
 
-                        <button id="about-btn-panel" class="hero-btn" type="button"
-                                data-view="about" aria-label="About">
-                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                <circle cx="12" cy="12" r="9"></circle>
-                                <path d="M12 11v5"></path><path d="M12 8h.01"></path>
-                            </svg>
-                        </button>
+                            <button
+                                id="help-btn-panel"
+                                class="hero-btn"
+                                type="button"
+                                data-view="help"
+                                data-tip="Help"
+                                aria-label="How to use the wheel"
+                            >
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="9"></circle>
+                                    <path
+                                        d="M9.3 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.7 2.4-2.7 4"
+                                    ></path>
+                                    <path d="M12 17.4h.01"></path>
+                                </svg>
+                            </button>
 
-                        <button id="kofi-btn-panel" class="hero-btn hero-btn--kofi" type="button"
-                                data-view="support" data-tip="Buy me a coffee"
-                                aria-label="Support this project">
-                            <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8z"></path>
-                                <path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"></path>
-                                <path d="M8 3.5c-.5.7-.5 1.3 0 2M11 3.5c-.5.7-.5 1.3 0 2"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </footer>
-            </aside>
+                            <button
+                                id="about-btn-panel"
+                                class="hero-btn"
+                                type="button"
+                                data-view="about"
+                                data-tip="About"
+                                aria-label="About"
+                            >
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="9"></circle>
+                                    <path d="M12 11v5"></path>
+                                    <path d="M12 8h.01"></path>
+                                </svg>
+                            </button>
 
-            <!-- Panel collapse tab — a SIBLING of the panel (not a child), so the
+                            <button
+                                id="kofi-btn-panel"
+                                class="hero-btn hero-btn--kofi"
+                                type="button"
+                                data-view="support"
+                                data-tip="Buy me a coffee"
+                                aria-label="Support this project"
+                            >
+                                <svg class="hero-ic" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8z"></path>
+                                    <path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"></path>
+                                    <path
+                                        d="M8 3.5c-.5.7-.5 1.3 0 2M11 3.5c-.5.7-.5 1.3 0 2"
+                                    ></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </footer>
+                </aside>
+
+                <!-- Panel collapse tab — a SIBLING of the panel (not a child), so the
                  panel's minimized transform can't capture this fixed element and
                  push it off-screen. -->
-            <button class="panel-minimize-tab" id="panel-minimize-tab"
-                    aria-label="Toggle information panel" aria-expanded="true">
-                <span class="minimize-arrow">▶</span>
-            </button>
-        </main>
-    </div>
+                <button
+                    class="panel-minimize-tab"
+                    id="panel-minimize-tab"
+                    aria-controls="info-panel"
+                    aria-label="Hide feelings panel"
+                    aria-expanded="true"
+                >
+                    <span class="minimize-arrow">▶</span>
+                </button>
+            </main>
+        </div>
 
-    <script type="module" src="app.ts"></script>
-</body>
-</html> 
+        <script type="module" src="app.ts"></script>
+    </body>
+</html>

@@ -11,11 +11,14 @@ An interactive web application displaying a therapeutic feelings wheel based on 
 - **Dynamic Sizing**: Wheel automatically fills available browser space
 
 ### Interactive Controls
-- **Full Rotation**: Click and drag to rotate the wheel smoothly
-- **Mouse Wheel Support**: Scroll to rotate the wheel
-- **Multi-Selection**: Click wedges to emphasize multiple emotions simultaneously
-- **Visual Emphasis**: Selected wedges get enhanced colors, brightness, and subtle shadows
-- **Reset Function**: Small reset button positioned just inside the wheel's edge
+- **Full Rotation**: Drag, scroll, or hold the ← → arrow keys to spin the wheel
+- **Multi-Selection**: Choose as many feelings as fit; choose one again to remove it
+- **Feelings Panel**: Your chosen feelings appear in a side panel (a bottom sheet on phones) with their meanings
+- **Guided View** (opt-in, `G`): Starts with the core feelings and opens each ring as you choose — the full wheel stays the default
+- **Simplified View** (`S`): Hides the outer ring for a calmer wheel
+- **Fullscreen** (`F11`), **Reset** (`R`), **Hide panel** (`P`)
+- **Reading Lens**: Press and hold a word (or focus it with the keyboard) to see it large, with its family path — handy when outer-ring words are small on phones
+- **Keyboard & Screen Readers**: The wheel is one tab-stop. ← → move around a ring, ↓ steps out to more specific feelings and ↑ back in, `[` `]` (or Page Up/Down) jump between families, Home/End go to the ends of a ring, Enter/Space chooses. Each feeling is read with its place, e.g. "Playful, under Happy, 1 of 6"
 
 ### Advanced Visual Features
 - **Layered Shadows**: Shadows render over unemphasized wedges but never cover emphasized ones
@@ -24,10 +27,10 @@ An interactive web application displaying a therapeutic feelings wheel based on 
 - **Responsive Design**: Adapts to any screen size and aspect ratio
 
 ### User Experience
-- **Minimal Interface**: Clean design with only essential elements
-- **No Side Panels**: Focus remains entirely on the wheel
-- **Smooth Animations**: Elegant transitions for all interactions
-- **Touch Support**: Works on mobile devices
+- **Calm Interface**: Warm, low-contrast-glare palette and Atkinson Hyperlegible type
+- **Wheel First**: The panel tucks away any time to give the wheel the whole screen
+- **Smooth Animations**: Gentle transitions, respecting reduced-motion settings
+- **Touch Support**: Works on phones and tablets, portrait or landscape
 
 ## 🎨 Attribution & Credits
 
@@ -44,27 +47,30 @@ This web application faithfully recreates the therapeutic feelings wheel with mo
 ## 🚀 Getting Started
 
 ### Installation
-1. Clone or download the repository
-2. Open `index.html` in a web browser
-3. No server setup required - runs entirely in the browser
+1. Clone the repository and run `npm install`
+2. `npm run dev` to start the Vite dev server
+3. `npm run build` produces a single self-contained `dist/index.html`
 
 ### Usage
-- **Rotate**: Click and drag anywhere on the wheel or use mouse scroll
-- **Select**: Click any emotion wedge to emphasize it
-- **Multi-Select**: Click multiple wedges to emphasize several emotions
-- **Reset**: Click the small reset button (⟲) in the bottom-right corner of the wheel
-- **Deselect**: Click an emphasized wedge again to deselect it
+- **Choose**: Click or tap any feeling to add it to your list, with its meaning
+- **Remove**: Choose a selected feeling on the wheel again
+- **Rotate**: Drag the wheel, scroll over it, or hold the arrow keys (when no feeling has focus)
+- **Keyboard**: Tab into the wheel; ← → around a ring, ↓ / ↑ out to specific / back to broader feelings, `[` `]` between families
+- **Guided view**: Turn on in the panel footer (or press `G`) to focus one ring at a time
+- **Reset**: The Reset button (or `R`) clears your choices and re-centres the wheel
 
 ## 📁 File Structure
 
 ```
 feelings-wheel/
-├── index.html          # Main HTML structure
-├── styles.css          # Complete styling and responsive design
-├── app.js             # Main application logic and event handling
-├── wheel-generator.js  # SVG wheel generation, rotation, and layering
-├── feelings-data.js    # Complete emotion data structure
-└── README.md          # This documentation
+├── index.html               # Page structure, panel views, footer controls
+├── styles.css               # Design tokens, layout, responsive + a11y styles
+├── app.ts                   # Panel, shortcuts, fullscreen, coordination
+├── feelings-wheel-engine.ts # Composes the wheel mixins below
+├── feelings-data.ts         # Feelings, families, and definitions
+└── src/
+    ├── wheel/               # rendering, interaction, animation, svg, guided view
+    └── ui/feelings-tree.ts  # Selected-feelings list
 ```
 
 ## 🔧 Technical Implementation

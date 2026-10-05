@@ -68,13 +68,9 @@ export interface TextEl {
     x: number;
     y: number;
     lastRotation?: number;
-}
-
-// Per-mode snapshot for the simplified/full toggle.
-export interface ModeState {
-    rotation: number;
-    selectedWedges: Set<string>;
-    hasBeenInitialized: boolean;
+    // Wedge geometry for per-label shrink-to-fit (see wheel/label-fit.ts).
+    level?: Level;
+    fit?: { innerR: number; outerR: number; r: number; spanDeg: number };
 }
 
 // Result of calculateResponsiveScaling().
@@ -157,12 +153,18 @@ export interface WheelInstance {
     centerX: number;
     centerY: number;
     isSimplifiedMode: boolean;
+    isGuidedMode: boolean;
     selectedWedges: Set<string>;
     wedgeRegistry: Map<string, WedgeMeta>;
 
     // Rotation + pointer state
     currentRotation: number;
     isDragging: boolean;
+    // Drag-vs-tap: rotation starts only past a movement threshold; a real drag's
+    // trailing click is suppressed so it can't select a wedge.
+    dragMoved: boolean;
+    dragStart: { x: number; y: number; touch: boolean } | null;
+    suppressClick: boolean;
     lastMouseAngle: number;
     svg: SVGSVGElement | null;
     wheelGroup: SVGGElement | null;
@@ -183,10 +185,6 @@ export interface WheelInstance {
     dpr: number;
     effectiveSize: number;
     resizeTimeout: ReturnType<typeof setTimeout> | null;
-
-    // Mode-switch snapshots
-    fullModeState: ModeState;
-    simplifiedModeState: ModeState;
 
     // Radii + scaling (set during generate())
     coreRadius: number;

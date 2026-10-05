@@ -16,6 +16,7 @@ export class FeelingsWheelGenerator extends InteractionMixin(
         this.centerX = 300;
         this.centerY = 300;
         this.isSimplifiedMode = false;
+        this.isGuidedMode = false; // opt-in; the full wheel is the default view
         this.selectedWedges = new Set();
 
         // Structured wedge identity: maps a wedgeId string to its metadata
@@ -27,6 +28,9 @@ export class FeelingsWheelGenerator extends InteractionMixin(
         // Rotation state
         this.currentRotation = 0;
         this.isDragging = false;
+        this.dragMoved = false;
+        this.dragStart = null;
+        this.suppressClick = false;
         this.lastMouseAngle = 0;
         this.svg = null;
         this.wheelGroup = null;
@@ -53,18 +57,6 @@ export class FeelingsWheelGenerator extends InteractionMixin(
         this.dpr = window.devicePixelRatio || 1;
         this.effectiveSize = 0;
         this.resizeTimeout = null;
-
-        // State management for mode switching
-        this.fullModeState = {
-            rotation: 0,
-            selectedWedges: new Set(),
-            hasBeenInitialized: false,
-        };
-        this.simplifiedModeState = {
-            rotation: 0,
-            selectedWedges: new Set(),
-            hasBeenInitialized: false,
-        };
 
         // Set dynamic radii based on mode
         this.updateRadii();

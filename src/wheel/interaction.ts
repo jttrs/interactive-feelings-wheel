@@ -7,6 +7,52 @@ import type {
     ScrollPhysics,
     EffectCtx,
 } from '../types.ts';
+import { applyGuidedFocus, GUIDED_REST_ATTR } from './guided.ts';
+import {
+    isNavKey,
+    parentKey,
+    resolveNavMove,
+    siblingPositions,
+    type NavLevel,
+    type NavNode,
+} from './keyboard-nav.ts';
+
+// Per-wheel "last child visited" memory for ↓ (parentKey → wedge id). Kept outside the
+// mixin class so it needs no engine-wide field declaration.
+const navMemory = new WeakMap<object, Map<string, string>>();
+
+function toNavNode(w: Element): NavNode {
+    const level = w.getAttribute('data-level') as NavLevel;
+    const emotion = w.getAttribute('data-emotion') ?? '';
+    const parent = w.getAttribute('data-parent');
+    const family =
+        level === 'core'
+            ? emotion
+            : level === 'secondary'
+              ? (parent ?? '')
+              : (w.getAttribute('data-grandparent') ?? '');
+    return {
+        id: w.getAttribute('data-wedge-id') ?? '',
+        level,
+        emotion,
+        parent: level === 'core' ? null : parent,
+        family,
+        reachable: !w.hasAttribute(GUIDED_REST_ATTR),
+    };
+}
+
+function announceNav(message: string): void {
+    const region = document.getElementById('sr-announcer');
+    if (!region) return;
+    // Identical text isn't re-read by screen readers; blank it first so a repeated
+    // edge press is still heard.
+    if (region.textContent === message) {
+        region.textContent = '';
+        setTimeout(() => (region.textContent = message), 50);
+    } else {
+        region.textContent = message;
+    }
+}
 
 // ===== SELECTION EFFECTS — THE SINGLE SOURCE OF TRUTH =====
 //
@@ -82,18 +128,20 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
     class extends Base {
         // Shared instance state this mixin reads/writes (initialized by the engine ctor).
         declare isSimplifiedMode: WheelInstance['isSimplifiedMode'];
+        declare isGuidedMode: WheelInstance['isGuidedMode'];
         declare selectedWedges: WheelInstance['selectedWedges'];
         declare currentRotation: WheelInstance['currentRotation'];
         declare svg: WheelInstance['svg'];
         declare container: WheelInstance['container'];
         declare containerSize: WheelInstance['containerSize'];
         declare isDragging: WheelInstance['isDragging'];
+        declare dragMoved: WheelInstance['dragMoved'];
+        declare dragStart: WheelInstance['dragStart'];
+        declare suppressClick: WheelInstance['suppressClick'];
         declare isAnimating: WheelInstance['isAnimating'];
         declare scrollVelocity: WheelInstance['scrollVelocity'];
         declare momentumRafId: WheelInstance['momentumRafId'];
         declare heldRotationDir: WheelInstance['heldRotationDir'];
-        declare fullModeState: WheelInstance['fullModeState'];
-        declare simplifiedModeState: WheelInstance['simplifiedModeState'];
         declare wedgeRegistry: WheelInstance['wedgeRegistry'];
         declare topGroup: WheelInstance['topGroup'];
         declare baseGroup: WheelInstance['baseGroup'];
@@ -136,42 +184,53 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         declare getShortestRotationPath: (from: number, to: number) => number;
         declare clearAllAnimations: () => void;
 
-        saveCurrentState(): void {
-            const currentState = this.isSimplifiedMode
-                ? this.simplifiedModeState
-                : this.fullModeState;
-            currentState.rotation = this.currentRotation;
-            currentState.selectedWedges = new Set(this.selectedWedges);
-            currentState.hasBeenInitialized = true;
+        // Views share ONE selection and rotation. Simplified only stops drawing the outer
+        // ring: a chosen outer-ring feeling stays chosen (and listed in the panel) while
+        // hidden, and reappears selected when the full wheel returns. No per-view memory,
+        // so switching views never silently swaps what the user picked.
+        setSimplifiedMode(enabled: boolean): void {
+            this.isSimplifiedMode = enabled;
+            this.updateRadii();
+            this.regenerateWheel();
         }
 
-        restoreState(targetMode: boolean): void {
-            const targetState = targetMode ? this.simplifiedModeState : this.fullModeState;
+        // Guided mode is a visual spotlight over the full wheel (see guided.ts). It never
+        // touches selection or rotation, so toggling it off restores the plain full view.
+        setGuidedMode(enabled: boolean): void {
+            this.isGuidedMode = enabled;
+            this.refreshGuidedFocus();
+        }
 
-            if (targetState.hasBeenInitialized) {
-                // Restore previous state
-                this.currentRotation = targetState.rotation;
-                this.selectedWedges = new Set(targetState.selectedWedges);
-            } else {
-                // First time seeing this mode - reset state
-                this.currentRotation = 0;
-                this.selectedWedges = new Set();
+        refreshGuidedFocus(): void {
+            if (!this.svg) return;
+            applyGuidedFocus(this.container, this.isGuidedMode);
+
+            // Keep the wheel a single tab-stop on a reachable wedge.
+            const reachable = this.getFocusableWedges();
+            if (reachable.length && !reachable.some((w) => w.getAttribute('tabindex') === '0')) {
+                reachable[0].setAttribute('tabindex', '0');
             }
         }
 
-        setSimplifiedMode(enabled: boolean): void {
-            // Save current state before switching
-            this.saveCurrentState();
-
-            // Switch mode
-            this.isSimplifiedMode = enabled;
-            this.updateRadii();
-
-            // Restore state for new mode
-            this.restoreState(enabled);
-
-            // Regenerate wheel
-            this.regenerateWheel();
+        // After a keyboard toggle, put focus back: selection re-layers the wedge (which
+        // blurs it), and in guided view a just-deselected wedge may have gone to rest —
+        // then focus falls back to its family's core so the user isn't dropped to <body>.
+        restoreWedgeFocus(target: Element): void {
+            let next: Element | undefined = target;
+            if (target.hasAttribute(GUIDED_REST_ATTR)) {
+                const family =
+                    target.getAttribute('data-grandparent') ?? target.getAttribute('data-parent');
+                next = this.getFocusableWedges().find(
+                    (w) =>
+                        w.classList.contains('core-wedge') &&
+                        w.getAttribute('data-emotion') === family
+                );
+            }
+            if (!next) return;
+            this.getFocusableWedges().forEach((w) =>
+                w.setAttribute('tabindex', w === next ? '0' : '-1')
+            );
+            (next as SVGElement).focus();
         }
 
         regenerateWheel(): void {
@@ -230,14 +289,18 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             // always non-null here even though the shared field type is nullable.
             const svg = this.svg as SVGSVGElement;
 
-            // Mouse down to begin a drag-rotation.
-            svg.addEventListener('mousedown', (e: MouseEvent) => {
-                if (this.isAnimating) return;
+            // Pointer down (mouse, touch or pen) arms a drag-rotation. Rotation only starts
+            // once the pointer travels past a small threshold, so a tap still selects and a
+            // drag never does (see the click handler).
+            svg.addEventListener('pointerdown', (e: PointerEvent) => {
+                if (this.isAnimating || !e.isPrimary || e.button !== 0) return;
 
                 // Grabbing the wheel arrests any in-flight scroll glide.
                 this.stopMomentum();
 
                 this.isDragging = true;
+                this.dragMoved = false;
+                this.dragStart = { x: e.clientX, y: e.clientY, touch: e.pointerType !== 'mouse' };
                 svg.style.cursor = 'grabbing';
 
                 const rect = svg.getBoundingClientRect();
@@ -266,6 +329,11 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             // (e.g. the reset unwind) — a mid-reset click would otherwise select a wedge
             // the in-flight reset won't clean up, leaving it stuck-selected.
             svg.addEventListener('click', (e: MouseEvent) => {
+                // The click that ends a real drag is not a choice.
+                if (this.suppressClick) {
+                    this.suppressClick = false;
+                    return;
+                }
                 if (this.isDragging || this.isAnimating) return;
 
                 const target = e.target as Element;
@@ -275,10 +343,10 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 }
             });
 
-            // Keyboard support: Enter/Space selects the focused wedge; Arrow keys move
-            // focus between wedges (roving tabindex). Arrow handling is scoped to when a
-            // wedge is focused and stops propagation so it does not also rotate the wheel
-            // via the app's global arrow-key shortcut — mouse/scroll behavior is unchanged.
+            // Keyboard support: Enter/Space selects the focused wedge; the structured nav
+            // keys (keyboard-nav.ts) move focus by ring/family (roving tabindex). Scoped to
+            // when a wedge is focused and stops propagation so arrows don't also rotate the
+            // wheel via the global arrow-key spin — mouse/scroll behavior is unchanged.
             svg.addEventListener('keydown', (e: KeyboardEvent) => {
                 const target = e.target as Element | null;
                 if (!target || !target.classList || !target.classList.contains('wedge')) return;
@@ -286,14 +354,11 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
                     e.preventDefault();
                     this.handleWedgeClick({ target } as unknown as MouseEvent);
+                    this.restoreWedgeFocus(target);
                     return;
                 }
 
-                if (
-                    ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(
-                        e.key
-                    )
-                ) {
+                if (isNavKey(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
                     e.preventDefault();
                     e.stopPropagation();
                     this.moveWedgeFocus(target, e.key);
@@ -316,6 +381,17 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 if (!this.isDragging || this.isAnimating || !this.svg) return;
                 const P = (this.constructor as unknown as { ScrollPhysics: ScrollPhysics })
                     .ScrollPhysics;
+
+                // Below the threshold this is still a tap/click: don't rotate yet. Fingers
+                // jitter more than mice, so touch gets a wider allowance.
+                if (!this.dragMoved && this.dragStart) {
+                    const dist = Math.hypot(
+                        e.clientX - this.dragStart.x,
+                        e.clientY - this.dragStart.y
+                    );
+                    if (dist < (this.dragStart.touch ? 10 : 5)) return;
+                    this.dragMoved = true;
+                }
 
                 const rect = this.svg.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left - rect.width / 2;
@@ -342,9 +418,17 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 this.updateRotation();
             };
             this._onMouseUp = () => {
-                if (!this.svg) return;
+                if (!this.svg || !this.isDragging) return;
                 this.isDragging = false;
                 this.svg.style.cursor = 'grab';
+                // A real drag's trailing click must not select; clear the flag after this
+                // task in case the release landed off the wheel and no click follows.
+                if (this.dragMoved) {
+                    this.suppressClick = true;
+                    setTimeout(() => (this.suppressClick = false), 0);
+                }
+                this.dragMoved = false;
+                this.dragStart = null;
 
                 // Release into a decaying glide, matching a scroll flick. A slow/still release
                 // (velocity below the settle threshold) just stops. mousedown already called
@@ -398,8 +482,9 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 this.heldRotationDir = 0;
             };
 
-            document.addEventListener('mousemove', this._onMouseMove);
-            document.addEventListener('mouseup', this._onMouseUp);
+            document.addEventListener('pointermove', this._onMouseMove);
+            document.addEventListener('pointerup', this._onMouseUp);
+            document.addEventListener('pointercancel', this._onMouseUp);
             document.addEventListener('keydown', this._onKeyDown);
             document.addEventListener('keyup', this._onKeyUp);
             window.addEventListener('resize', this._onResize);
@@ -411,6 +496,39 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         // order — a selected wedge's <path> is moved to the top layer, which would
         // otherwise reshuffle arrow-key navigation after any selection.
         getFocusableWedges(): Element[] {
+            return Array.from(
+                this.container.querySelectorAll(
+                    `.wedge:not(.shadow-wedge):not([${GUIDED_REST_ATTR}])`
+                )
+            ).sort(
+                (a, b) =>
+                    Number(a.getAttribute('data-nav-index')) -
+                    Number(b.getAttribute('data-nav-index'))
+            );
+        }
+
+        // Make exactly one wedge part of the tab order so the wheel is a single tab-stop,
+        // and give every wedge its position among siblings ("Playful, under Happy, 1 of 6")
+        // so screen-reader users hear where they are without a separate announcement.
+        initRovingTabindex(): void {
+            const wedges = this.getFocusableWedges();
+            wedges.forEach((w) => w.setAttribute('tabindex', '-1'));
+            if (wedges.length) wedges[0].setAttribute('tabindex', '0');
+
+            const all = this.getNavWedges();
+            const positions = siblingPositions(all.map(toNavNode));
+            for (const w of all) {
+                const pos = positions.get(w.getAttribute('data-wedge-id') ?? '');
+                const label = w.getAttribute('aria-label');
+                if (pos && label && !/, \d+ of \d+$/.test(label)) {
+                    w.setAttribute('aria-label', `${label}, ${pos.index} of ${pos.total}`);
+                }
+            }
+        }
+
+        // Every real wedge (rested ones included) in stable nav-index order — the
+        // structure the keyboard model reasons over.
+        getNavWedges(): Element[] {
             return Array.from(this.container.querySelectorAll('.wedge:not(.shadow-wedge)')).sort(
                 (a, b) =>
                     Number(a.getAttribute('data-nav-index')) -
@@ -418,30 +536,48 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             );
         }
 
-        // Make exactly one wedge part of the tab order so the wheel is a single tab-stop.
-        initRovingTabindex(): void {
-            const wedges = this.getFocusableWedges();
-            wedges.forEach((w) => w.setAttribute('tabindex', '-1'));
-            if (wedges.length) wedges[0].setAttribute('tabindex', '0');
-        }
-
-        // Move keyboard focus among wedges, updating the roving tabindex.
+        // Move keyboard focus by ring/family (see keyboard-nav.ts), updating the roving
+        // tabindex. Edge presses that can't move are announced briefly instead.
         moveWedgeFocus(current: Element, key: string): void {
-            const wedges = this.getFocusableWedges();
-            const i = wedges.indexOf(current);
-            if (i === -1) return;
+            const wedges = this.getNavWedges();
+            const nodes = wedges.map(toNavNode);
+            const currentId = current.getAttribute('data-wedge-id') ?? '';
+            let memory = navMemory.get(this);
+            if (!memory) navMemory.set(this, (memory = new Map()));
 
-            let next: number;
-            if (key === 'Home') next = 0;
-            else if (key === 'End') next = wedges.length - 1;
-            else {
-                const forward = key === 'ArrowRight' || key === 'ArrowDown';
-                next = (i + (forward ? 1 : -1) + wedges.length) % wedges.length;
+            const result = resolveNavMove(nodes, currentId, key, memory);
+            if (result.kind === 'blocked') {
+                announceNav(
+                    result.reason === 'center'
+                        ? 'This is the center ring.'
+                        : result.reason === 'outer'
+                          ? 'This is the outer ring.'
+                          : `Choose ${result.emotion} to open its more specific feelings.`
+                );
+                return;
+            }
+            if (result.kind !== 'move') return;
+
+            const targetIndex = nodes.findIndex((n) => n.id === result.id);
+            const target = wedges[targetIndex] as SVGElement | undefined;
+            if (!target) return;
+
+            // Remember the child we land on under its parent, so ↑ then ↓ returns here.
+            const landed = nodes[targetIndex];
+            if (landed.level !== 'core') {
+                const parentLevel = landed.level === 'secondary' ? 'core' : 'secondary';
+                const parent = nodes.find(
+                    (p) =>
+                        p.level === parentLevel &&
+                        p.family === landed.family &&
+                        p.emotion === landed.parent
+                );
+                if (parent) memory.set(parentKey(parent), landed.id);
             }
 
-            current.setAttribute('tabindex', '-1');
-            const target = wedges[next] as SVGElement | HTMLElement;
-            target.setAttribute('tabindex', '0');
+            // Reset every wedge, not just `current`: focus can arrive on a non-tab-stop
+            // wedge (a click, programmatic focus), and there must only ever be one stop.
+            wedges.forEach((w) => w.setAttribute('tabindex', w === target ? '0' : '-1'));
             target.focus();
         }
 
@@ -472,7 +608,6 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             const wedge = event.target as SVGElement;
             const emotion = wedge.getAttribute('data-emotion') as string;
             const level = wedge.getAttribute('data-level') as Level;
-            const parent = wedge.getAttribute('data-parent');
 
             // CRITICAL FIX: Use the actual wedge ID from the element, don't recreate it!
             // This ensures consistency between generation and click handling
@@ -543,9 +678,11 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         // dimension can be missed.
         applySelectionEffects(ctx: EffectCtx): void {
             for (const fx of SELECTION_EFFECTS) fx.apply(ctx, this);
+            if (this.isGuidedMode) this.refreshGuidedFocus();
         }
         clearSelectionEffects(ctx: EffectCtx): void {
             for (const fx of SELECTION_EFFECTS) fx.clear(ctx, this);
+            if (this.isGuidedMode) this.refreshGuidedFocus();
         }
 
         selectWedge(wedgeId: string, wedge: SVGElement): void {
@@ -685,19 +822,13 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
                 const { level, emotion, parent } = this.parseUniqueWedgeId(wedgeId);
                 const wedge = this.findWedgeByUniqueId(level, emotion, parent);
                 if (wedge) this.deselectWedge(wedgeId, wedge);
+                // Not drawn (outer ring hidden in Simplified): only membership to clear.
+                else this.selectedWedges.delete(wedgeId);
             });
 
             // Reset rotation instantly (a non-selection duty reset still owns).
             this.currentRotation = 0;
             this.updateRotation();
-
-            // Update the stored state for current mode only
-            const currentState = this.isSimplifiedMode
-                ? this.simplifiedModeState
-                : this.fullModeState;
-            currentState.rotation = 0;
-            currentState.selectedWedges = new Set();
-            currentState.hasBeenInitialized = true;
         }
 
         // ===== PUBLIC RESET/SELECTION API (used by the app's animated reset) =====
@@ -720,6 +851,8 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             if (!this.selectedWedges.has(wedgeId)) return;
             const ctx = this.effectCtx(wedgeId);
             if (ctx) this.clearSelectionEffects(ctx);
+            // Not drawn (outer ring hidden in Simplified): only membership to clear.
+            else this.selectedWedges.delete(wedgeId);
         }
 
         // Animate rotation back to 0 over `duration` ms (ease-out cubic), resolving when
@@ -752,15 +885,9 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             });
         }
 
-        // Persist the "cleared" state for the current mode after a reset completes.
+        // Settle the wheel at rest after an animated reset completes.
         commitResetState(): void {
             this.currentRotation = 0;
             this.updateRotation();
-            const currentState = this.isSimplifiedMode
-                ? this.simplifiedModeState
-                : this.fullModeState;
-            currentState.rotation = 0;
-            currentState.selectedWedges = new Set();
-            currentState.hasBeenInitialized = true;
         }
     };

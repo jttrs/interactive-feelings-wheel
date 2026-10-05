@@ -16,10 +16,10 @@ test('wedges expose button semantics and labels', async ({ page }) => {
     const angry = page.locator('.core-wedge[data-emotion="Angry"]');
     await expect(angry).toHaveAttribute('role', 'button');
     await expect(angry).toHaveAttribute('aria-pressed', 'false');
-    await expect(angry).toHaveAttribute('aria-label', 'Angry, a core emotion');
+    await expect(angry).toHaveAttribute('aria-label', 'Angry, core feeling, 1 of 7');
 
     const playful = page.locator('.secondary-wedge[data-emotion="Playful"]');
-    await expect(playful).toHaveAttribute('aria-label', 'Playful, a secondary emotion under Happy');
+    await expect(playful).toHaveAttribute('aria-label', 'Playful, under Happy, 1 of 9');
 });
 
 test('the wheel is a single tab-stop (one wedge tabindex=0)', async ({ page }) => {
@@ -88,18 +88,116 @@ test('arrow focus order is stable after a selection (nav-index, not DOM order)',
     expect(neighbourAfter).toBe(neighbourBefore);
 });
 
+// ===== Structured wheel keyboard model (ring / family navigation) =====
+
+const focusedId = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => document.activeElement!.getAttribute('data-wedge-id'));
+
+test('Left/Right stay in the core ring and wrap', async ({ page }) => {
+    await page.locator('.core-wedge[data-nav-index="0"]').focus();
+    await page.keyboard.press('ArrowLeft');
+    expect(await focusedId(page)).toBe('core-Fearful'); // wrapped to the last core
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    expect(await focusedId(page)).toBe('core-Disgusted');
+    await expect(page.locator('.wedge[tabindex="0"]')).toHaveCount(1);
+});
+
+test('Down steps out to specific feelings, Up steps back, and Down remembers', async ({ page }) => {
+    await page.locator('.core-wedge[data-emotion="Happy"]').focus();
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('secondary-Happy-Playful');
+    await page.keyboard.press('ArrowRight');
+    expect(await focusedId(page)).toBe('secondary-Happy-Content');
+    await page.keyboard.press('ArrowDown');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Content'
+    );
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowUp');
+    expect(await focusedId(page)).toBe('core-Happy');
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('secondary-Happy-Content'); // remembered
+    await expect(page.locator('.wedge.selected')).toHaveCount(0);
+});
+
+test('edges are announced instead of moving', async ({ page }) => {
+    await page.locator('.core-wedge[data-emotion="Sad"]').focus();
+    await page.keyboard.press('ArrowUp');
+    expect(await focusedId(page)).toBe('core-Sad');
+    await expect(page.locator('#sr-announcer')).toHaveText('This is the center ring.');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('#sr-announcer')).toHaveText('This is the outer ring.');
+});
+
+test('Page Down / ] jump to the next family in the same ring; Home/End to ring ends', async ({
+    page,
+}) => {
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').focus();
+    await page.keyboard.press('PageDown');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-level'))).toBe(
+        'secondary'
+    );
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Surprised'
+    );
+    await page.keyboard.press('[');
+    expect(await focusedId(page)).toBe('secondary-Happy-Playful');
+    await page.keyboard.press('Home');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Angry'
+    );
+    await page.keyboard.press('End');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Fearful'
+    );
+});
+
+test('guided view: navigation skips rested wedges and explains closed rings', async ({ page }) => {
+    await page.keyboard.press('g');
+    await page.locator('.core-wedge[data-emotion="Happy"]').focus();
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('core-Happy');
+    await expect(page.locator('#sr-announcer')).toHaveText(
+        'Choose Happy to open its more specific feelings.'
+    );
+    await page.keyboard.press('Enter'); // opens Happy's ring
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('secondary-Happy-Playful');
+    // Only Happy's family is open, so Left wraps inside it.
+    await page.keyboard.press('ArrowLeft');
+    expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
+        'Happy'
+    );
+    expect(
+        await page.evaluate(() => document.activeElement!.hasAttribute('data-guided-rest'))
+    ).toBe(false);
+    await expect(page.locator('.wedge[tabindex="0"]')).toHaveCount(1);
+});
+
+test('simplified view: the middle ring is the outer edge', async ({ page }) => {
+    await page.keyboard.press('s');
+    await page.waitForSelector('.secondary-wedge');
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').focus();
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId(page)).toBe('secondary-Happy-Playful');
+    await expect(page.locator('#sr-announcer')).toHaveText('This is the outer ring.');
+});
+
 test('reset is announced to screen readers', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Sad"]').click();
     await page.locator('#reset-btn-panel').click();
-    await expect(page.locator('#sr-announcer')).toHaveText('Cleared all selected emotions.');
+    await expect(page.locator('#sr-announcer')).toHaveText('Cleared all selected feelings.');
 });
 
 test('control buttons have accessible names', async ({ page }) => {
     await expect(page.locator('#reset-btn-panel')).toHaveAttribute('aria-label', 'Reset the wheel');
-    await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute(
-        'aria-label',
-        'Toggle fullscreen'
-    );
+    await expect(page.locator('#fullscreen-btn-panel')).toHaveAccessibleName('Fullscreen');
+    await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('#guided-mode-panel')).toHaveAccessibleName('Guided');
+    await expect(page.locator('#simplified-mode-panel')).toHaveAccessibleName('Simplified');
     await expect(page.locator('#help-btn-panel')).toHaveAttribute(
         'aria-label',
         'How to use the wheel'
@@ -193,12 +291,101 @@ test('collapsing the panel keeps the expand tab reachable on screen', async ({ p
     await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
 });
 
+test('on mobile, the sheet handle is a button that stays on screen when collapsed', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(200);
+    const handle = page.locator('#mobile-collapse-handle');
+    await expect(handle).toHaveJSProperty('tagName', 'BUTTON');
+    await expect(handle).toHaveAttribute('aria-controls', 'panel-content');
+    await expect(handle).toHaveAttribute('aria-expanded', 'true');
+
+    await handle.click(); // collapse
+    await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
+    await expect(handle).toHaveAttribute('aria-expanded', 'false');
+    await expect(handle).toHaveAttribute('aria-label', 'Show feelings panel');
+    // Regression: the desktop translateX(100%) leaked to mobile and shoved the whole
+    // sheet (handle included) off the right edge.
+    const box = (await handle.boundingBox())!;
+    const vp = page.viewportSize()!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(vp.height);
+
+    await handle.focus();
+    await page.keyboard.press('Enter'); // expand by keyboard
+    await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
+    await expect(handle).toHaveAttribute('aria-expanded', 'true');
+});
+
 test('the empty-state invitation shows when empty and hides once a tile exists', async ({
     page,
 }) => {
     const empty = page.locator('#panel-instructions');
     await expect(empty).toBeVisible();
-    await expect(empty).toContainText('Tap or spin');
+    await expect(empty).toContainText('no wrong answers');
     await page.locator('.core-wedge[data-emotion="Angry"]').click();
     await expect(empty).toBeHidden();
+});
+
+test('page has an h1 and a skip link that lands in the (re-opened) panel', async ({ page }) => {
+    await expect(page.locator('h1')).toHaveText('Feelings Wheel');
+    await page.locator('#panel-minimize-tab').click();
+    await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
+
+    const skip = page.locator('.skip-link');
+    await skip.focus();
+    await expect(skip).toBeInViewport();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
+    const heading = page.locator('#view-explore .view-title');
+    await expect(heading).toBeFocused();
+    // The landing spot shows a real focus ring.
+    const outline = await heading.evaluate((el) => getComputedStyle(el).outlineStyle);
+    expect(outline).not.toBe('none');
+});
+
+test('the skip link is the first tab stop on a fresh page', async ({ page }) => {
+    await page.reload();
+    await page.waitForSelector('#wheel-container svg .wedge');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('.skip-link')).toBeFocused();
+});
+
+test('desktop collapse tab is a comfortable target (>= 32px wide)', async ({ page }) => {
+    const box = (await page.locator('#panel-minimize-tab').boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(32);
+});
+
+test('collapsing the panel never strands focus inside it, and its controls leave the tab order', async ({
+    page,
+}) => {
+    const reset = page.locator('#reset-btn-panel');
+    await reset.focus();
+    await page.keyboard.press('p'); // collapse via shortcut while focus is in the footer
+    await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
+    await expect(page.locator('#panel-minimize-tab')).toBeFocused();
+
+    // Tabbing onward never lands on an off-screen panel control.
+    for (let i = 0; i < 6; i++) {
+        await page.keyboard.press('Tab');
+        const inPanel = await page.evaluate(
+            () => !!document.activeElement?.closest('.panel-content, .panel-footer')
+        );
+        expect(inPanel).toBe(false);
+    }
+
+    await page.locator('#panel-minimize-tab').click(); // reopen
+    await expect(reset).not.toHaveJSProperty('inert', true);
+});
+
+test('on mobile, collapsing from inside the sheet moves focus to the sheet handle', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(200);
+    await page.locator('#reset-btn-panel').focus();
+    await page.keyboard.press('p');
+    await expect(page.locator('#mobile-collapse-handle')).toBeFocused();
 });

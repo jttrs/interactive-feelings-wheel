@@ -131,6 +131,25 @@ export function buildForest(
     return forest;
 }
 
+const toIdSegment = (s: string | null | undefined): string =>
+    (s || '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
+
+// The same word can sit under two parents (e.g. Embarrassed under Disapproving and Hurt),
+// so the id is keyed on the node's full structural path, not just level + word. Structural
+// (not wedgeId) because context nodes carry no wedgeId and the id must stay stable.
+export function definitionId(family: string, node: ForestNode): string {
+    return [
+        'def',
+        family,
+        node.level,
+        node.level === 'tertiary' ? node.parentEmotion : null,
+        node.emotion,
+    ]
+        .filter((part) => part !== null)
+        .map(toIdSegment)
+        .join('-');
+}
+
 // Render the whole tree into a fresh element.
 //
 // opts:
@@ -188,7 +207,7 @@ export function renderFeelingsTree({
                 const collapsed = !node.terminal;
                 if (collapsed) li.classList.add('is-collapsed');
 
-                const defId = `def-${node.level}-${(node.emotion || 'x').replace(/\s+/g, '-')}`;
+                const defId = definitionId(group.family, node);
 
                 const toggle = document.createElement('button');
                 toggle.type = 'button';
@@ -202,13 +221,18 @@ export function renderFeelingsTree({
                 });
                 row.appendChild(toggle);
 
+                // The wrapper is a one-row grid whose track animates 1fr <-> 0fr, so the
+                // reveal never animates a layout property like max-height.
+                const wrap = document.createElement('div');
+                wrap.className = 'feeling-def-wrap';
+                wrap.id = defId;
                 const p = document.createElement('p');
                 p.className = 'feeling-def';
-                p.id = defId;
                 p.textContent = def;
+                wrap.appendChild(p);
                 // Row first, then the definition it controls.
                 li.appendChild(row);
-                li.appendChild(p);
+                li.appendChild(wrap);
             } else {
                 // No definition to reveal — a plain, non-interactive label.
                 const name = document.createElement('span');

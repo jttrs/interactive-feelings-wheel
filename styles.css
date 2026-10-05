@@ -39,6 +39,7 @@
     --color-ink-faint: #736b5e; /* tertiary text */
     --color-border: #e2d9cb; /* decorative hairline */
     --color-border-strong: #c4b9a8; /* outlines on handles and keycaps (labelled controls) */
+    --color-chip-hover: var(--color-border); /* view-chip hover: one step deeper than sand */
 
     /* Accent (calm teal) */
     --color-accent: #4d7a71; /* dusty sage-teal: control fills */
@@ -64,6 +65,7 @@
     --wheel-selected-glow: drop-shadow(0 0 8px rgba(77, 122, 113, 0.5));
     --wheel-shadow-color: rgba(61, 52, 40, 0.28); /* warm, not cold black */
     --wheel-shadow-blur: 4px;
+    --wheel-label-ink: #2b2a28; /* emotion labels (fill: currentColor on the SVG) */
 
     /* Spacing scale (8px rhythm) */
     --space-1: 0.25rem;
@@ -84,6 +86,11 @@
     --elev-1: 0 1px 2px rgba(43, 42, 40, 0.06), 0 1px 3px rgba(43, 42, 40, 0.08);
     --elev-2: 0 4px 12px rgba(43, 42, 40, 0.08), 0 2px 4px rgba(43, 42, 40, 0.06);
     --elev-3: 0 12px 32px rgba(43, 42, 40, 0.12), 0 4px 10px rgba(43, 42, 40, 0.08);
+    /* Warm panel shadows (brown-tinted, from one base colour) */
+    --shadow-warm-rgb: 70, 55, 35;
+    --shadow-panel-edge: -12px 0 40px rgba(var(--shadow-warm-rgb), 0.07); /* desktop sidebar */
+    --shadow-sheet: 0 -12px 40px rgba(var(--shadow-warm-rgb), 0.1); /* phone sheet */
+    --shadow-footer-lift: 0 -14px 20px -16px rgba(var(--shadow-warm-rgb), 0.18); /* panel footer */
 
     /* Motion (gentle, eased) */
     --motion-fast: 0.15s;
@@ -368,7 +375,7 @@ body {
     border: none;
     border-radius: 0;
     /* Docked, but edged with a soft falloff rather than a ruled line. */
-    box-shadow: -12px 0 40px rgba(70, 55, 35, 0.07);
+    box-shadow: var(--shadow-panel-edge);
 
     display: flex;
     flex-direction: column;
@@ -398,7 +405,7 @@ body {
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         margin: 0;
         border: none;
-        box-shadow: 0 -12px 40px rgba(70, 55, 35, 0.1);
+        box-shadow: var(--shadow-sheet);
         padding-bottom: env(safe-area-inset-bottom);
     }
 
@@ -1165,7 +1172,7 @@ body {
     padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
     background: var(--color-surface);
     /* No ruled line: a soft lift separates it from the list scrolling beneath. */
-    box-shadow: 0 -14px 20px -16px rgba(70, 55, 35, 0.18);
+    box-shadow: var(--shadow-footer-lift);
 }
 
 /* Names the chip group, so Focused/Simplified read as views, not feeling words. */
@@ -1220,7 +1227,7 @@ body {
 
 @media (hover: hover) {
     .view-chip:hover {
-        background: #e2d9cb;
+        background: var(--color-chip-hover);
         color: var(--color-accent-text);
     }
 }
@@ -1672,7 +1679,7 @@ body {
     width: 100%;
     height: 100%;
     /* A faint pool of light behind the wheel; the room's edges stay in shade. */
-    background: radial-gradient(closest-side, #f6f1ea 0%, var(--color-bg) 100%);
+    background: radial-gradient(closest-side, var(--color-surface) 0%, var(--color-bg) 100%);
     display: flex;
     align-items: center;
     justify-content: center;

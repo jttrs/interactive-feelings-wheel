@@ -6,6 +6,8 @@ import {
     text as makeText,
     group as makeGroup,
     readWheelTokens,
+    readToken,
+    WHEEL_TOKEN_FALLBACKS,
 } from './svg.ts';
 import { maxFittingFontSize, ringTargetSize, LEGIBLE_PX } from './label-fit.ts';
 import type {
@@ -523,8 +525,8 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             this.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
             this.svg.style.cursor = 'grab';
             // Emotion labels use fill:currentColor; set the wheel's ink here (warm charcoal)
-            // so text resolves to the palette. Kept as an inline style so file:// works.
-            this.svg.style.color = '#2b2a28';
+            // so text resolves to the palette (--wheel-label-ink). Inline style so file:// works.
+            this.svg.style.color = readToken('--wheel-label-ink');
             // Expose the wheel as a labelled group of emotion buttons for assistive tech.
             this.svg.setAttribute('role', 'group');
             this.svg.setAttribute(
@@ -882,10 +884,10 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             shadowWedge.setAttribute('aria-hidden', 'true');
 
             // Make shadow copy visible with a WARM, soft shadow (matches the palette
-            // rather than a cold black blob). Values mirror the --wheel-shadow-* tokens.
-            shadowWedge.setAttribute('fill', 'rgba(61, 52, 40, 0.28)');
+            // rather than a cold black blob). Read from the --wheel-shadow-* tokens.
+            shadowWedge.setAttribute('fill', readToken('--wheel-shadow-color'));
             shadowWedge.setAttribute('stroke', 'none');
-            shadowWedge.style.filter = 'blur(4px)';
+            shadowWedge.style.filter = `blur(${readToken('--wheel-shadow-blur')})`;
             shadowWedge.style.pointerEvents = 'none';
 
             shadowGroup.appendChild(shadowWedge);
@@ -1126,7 +1128,7 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
         // mode — outer). These replace the arc edges the wedge outlines used to draw.
         buildRingCircles(): void {
             const s: Partial<ResponsiveScaling> = this.responsiveScaling || {};
-            const color = s.ringColor || '#4a453d';
+            const color = s.ringColor || WHEEL_TOKEN_FALLBACKS['--wheel-ring'];
             const width = s.ringStroke || Math.max(0.2, this.containerSize * 0.0022);
             const radii = this.isSimplifiedMode
                 ? [this.coreRadius, this.middleRadius]
@@ -1149,7 +1151,7 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
         // Shared radial-separator drawer. All three division tiers are a stroked line
         // from innerRadius to endRadius at a given angle; only the radii, weight, dash,
         // linecap, and class differ. Centralizes the trig + makeLine + append + the
-        // '#4a453d' color fallback that was copy-pasted across the three methods.
+        // token color fallback that was copy-pasted across the three methods.
         drawRadialLine({
             angleDeg,
             innerRadius,
@@ -1159,7 +1161,8 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
             dash,
             round,
         }: DrawRadialLineParams): void {
-            const color = (this.responsiveScaling && this.responsiveScaling.lineColor) || '#4a453d';
+            const color = (this.responsiveScaling && this.responsiveScaling.lineColor) ||
+                WHEEL_TOKEN_FALLBACKS['--wheel-line'];
             const rad = (angleDeg * Math.PI) / 180;
             const el = makeLine({
                 x1: this.centerX + innerRadius * Math.cos(rad),

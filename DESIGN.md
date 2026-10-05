@@ -229,9 +229,9 @@ Mostly flat and warm. Depth comes from surface contrast (cream panel in a linen 
 
 - **Rest** (`0 1px 2px rgba(43,42,40,0.06), 0 1px 3px rgba(43,42,40,0.08)`): chips at rest, the corner show button, the mobile handle.
 - **Lifted** (`0 4px 12px rgba(43,42,40,0.08), 0 2px 4px rgba(43,42,40,0.06)`): floating overlays such as the reading lens and small-screen tip, and the collapsed sheet pill.
-- **Panel edge** (`-12px 0 40px rgba(70,55,35,0.07)`): the docked side panel's soft edge against the room.
-- **Sheet** (`0 -12px 40px rgba(70,55,35,0.1)`): the phone bottom sheet's upward lift.
-- **Footer lift** (`0 -14px 20px -16px rgba(70,55,35,0.18)`): separates the panel footer from the list scrolling beneath it.
+- **Panel edge** (`--shadow-panel-edge`, `-12px 0 40px rgba(70,55,35,0.07)`): the docked side panel's soft edge against the room.
+- **Sheet** (`--shadow-sheet`, `0 -12px 40px rgba(70,55,35,0.1)`): the phone bottom sheet's upward lift.
+- **Footer lift** (`--shadow-footer-lift`, `0 -14px 20px -16px rgba(70,55,35,0.18)`): separates the panel footer from the list scrolling beneath it.
 - **Selected wedge**: a soft sage glow (`drop-shadow(0 0 8px rgba(77,122,113,0.5))`) plus a saturation lift (`saturate(1.8) brightness(1.03)`). It's the only shadow on the wheel.
 
 ### Named Rules

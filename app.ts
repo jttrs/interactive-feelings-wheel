@@ -528,7 +528,15 @@ export class FeelingsWheelApp {
             getFamilyColor: (family) => FEELINGS_DATA.getCoreEmotionColor(family),
         });
 
-        container.replaceChildren(element);
+        // The list is read-only by design: say where removing happens (the wheel).
+        if (selections.length) {
+            const note = document.createElement('p');
+            note.className = 'feelings-remove-hint';
+            note.textContent = 'To remove one, choose it again on the wheel.';
+            container.replaceChildren(element, note);
+        } else {
+            container.replaceChildren(element);
+        }
         // Hidden-but-chosen feelings are named in the view status line.
         this.updateViewStatus();
     }
@@ -602,19 +610,12 @@ export class FeelingsWheelApp {
     }
 
     animateUnwindTiles(): void {
-        // Fade the whole tree out as one calm surface (respecting reduced-motion via CSS),
-        // clear it after the fade, and unwind the wheel rotation concurrently.
-        const container = document.getElementById('emotion-tiles');
-        if (container) {
-            container.classList.add('is-clearing');
-            const FADE = 260;
-            setTimeout(() => {
-                this.clearAllTiles();
-                container.classList.remove('is-clearing');
-            }, FADE);
-        }
-
+        // The panel answers at once: the list clears and the calm empty state fades in
+        // (its own entrance animation) while the wheel unwinds. A lingering old list read
+        // as if Reset hadn't worked.
         this.wheelGenerator.clearSelections();
+        this.clearAllTiles();
+        this.updateViewStatus();
         this.animateUnwindRotation();
     }
 

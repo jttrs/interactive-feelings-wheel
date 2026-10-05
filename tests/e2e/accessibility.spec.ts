@@ -429,6 +429,7 @@ test('the keyboard lens teaches the keys for the first few feelings, then gets q
 test('the empty state mentions that the wheel turns', async ({ page }) => {
     await expect(page.locator('#panel-instructions')).toContainText('Drag the wheel to turn it.');
     await expect(page.locator('#panel-instructions')).toContainText('Too much at once?');
+    await expect(page.locator('#panel-instructions')).toContainText('Tab to the wheel');
     await expect(page.locator('#guided-mode-panel')).not.toBeChecked();
 
     // The suggestion is an action — but only when pressed.

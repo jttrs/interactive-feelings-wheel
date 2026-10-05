@@ -813,6 +813,7 @@ body {
 }
 .screen-nudge__text {
     margin: 0;
+    text-wrap: balance;
     font-size: 0.85rem;
     line-height: 1.35;
     color: var(--color-ink-muted);
@@ -856,6 +857,25 @@ body {
     color: var(--color-ink-faint);
 }
 
+/* Keyboard entry, shown where a keyboard is likely (fine pointer). */
+.empty-hint__keys {
+    display: block;
+    margin-top: var(--space-2);
+}
+@media (pointer: coarse) {
+    .empty-hint__keys {
+        display: none;
+    }
+}
+
+/* Read-only list: one quiet line saying where removing happens. */
+.feelings-remove-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--color-ink-faint);
+}
+
 /* A suggestion you can act on in place: reads as part of the sentence, behaves as a
    button (toggles the real view chip). */
 .inline-action {
@@ -895,12 +915,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-}
-
-/* Fade the whole tree as one surface during an animated reset. */
-.emotion-tiles.is-clearing {
-    opacity: 0;
-    transition: opacity var(--motion-base) var(--ease-soft);
 }
 
 .feelings-tree {
@@ -1092,7 +1106,6 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
     .feeling-family,
-    .emotion-tiles.is-clearing,
     .feeling-def-wrap {
         animation: none;
         transition: none;
@@ -1486,6 +1499,39 @@ body {
            width-bound there, so it doesn't shrink. Short screens are capped below. */
         height: max(280px, min(45vh, 420px));
         border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+    }
+}
+
+/* Very short portrait phones (e.g. 320x568): the sheet "peeks" — compact heading,
+   tighter chrome — so the wheel gets most of the height. Defined after the <=480px
+   rule so this height wins. Choosing feelings still scrolls inside the sheet, and the
+   handle opens/closes it as usual. */
+@media (max-width: 767px) and (max-height: 600px) and (orientation: portrait) {
+    .info-panel {
+        height: 236px;
+        min-height: 0;
+        max-height: 236px;
+    }
+
+    .panel-content {
+        padding-top: 26px;
+    }
+
+    .view-head {
+        padding: var(--space-2) var(--space-4);
+    }
+
+    .view-title {
+        font-size: 1.15rem;
+    }
+
+    .panel-empty {
+        padding: var(--space-2) var(--space-4);
+    }
+
+    .panel-footer {
+        gap: var(--space-1);
+        padding-top: var(--space-2);
     }
 }
 

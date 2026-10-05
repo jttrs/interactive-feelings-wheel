@@ -810,3 +810,48 @@ test('on a phone the status line counts hidden choices in its short form', async
         'Simplified view on. 1 hidden choice.'
     );
 });
+
+test('Reset clears the list at once (the wheel unwinds after)', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await expect(page.locator('.feeling-node')).not.toHaveCount(0);
+    await page.locator('#reset-btn-panel').click();
+    // Well before the 1s unwind finishes, the list is gone and the invitation is back.
+    await expect(page.locator('.feeling-node')).toHaveCount(0, { timeout: 150 });
+    await expect(page.locator('#panel-instructions')).toBeVisible({ timeout: 150 });
+});
+
+test('the read-only list says where removing happens', async ({ page }) => {
+    await expect(page.locator('.feelings-remove-hint')).toHaveCount(0);
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await expect(page.locator('.feelings-remove-hint')).toHaveText(
+        'To remove one, choose it again on the wheel.'
+    );
+    // Still no remove controls inside the list itself.
+    await expect(page.locator('#emotion-tiles button:not(.feeling-name--toggle)')).toHaveCount(0);
+});
+
+test('on a short phone the sheet peeks so the wheel keeps most of the height', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.waitForTimeout(400);
+    const wheel = await page.evaluate(
+        () => document.querySelector('.wheel-main-group')!.getBoundingClientRect().width
+    );
+    expect(wheel).toBeGreaterThanOrEqual(300);
+    const sheet = (await page.locator('#info-panel').boundingBox())!;
+    expect(sheet.height).toBeLessThanOrEqual(240);
+});
+
+test('the phone tip names Simplified and switches only when that word is pressed', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(400);
+    const tip = page.locator('#screen-nudge');
+    await expect(tip).toContainText('or try Simplified');
+    await expect(page.locator('#simplified-mode-panel')).not.toBeChecked();
+    await tip.locator('.inline-action').click();
+    await expect(page.locator('#simplified-mode-panel')).toBeChecked();
+    await expect(tip).toBeHidden(); // done its job
+});

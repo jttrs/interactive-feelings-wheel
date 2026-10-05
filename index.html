@@ -31,8 +31,15 @@
                             data-announce="Words look small on this screen. Press and hold any word to read it larger, or try Simplified or Guided view."
                         >
                             <p class="screen-nudge__text">
-                                <span class="screen-nudge__how">Press and hold a word</span> to read
-                                it.
+                                Words small? <span class="screen-nudge__how">Hold one</span> to read
+                                it, or try
+                                <button
+                                    type="button"
+                                    class="inline-action"
+                                    data-toggle="simplified-mode-panel"
+                                >
+                                    Simplified</button
+                                >.
                             </p>
                             <button
                                 type="button"
@@ -130,6 +137,10 @@
                                             Simplified
                                         </button>
                                         view.
+                                        <span class="empty-hint__keys"
+                                            >Keyboard: <kbd class="kbd">Tab</kbd> to the wheel,
+                                            <kbd class="kbd">?</kbd> for keys.</span
+                                        >
                                     </p>
                                 </div>
                                 <div class="emotion-tiles" id="emotion-tiles">

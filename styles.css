@@ -1323,6 +1323,9 @@ body {
 .panel-hide-btn[data-tip]::after,
 .panel-show-btn[data-tip]::after {
     content: attr(data-tip);
+    /* Visual only: aria-label / aria-keyshortcuts already carry the name and shortcut,
+       so screen readers must not fold this into the accessible name. */
+    content: attr(data-tip) / '';
     z-index: 5;
     position: absolute;
     bottom: calc(100% + 8px);

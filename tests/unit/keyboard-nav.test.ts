@@ -77,18 +77,18 @@ describe('resolveNavMove', () => {
         expect(move('A', 'PageUp')).toEqual({ kind: 'move', id: 'B' });
     });
 
-    it('skips rested (guided) wedges and reports rested children', () => {
-        const guided = NODES.map((n) =>
+    it('skips rested (focused) wedges and reports rested children', () => {
+        const focused = NODES.map((n) =>
             n.level === 'core' || n.id === 'b1' ? n : { ...n, reachable: false }
         );
-        expect(move('b1', 'ArrowRight', guided)).toEqual({ kind: 'move', id: 'b1' });
-        expect(move('A', 'ArrowDown', guided)).toEqual({
+        expect(move('b1', 'ArrowRight', focused)).toEqual({ kind: 'move', id: 'b1' });
+        expect(move('A', 'ArrowDown', focused)).toEqual({
             kind: 'blocked',
             reason: 'rested',
             emotion: 'A',
         });
         // Family jump skips family A, which has nothing open in the secondary ring.
-        expect(move('b1', 'PageDown', guided)).toEqual({ kind: 'none' });
+        expect(move('b1', 'PageDown', focused)).toEqual({ kind: 'none' });
     });
 
     it('recognises only the navigation keys', () => {
@@ -115,9 +115,9 @@ describe('wheel keyboard integration (jsdom)', () => {
     it('labels each wedge with its position among siblings', () => {
         const { container } = createTestWheel();
         const happyCount = FEELINGS_DATA.secondary.Happy.length;
-        expect(wedge(container, '.core-wedge[data-emotion="Angry"]').getAttribute('aria-label')).toBe(
-            `Angry, core feeling, 1 of ${CORE}`
-        );
+        expect(
+            wedge(container, '.core-wedge[data-emotion="Angry"]').getAttribute('aria-label')
+        ).toBe(`Angry, core feeling, 1 of ${CORE}`);
         expect(
             wedge(container, '.secondary-wedge[data-emotion="Playful"]').getAttribute('aria-label')
         ).toBe(`Playful, under Happy, 1 of ${happyCount}`);
@@ -147,7 +147,10 @@ describe('wheel keyboard integration (jsdom)', () => {
         region.id = 'sr-announcer';
         document.body.appendChild(region);
         const { container, gen } = createTestWheel({ simplified: true });
-        gen.moveWedgeFocus(wedge(container, '.secondary-wedge[data-emotion="Playful"]'), 'ArrowDown');
+        gen.moveWedgeFocus(
+            wedge(container, '.secondary-wedge[data-emotion="Playful"]'),
+            'ArrowDown'
+        );
         expect(region.textContent).toBe('This is the outer ring.');
         region.remove();
     });

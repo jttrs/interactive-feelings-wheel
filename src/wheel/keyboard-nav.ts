@@ -20,7 +20,7 @@ export interface NavNode {
     parent: string | null;
     /** Core family this wedge belongs to. */
     family: string;
-    /** Can receive focus (false for Guided-view rested wedges). */
+    /** Can receive focus (false for Focused-view rested wedges). */
     reachable: boolean;
 }
 
@@ -113,7 +113,8 @@ export function resolveNavMove(
             if (!children.length)
                 return { kind: 'blocked', reason: 'outer', emotion: current.emotion };
             const open = children.filter((c) => c.reachable);
-            if (!open.length) return { kind: 'blocked', reason: 'rested', emotion: current.emotion };
+            if (!open.length)
+                return { kind: 'blocked', reason: 'rested', emotion: current.emotion };
             const remembered = memory.get(parentKey(current));
             const target = open.find((c) => c.id === remembered) ?? open[0];
             return { kind: 'move', id: target.id };
@@ -141,7 +142,7 @@ export function resolveNavMove(
 
 /**
  * Position of each node among its siblings (same level + same parent), counted over the
- * full structure so it stays stable as Guided view opens and rests wedges.
+ * full structure so it stays stable as Focused view opens and rests wedges.
  */
 export function siblingPositions(
     nodes: readonly NavNode[]

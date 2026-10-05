@@ -1,39 +1,39 @@
-// Guided view hint: a small caption pinned to the wheel area (outside the rotating
-// SVG) that explains the dimmed rings while Guided view is on. It reads selection
+// Focused view hint: a small caption pinned to the wheel area (outside the rotating
+// SVG) that explains the dimmed rings while Focused view is on. It reads selection
 // straight from the DOM (aria-pressed), so it needs no hooks into the wheel engine.
 //
-// It is aria-hidden: app.ts already announces the first step when Guided turns on,
+// It is aria-hidden: app.ts already announces the first step when Focused turns on,
 // and the selection announcements cover the rest — the caption is for sighted users.
 
-export const GUIDED_HINT_COPY = {
+export const FOCUSED_HINT_COPY = {
     start: 'Choose a core feeling to open the next ring.',
     next: 'Now choose a closer word in the next ring.',
 } as const;
 
-export type GuidedHintStep = keyof typeof GUIDED_HINT_COPY | null;
+export type FocusedHintStep = keyof typeof FOCUSED_HINT_COPY | null;
 
-export interface GuidedHintState {
+export interface FocusedHintState {
     enabled: boolean;
     hasCore: boolean; // any core chosen
     hasDeeper: boolean; // any secondary/tertiary chosen
     nextDone: boolean; // the "next ring" step has already been passed since the last reset
 }
 
-export function guidedHintStep(s: GuidedHintState): GuidedHintStep {
+export function focusedHintStep(s: FocusedHintState): FocusedHintStep {
     if (!s.enabled) return null;
     if (!s.hasCore && !s.hasDeeper) return 'start';
     if (!s.hasDeeper && !s.nextDone) return 'next';
     return null;
 }
 
-const CUE_CLASS = 'guided-core-cue';
+const CUE_CLASS = 'focused-core-cue';
 
-export interface GuidedHint {
+export interface FocusedHint {
     setEnabled(enabled: boolean): void;
     destroy(): void;
 }
 
-export function createGuidedHint(hint: HTMLElement, wheelRoot: HTMLElement): GuidedHint {
+export function createFocusedHint(hint: HTMLElement, wheelRoot: HTMLElement): FocusedHint {
     let enabled = false;
     let nextDone = false;
     let queued = false;
@@ -89,9 +89,9 @@ export function createGuidedHint(hint: HTMLElement, wheelRoot: HTMLElement): Gui
         const { hasCore, hasDeeper } = read();
         if (!hasCore && !hasDeeper) nextDone = false; // reset brings the walk-through back
         if (hasDeeper) nextDone = true;
-        const step = guidedHintStep({ enabled, hasCore, hasDeeper, nextDone });
+        const step = focusedHintStep({ enabled, hasCore, hasDeeper, nextDone });
         if (step) {
-            hint.textContent = GUIDED_HINT_COPY[step];
+            hint.textContent = FOCUSED_HINT_COPY[step];
             hint.dataset.step = step;
             hint.hidden = false;
             place();
@@ -115,7 +115,7 @@ export function createGuidedHint(hint: HTMLElement, wheelRoot: HTMLElement): Gui
         attributeFilter: ['aria-pressed'],
     });
 
-    // One soft swell on the core ring when Guided turns on. CSS disables it under
+    // One soft swell on the core ring when Focused turns on. CSS disables it under
     // prefers-reduced-motion; animationend (or the fallback) removes the class so it
     // never repeats on its own.
     const cueCores = () => {

@@ -1,0 +1,547 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-05T04:51:52+00:00",
+  "title": "Design System: Feelings Wheel",
+  "extensions": {
+    "colorMeta": {
+      "calm-teal": {
+        "role": "primary",
+        "displayName": "Calm Teal",
+        "canonical": "#2f6f6e",
+        "tonalRamp": [
+          "#173635",
+          "#265a59",
+          "#357d7c",
+          "#49acaa",
+          "#70c2c1",
+          "#9bd5d4",
+          "#c9e8e8",
+          "#edf7f7"
+        ]
+      },
+      "calm-teal-deep": {
+        "role": "primary",
+        "displayName": "Calm Teal Deep",
+        "canonical": "#245957",
+        "tonalRamp": [
+          "#163635",
+          "#255b59",
+          "#337f7c",
+          "#47aeaa",
+          "#6ec4c1",
+          "#99d6d4",
+          "#c9e9e8",
+          "#edf8f7"
+        ]
+      },
+      "calm-teal-ink": {
+        "role": "primary",
+        "displayName": "Calm Teal Ink",
+        "canonical": "#1f4e4d",
+        "tonalRamp": [
+          "#163736",
+          "#245b5a",
+          "#33807e",
+          "#46afad",
+          "#6dc5c3",
+          "#99d6d5",
+          "#c8e9e9",
+          "#edf8f8"
+        ]
+      },
+      "focus-teal": {
+        "role": "primary",
+        "displayName": "Focus Teal",
+        "canonical": "#1b4d4c",
+        "tonalRamp": [
+          "#143938",
+          "#215e5d",
+          "#2e8482",
+          "#40b5b3",
+          "#68cac8",
+          "#95dad9",
+          "#c6ebea",
+          "#ecf8f8"
+        ]
+      },
+      "on-teal": {
+        "role": "neutral",
+        "displayName": "On Teal",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#7a7a7a",
+          "#999999",
+          "#b8b8b8",
+          "#d9d9d9",
+          "#f2f2f2"
+        ]
+      },
+      "warm-paper": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "canonical": "#f7f4ef",
+        "tonalRamp": [
+          "#332919",
+          "#55452a",
+          "#77613b",
+          "#a38552",
+          "#bba277",
+          "#cfbea0",
+          "#e5dccc",
+          "#f6f3ee"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#7a7a7a",
+          "#999999",
+          "#b8b8b8",
+          "#d9d9d9",
+          "#f2f2f2"
+        ]
+      },
+      "surface-sand": {
+        "role": "neutral",
+        "displayName": "Sand",
+        "canonical": "#f2eee7",
+        "tonalRamp": [
+          "#32291b",
+          "#53452d",
+          "#74603f",
+          "#9f8456",
+          "#b7a17b",
+          "#cdbda2",
+          "#e4dccd",
+          "#f6f3ee"
+        ]
+      },
+      "warm-charcoal": {
+        "role": "neutral",
+        "displayName": "Warm Charcoal",
+        "canonical": "#2b2a28",
+        "tonalRamp": [
+          "#282725",
+          "#42413d",
+          "#5c5a56",
+          "#7f7c76",
+          "#9d9a95",
+          "#bab8b5",
+          "#dad9d7",
+          "#f3f2f2"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#5e574c",
+        "tonalRamp": [
+          "#2a2722",
+          "#464139",
+          "#635b50",
+          "#877d6d",
+          "#a49b8e",
+          "#bfb9b0",
+          "#dddad5",
+          "#f4f3f1"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Faint Ink",
+        "canonical": "#736b5e",
+        "tonalRamp": [
+          "#2a2722",
+          "#464139",
+          "#625b50",
+          "#877d6e",
+          "#a39b8f",
+          "#bfb9b0",
+          "#dddad5",
+          "#f4f3f1"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e4ded4",
+        "tonalRamp": [
+          "#2f281e",
+          "#4e4331",
+          "#6e5e45",
+          "#96815e",
+          "#b09f82",
+          "#c8bca7",
+          "#e1dbd0",
+          "#f5f3ef"
+        ]
+      },
+      "control-edge": {
+        "role": "neutral",
+        "displayName": "Control Edge",
+        "canonical": "#cbc3b6",
+        "tonalRamp": [
+          "#2d2820",
+          "#4a4235",
+          "#685d4a",
+          "#8f7f66",
+          "#aa9d88",
+          "#c4baac",
+          "#dfdad2",
+          "#f4f3f0"
+        ]
+      },
+      "wheel-line": {
+        "role": "neutral",
+        "displayName": "Wheel Line",
+        "canonical": "#4a453d",
+        "tonalRamp": [
+          "#2a2723",
+          "#46413a",
+          "#625b51",
+          "#867d6f",
+          "#a39b8f",
+          "#beb9b1",
+          "#dcdad5",
+          "#f3f3f1"
+        ]
+      },
+      "family-angry": {
+        "role": "content",
+        "displayName": "Angry family",
+        "canonical": "#FFB3B3",
+        "tonalRamp": [
+          "#4c0000",
+          "#800000",
+          "#b20000",
+          "#f50000",
+          "#ff3333",
+          "#ff7070",
+          "#ffb2b2",
+          "#ffe5e5"
+        ]
+      },
+      "family-disgusted": {
+        "role": "content",
+        "displayName": "Disgusted family",
+        "canonical": "#D3D3D3",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#7a7a7a",
+          "#999999",
+          "#b8b8b8",
+          "#d9d9d9",
+          "#f2f2f2"
+        ]
+      },
+      "family-sad": {
+        "role": "content",
+        "displayName": "Sad family",
+        "canonical": "#B3C6FF",
+        "tonalRamp": [
+          "#00134c",
+          "#002080",
+          "#002db2",
+          "#003df5",
+          "#3366ff",
+          "#7094ff",
+          "#b2c6ff",
+          "#e5ecff"
+        ]
+      },
+      "family-happy": {
+        "role": "content",
+        "displayName": "Happy family",
+        "canonical": "#FFFF99",
+        "tonalRamp": [
+          "#4c4c00",
+          "#7f8000",
+          "#b2b200",
+          "#f5f500",
+          "#ffff33",
+          "#ffff70",
+          "#ffffb2",
+          "#ffffe5"
+        ]
+      },
+      "family-surprised": {
+        "role": "content",
+        "displayName": "Surprised family",
+        "canonical": "#D4B3FF",
+        "tonalRamp": [
+          "#21004c",
+          "#370080",
+          "#4e00b2",
+          "#6a00f5",
+          "#8c33ff",
+          "#ae70ff",
+          "#d4b2ff",
+          "#f1e5ff"
+        ]
+      },
+      "family-bad": {
+        "role": "content",
+        "displayName": "Bad family",
+        "canonical": "#B3FFB3",
+        "tonalRamp": [
+          "#004c00",
+          "#008000",
+          "#00b200",
+          "#00f500",
+          "#33ff33",
+          "#70ff70",
+          "#b2ffb2",
+          "#e5ffe5"
+        ]
+      },
+      "family-fearful": {
+        "role": "content",
+        "displayName": "Fearful family",
+        "canonical": "#FFD4A3",
+        "tonalRamp": [
+          "#4c2900",
+          "#804400",
+          "#b25f00",
+          "#f58200",
+          "#ffa033",
+          "#ffbc70",
+          "#ffdbb2",
+          "#fff3e5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "The panel's question and view titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Help section headings."
+      },
+      "feeling-core": {
+        "displayName": "Feeling (core)",
+        "purpose": "Core feelings in the chosen list."
+      },
+      "feeling-secondary": {
+        "displayName": "Feeling (secondary)",
+        "purpose": "Middle-ring feelings in the list."
+      },
+      "feeling-tertiary": {
+        "displayName": "Feeling (outer)",
+        "purpose": "Outer-ring feelings in the list."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Empty-state and Help text."
+      },
+      "definition": {
+        "displayName": "Definition",
+        "purpose": "Meaning under a chosen feeling."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Chips, Reset, status links."
+      },
+      "lens-word": {
+        "displayName": "Lens word",
+        "purpose": "Enlarged word in the reading lens."
+      }
+    },
+    "shadows": [
+      {
+        "name": "rest",
+        "value": "0 1px 2px rgba(43,42,40,0.06), 0 1px 3px rgba(43,42,40,0.08)",
+        "purpose": "Chips, corner show button, mobile handle."
+      },
+      {
+        "name": "lifted",
+        "value": "0 4px 12px rgba(43,42,40,0.08), 0 2px 4px rgba(43,42,40,0.06)",
+        "purpose": "Reading lens, wheel tip, collapsed sheet pill."
+      },
+      {
+        "name": "sheet",
+        "value": "0 -8px 24px rgba(43,42,40,0.1), 0 -1px 4px rgba(43,42,40,0.06)",
+        "purpose": "Phone bottom sheet."
+      },
+      {
+        "name": "selected-wedge",
+        "value": "drop-shadow(0 0 6px rgba(47,111,110,0.55))",
+        "purpose": "The only shadow on the wheel: a chosen wedge."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-soft",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "The single easing curve."
+      },
+      {
+        "name": "motion-fast",
+        "value": "0.15s",
+        "purpose": "Hover/colour changes."
+      },
+      {
+        "name": "motion-base",
+        "value": "0.25s",
+        "purpose": "Fades, definition reveal."
+      },
+      {
+        "name": "motion-panel",
+        "value": "0.35s",
+        "purpose": "Panel slide and wheel re-centre glide."
+      },
+      {
+        "name": "motion-slow",
+        "value": "0.4s",
+        "purpose": "Tip entrance."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone-portrait",
+        "value": "max-width: 767px and portrait (bottom sheet)"
+      },
+      {
+        "name": "short-phone",
+        "value": "max-height: 600px portrait (peek sheet)"
+      },
+      {
+        "name": "side-panel",
+        "value": "min-width: 768px or landscape"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "View chip (off / on)",
+      "kind": "chip",
+      "refersTo": "view-chip",
+      "description": "Labelled toggle for Focused or Simplified view; teal when on.",
+      "html": "<div class=\"ds-row\"><button class=\"ds-chip\" aria-pressed=\"false\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\" stroke-dasharray=\"2 3\"/><circle cx=\"12\" cy=\"12\" r=\"3.5\"/></svg>Focused</button><button class=\"ds-chip\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"4\"/></svg>Simplified</button></div>",
+      "css": ".ds-row{display:flex;gap:8px}.ds-chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;font:600 0.85rem/1.2 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;color:#5e574c;background:#fff;border:1px solid #cbc3b6;border-radius:999px;cursor:pointer;transition:background-color .15s cubic-bezier(.4,0,.2,1),color .15s cubic-bezier(.4,0,.2,1)}.ds-chip svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9}.ds-chip:hover{background:#f2eee7;color:#1f4e4d}.ds-chip[aria-pressed=true]{background:#2f6f6e;border-color:#2f6f6e;color:#fff}.ds-chip:focus-visible{outline:3px solid #1b4d4c;outline-offset:2px}"
+    },
+    {
+      "name": "Icon button",
+      "kind": "button",
+      "refersTo": "icon-button",
+      "description": "Footer actions (Fullscreen, Help, About, Ko-fi); teal-filled when a toggle is on.",
+      "html": "<div class=\"ds-row\"><button class=\"ds-icon\" aria-label=\"Help\"><svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.3 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.7 2.4-2.7 4\"/><path d=\"M12 17.4h.01\"/></svg></button><button class=\"ds-icon\" aria-label=\"Fullscreen\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\"><path d=\"M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3\"/></svg></button></div>",
+      "css": ".ds-row{display:flex;gap:4px}.ds-icon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;color:#5e574c;background:transparent;border:none;border-radius:12px;cursor:pointer;transition:background-color .15s cubic-bezier(.4,0,.2,1),color .15s cubic-bezier(.4,0,.2,1)}.ds-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.ds-icon:hover{background:#f2eee7;color:#1f4e4d}.ds-icon[aria-pressed=true]{background:#2f6f6e;color:#fff}.ds-icon:focus-visible{outline:3px solid #1b4d4c;outline-offset:2px}"
+    },
+    {
+      "name": "Reset (labelled action)",
+      "kind": "button",
+      "description": "The one labelled action in the footer row.",
+      "html": "<button class=\"ds-reset\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 3-6.7L3 8\"/><path d=\"M3 3v5h5\"/></svg>Reset</button>",
+      "css": ".ds-reset{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 12px 0 8px;font:600 0.9rem 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;color:#5e574c;background:transparent;border:none;border-radius:12px;cursor:pointer}.ds-reset svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}.ds-reset:hover{background:#f2eee7;color:#1f4e4d}.ds-reset:focus-visible{outline:3px solid #1b4d4c;outline-offset:2px}"
+    },
+    {
+      "name": "Panel show button",
+      "kind": "button",
+      "refersTo": "panel-show-button",
+      "description": "Screen-corner button that brings the hidden side panel back.",
+      "html": "<button class=\"ds-show\" aria-label=\"Show feelings panel\"><svg viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2.5\"/><path d=\"M15 4v16\"/></svg></button>",
+      "css": ".ds-show{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;color:#5e574c;background:#fff;border:1px solid #e4ded4;border-radius:12px;box-shadow:0 1px 2px rgba(43,42,40,.06),0 1px 3px rgba(43,42,40,.08);cursor:pointer}.ds-show svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9}.ds-show:hover{background:#f2eee7;color:#1f4e4d}.ds-show:focus-visible{outline:3px solid #1b4d4c;outline-offset:2px}"
+    },
+    {
+      "name": "Chosen-feelings list",
+      "kind": "custom",
+      "description": "Read-only family stem with stepped depth and a definition under the chosen word.",
+      "html": "<section class=\"ds-family\"><p class=\"ds-f ds-core\">Happy <i></i></p><p class=\"ds-f ds-sec\">Playful <i class=\"ds-open\"></i></p><p class=\"ds-def\">Light, spontaneous, and ready to have fun without taking things too seriously.</p></section><p class=\"ds-hint\">To remove one, choose it again on the wheel.</p>",
+      "css": ".ds-family{position:relative;padding-left:16px;font-family:'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;color:#2b2a28}.ds-family::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;border-radius:2px;background:#FFFF99}.ds-f{display:flex;align-items:center;gap:.4em;margin:0 0 6px;line-height:1.2}.ds-core{font-size:1.25rem;font-weight:700}.ds-sec{font-size:1.05rem;font-weight:600;padding-left:16px}.ds-f i{width:.42em;height:.42em;border-right:2px solid #736b5e;border-bottom:2px solid #736b5e;transform:rotate(-45deg)}.ds-f i.ds-open{transform:rotate(45deg);margin-top:-.3em}.ds-def{margin:0 0 0 32px;max-width:42ch;font-size:.85rem;line-height:1.45;color:#5e574c}.ds-hint{margin:12px 0 0;font:400 .8rem/1.4 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;color:#736b5e}"
+    },
+    {
+      "name": "View status line",
+      "kind": "custom",
+      "refersTo": "status-line",
+      "description": "Says which view is on in words, with a way back.",
+      "html": "<div class=\"ds-status\"><p>Simplified view: outer ring hidden, simpler meanings. Still chosen but hidden: Cheeky.</p><button>Show full wheel</button></div>",
+      "css": ".ds-status{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:12px 24px;background:#f2eee7;border-bottom:1px solid #e4ded4;font-family:'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif}.ds-status p{flex:1 1 14rem;margin:0;font-size:.875rem;line-height:1.4;color:#5e574c}.ds-status button{padding:4px 0;font:600 .875rem 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;color:#1f4e4d;background:none;border:none;text-decoration:underline;text-underline-offset:.2em;cursor:pointer}.ds-status button:focus-visible{outline:3px solid #1b4d4c;outline-offset:2px}"
+    },
+    {
+      "name": "Reading lens",
+      "kind": "custom",
+      "refersTo": "reading-lens",
+      "description": "Large copy of the pressed or focused wheel word with its family path.",
+      "html": "<div class=\"ds-lens\"><span class=\"ds-path\">Happy › Playful</span><span class=\"ds-word\">Cheeky</span><span class=\"ds-keys\">← → move · ↓ ↑ change ring · Enter chooses</span></div>",
+      "css": ".ds-lens{display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:8px 24px;background:#fff;border:1px solid #e4ded4;border-radius:18px;box-shadow:0 4px 12px rgba(43,42,40,.08),0 2px 4px rgba(43,42,40,.06);font-family:'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;text-align:center}.ds-path{font-size:.85rem;color:#5e574c}.ds-word{font-size:1.75rem;font-weight:700;line-height:1.15;letter-spacing:-.01em;color:#2b2a28}.ds-keys{margin-top:4px;font-size:.75rem;color:#5e574c}"
+    },
+    {
+      "name": "Wheel tip",
+      "kind": "custom",
+      "refersTo": "wheel-tip",
+      "description": "Transient one-line pill pinned to the wheel's edge (small-screen tip, Focused hint).",
+      "html": "<div class=\"ds-tip\"><p><b>Hold one</b> to read it.</p><button aria-label=\"Dismiss tip\"><svg viewBox=\"0 0 24 24\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg></button></div>",
+      "css": ".ds-tip{display:inline-flex;align-items:center;gap:4px;padding:0 0 0 16px;background:#fff;border:1px solid #e4ded4;border-radius:999px;box-shadow:0 4px 12px rgba(43,42,40,.08),0 2px 4px rgba(43,42,40,.06);font-family:'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif}.ds-tip p{margin:0;font-size:.85rem;color:#5e574c}.ds-tip b{color:#2b2a28;font-weight:600}.ds-tip button{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;color:#5e574c;background:transparent;border:none;border-radius:999px;cursor:pointer}.ds-tip svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9}.ds-tip button:hover{background:#f2eee7;color:#1f4e4d}.ds-tip button:focus-visible{outline:3px solid #1b4d4c;outline-offset:-2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Shared Map",
+    "overview": "The wheel is a calm, faithful map that a therapist and client read together. The interface's job is to make the map easy to share and then step back. It never interprets, never decorates, and never competes with the words. Everything around the wheel is warm paper, charcoal ink and one quiet teal. Colour lives in the wheel, because the wheel's family colours are part of the established tool, not the brand.\n\nThe system is low-arousal on purpose. Clients may be distressed, so surfaces are soft and warm rather than stark, motion is a gentle ease rather than a flourish, and nothing flashes, bounces or demands attention. Density is set by the content: the full 130-word wheel is the default, so the chrome around it is sparse and pushed to the edges. That means a side panel on wide screens, a bottom sheet on phones, and corner controls that a circle can never reach.\n\nLegibility comes first. Atkinson Hyperlegible is used everywhere, text pairs are contrast-audited to WCAG AA, and small words get a reading lens rather than being dropped.",
+    "keyCharacteristics": [
+      "Warm paper and charcoal ink, never pure black on white.",
+      "One accent (calm teal), used for state and focus, never for decoration.",
+      "The wheel's family colours belong to the wheel alone.",
+      "Chrome sits at the edges; the wheel always gets the centre and the space.",
+      "Soft, slow-ish motion (0.15–0.35s, one easing curve), and none when reduced motion is requested."
+    ],
+    "rules": [
+      {
+        "name": "The Map-Holds-the-Colour Rule",
+        "body": "Saturated colour belongs to the wheel's families. UI chrome uses paper, ink and teal only. Never tint a control with a family colour or theme a screen around one.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Teal Rule",
+        "body": "Calm Teal marks state (on, pressed, selected, focused). If something is teal, it is on or it has focus.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Face Rule",
+        "body": "Atkinson Hyperlegible everywhere: chrome, list and wheel. Hierarchy comes from size, weight and indent, never a second family.",
+        "section": "typography"
+      },
+      {
+        "name": "The Fit-Never-Overflows Rule",
+        "body": "A wheel word may shrink to fit its wedge, but it never spills over a boundary. When it gets small, offer the reading lens instead of cutting words.",
+        "section": "typography"
+      },
+      {
+        "name": "The Circle-Owns-the-Centre Rule",
+        "body": "Nothing may sit over the wheel's disc except a transient, pointer-transparent overlay (lens, hint, tip). Persistent controls live in the panel or in a corner.",
+        "section": "layout"
+      },
+      {
+        "name": "The Warm Shadow Rule",
+        "body": "Shadows use warm charcoal at 12% opacity or less. If a shadow is noticeable before the thing it lifts, it's too strong.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep chrome in paper, ink and Calm Teal (#2f6f6e). Teal means \"on\" or \"focused\".",
+      "**Do** give the wheel the centre and the space. Put persistent controls in the panel or a corner.",
+      "**Do** use Atkinson Hyperlegible for everything, with hierarchy from size (1.5 / 1.25 / 1.05 / 0.95 / 0.85rem) and weight (400 / 600 / 700).",
+      "**Do** use warm, low-alpha shadows (Rest / Lifted / Sheet) and the single easing curve `cubic-bezier(0.4, 0, 0.2, 1)` at 0.15–0.35s.",
+      "**Do** keep every text pair at WCAG AA or better, every control boundary at 3:1 or better, and touch targets at 44px or larger.",
+      "**Do** shrink a wheel word to fit its wedge, and offer the reading lens when it gets small."
+    ],
+    "donts": [
+      "**Don't** use the wheel's family colours for UI chrome, or add new saturated colours.",
+      "**Don't** put persistent controls over the wheel's disc. The old mid-edge panel tab covered outer-ring words.",
+      "**Don't** use pure black text, pure white backgrounds behind the wheel, or cold grey shadows.",
+      "**Don't** add bouncy or elastic easing, looping animation, or motion that ignores reduced-motion settings.",
+      "**Don't** add visual \"insight\" devices (scores, charts, mood colours, badges) around chosen feelings. The list stays a plain, read-only record."
+    ]
+  }
+}

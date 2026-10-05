@@ -7,7 +7,7 @@ import type {
     ScrollPhysics,
     EffectCtx,
 } from '../types.ts';
-import { applyGuidedFocus, GUIDED_REST_ATTR } from './guided.ts';
+import { applyFocusedView, FOCUSED_REST_ATTR } from './focused-view.ts';
 import {
     isNavKey,
     parentKey,
@@ -37,7 +37,7 @@ function toNavNode(w: Element): NavNode {
         emotion,
         parent: level === 'core' ? null : parent,
         family,
-        reachable: !w.hasAttribute(GUIDED_REST_ATTR),
+        reachable: !w.hasAttribute(FOCUSED_REST_ATTR),
     };
 }
 
@@ -128,7 +128,7 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
     class extends Base {
         // Shared instance state this mixin reads/writes (initialized by the engine ctor).
         declare isSimplifiedMode: WheelInstance['isSimplifiedMode'];
-        declare isGuidedMode: WheelInstance['isGuidedMode'];
+        declare isFocusedMode: WheelInstance['isFocusedMode'];
         declare selectedWedges: WheelInstance['selectedWedges'];
         declare currentRotation: WheelInstance['currentRotation'];
         declare svg: WheelInstance['svg'];
@@ -194,16 +194,16 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
             this.regenerateWheel();
         }
 
-        // Guided mode is a visual spotlight over the full wheel (see guided.ts). It never
+        // Focused mode is a visual spotlight over the full wheel (see focused.ts). It never
         // touches selection or rotation, so toggling it off restores the plain full view.
-        setGuidedMode(enabled: boolean): void {
-            this.isGuidedMode = enabled;
-            this.refreshGuidedFocus();
+        setFocusedMode(enabled: boolean): void {
+            this.isFocusedMode = enabled;
+            this.refreshFocusedView();
         }
 
-        refreshGuidedFocus(): void {
+        refreshFocusedView(): void {
             if (!this.svg) return;
-            applyGuidedFocus(this.container, this.isGuidedMode);
+            applyFocusedView(this.container, this.isFocusedMode);
 
             // Keep the wheel a single tab-stop on a reachable wedge.
             const reachable = this.getFocusableWedges();
@@ -247,11 +247,11 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         }
 
         // After a keyboard toggle, put focus back: selection re-layers the wedge (which
-        // blurs it), and in guided view a just-deselected wedge may have gone to rest —
+        // blurs it), and in focused view a just-deselected wedge may have gone to rest —
         // then focus falls back to its family's core so the user isn't dropped to <body>.
         restoreWedgeFocus(target: Element): void {
             let next: Element | undefined = target;
-            if (target.hasAttribute(GUIDED_REST_ATTR)) {
+            if (target.hasAttribute(FOCUSED_REST_ATTR)) {
                 const family =
                     target.getAttribute('data-grandparent') ?? target.getAttribute('data-parent');
                 next = this.getFocusableWedges().find(
@@ -546,7 +546,7 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         getFocusableWedges(): Element[] {
             return Array.from(
                 this.container.querySelectorAll(
-                    `.wedge:not(.shadow-wedge):not([${GUIDED_REST_ATTR}])`
+                    `.wedge:not(.shadow-wedge):not([${FOCUSED_REST_ATTR}])`
                 )
             ).sort(
                 (a, b) =>
@@ -726,11 +726,11 @@ export const InteractionMixin = <T extends Ctor>(Base: T) =>
         // dimension can be missed.
         applySelectionEffects(ctx: EffectCtx): void {
             for (const fx of SELECTION_EFFECTS) fx.apply(ctx, this);
-            if (this.isGuidedMode) this.refreshGuidedFocus();
+            if (this.isFocusedMode) this.refreshFocusedView();
         }
         clearSelectionEffects(ctx: EffectCtx): void {
             for (const fx of SELECTION_EFFECTS) fx.clear(ctx, this);
-            if (this.isGuidedMode) this.refreshGuidedFocus();
+            if (this.isFocusedMode) this.refreshFocusedView();
         }
 
         selectWedge(wedgeId: string, wedge: SVGElement): void {

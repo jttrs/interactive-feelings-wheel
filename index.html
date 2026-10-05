@@ -56,7 +56,7 @@
                         </div>
                     </div>
                     <!-- Focused view caption (visual only; the live region speaks for screen readers) -->
-                    <p class="guided-hint" id="guided-hint" aria-hidden="true" hidden></p>
+                    <p class="focused-hint" id="focused-hint" aria-hidden="true" hidden></p>
                 </section>
 
                 <!-- Visually-hidden live region: announces selection changes to screen readers -->
@@ -304,6 +304,12 @@
                                             <kbd class="kbd">P</kbd>
                                         </li>
                                     </ul>
+                                    <p class="help-line">
+                                        The page address keeps the current view (Simplified,
+                                        Focused, panel hidden) — bookmark it to start the next
+                                        session the same way, e.g. a link that always opens in
+                                        Simplified view for a younger client.
+                                    </p>
                                 </section>
                             </div>
                         </div>
@@ -331,8 +337,8 @@
                             </div>
                             <div class="view-body">
                                 <p class="refs-text">
-                                    An interactive take on the feelings wheel — a gentle way to find
-                                    words for what you feel.
+                                    An interactive feelings wheel for therapists and their clients
+                                    to find words for feelings together.
                                 </p>
                                 <ul class="refs-list">
                                     <li>
@@ -413,12 +419,12 @@
                         <div class="view-toggles" role="group" aria-label="View options">
                             <input
                                 type="checkbox"
-                                id="guided-mode-panel"
+                                id="focused-mode-panel"
                                 class="hero-toggle-input"
                                 aria-keyshortcuts="F"
                             />
                             <label
-                                for="guided-mode-panel"
+                                for="focused-mode-panel"
                                 class="view-chip"
                                 title="Focused view (F)"
                             >

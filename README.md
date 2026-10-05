@@ -69,6 +69,19 @@ This web application faithfully recreates the therapeutic feelings wheel with mo
 - **Focused view**: Turn on in the panel footer (or press `F`) to explore one ring at a time
 - **Reset**: The Reset button (or `R`) clears your choices and re-centres the wheel
 
+### Start-up links
+
+The page address carries the current view, so a therapist can bookmark a setup or open a session straight into it:
+
+| URL                        | Opens with                                  |
+| -------------------------- | ------------------------------------------- |
+| `?view=simplified`         | Simplified view (e.g. for a younger client) |
+| `?view=focused`            | Focused view                                |
+| `?view=simplified,focused` | Both                                        |
+| `&panel=hidden`            | The side panel tucked away                  |
+
+The address updates as views change (without adding history entries). Chosen feelings are not stored in the URL.
+
 ## 📁 File Structure
 
 ```
@@ -79,7 +92,7 @@ feelings-wheel/
 ├── feelings-wheel-engine.ts # Composes the wheel mixins below
 ├── feelings-data.ts         # Feelings, families, and definitions
 └── src/
-    ├── wheel/               # rendering, interaction, animation, svg, focused view (guided.ts)
+    ├── wheel/               # rendering, interaction, animation, svg, focused view (focused-view.ts)
     └── ui/feelings-tree.ts  # Selected-feelings list
 ```
 

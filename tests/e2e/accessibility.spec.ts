@@ -414,8 +414,16 @@ test('the keyboard lens teaches the keys for the first few feelings, then gets q
     await expect(keys).toBeVisible();
     await expect(keys).toContainText('change ring');
     for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowRight');
-    await expect(keys).toBeHidden();
+    // Retired: the full list steps back to a pointer…
+    await expect(keys).toHaveText('Press ? for keys');
     await expect(page.locator('#wheel-lens .wheel-lens__word')).toBeVisible();
+    // …and ? brings it back on demand (and ? again tucks it away).
+    await page.keyboard.press('?');
+    await expect(keys).toContainText('change ring');
+    await page.keyboard.press('ArrowRight');
+    await expect(keys).toContainText('change ring');
+    await page.keyboard.press('?');
+    await expect(keys).toHaveText('Press ? for keys');
 });
 
 test('the empty state mentions that the wheel turns', async ({ page }) => {

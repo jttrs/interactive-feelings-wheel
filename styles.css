@@ -1639,6 +1639,10 @@ svg text {
     white-space: nowrap;
 }
 
+.wheel-lens__keys--pointer {
+    color: var(--color-ink-faint);
+}
+
 .wheel-lens__keys[hidden] {
     display: none;
 }

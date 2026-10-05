@@ -70,6 +70,10 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
         // storage unavailable: hints just show for this page load
     }
     let lastKeyboardWedge: SVGElement | null = null;
+    // After the first few feelings the full key list steps back to a pointer ("Press ?
+    // for keys"); pressing ? on a focused wedge brings the list back (and ? again hides it).
+    const keysFull = keysEl?.textContent?.trim() ?? '';
+    let keysPinned = false;
     let hideTimer: ReturnType<typeof setTimeout> | null = null;
     let down: { x: number; y: number; wedge: SVGElement } | null = null;
 
@@ -78,9 +82,12 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
         if (!content) return;
         if (keysEl) {
             // Count each newly reached wedge once, not every key press on it.
-            const teach = viaKeyboard && keyHintsShown < LENS_KEYS_TIMES;
-            keysEl.hidden = !teach;
-            if (teach && wedge !== lastKeyboardWedge) {
+            const learning = keyHintsShown < LENS_KEYS_TIMES;
+            const teach = viaKeyboard && (learning || keysPinned);
+            keysEl.hidden = !viaKeyboard;
+            keysEl.textContent = teach ? keysFull : 'Press ? for keys';
+            keysEl.classList.toggle('wheel-lens__keys--pointer', !teach);
+            if (teach && learning && wedge !== lastKeyboardWedge) {
                 keyHintsShown++;
                 try {
                     localStorage.setItem(LENS_KEYS_KEY, String(keyHintsShown));
@@ -163,6 +170,14 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
         const w = wedgeFrom(e.target);
         if (w && document.activeElement === w) show(w, true);
     };
+    const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key !== '?' || e.metaKey || e.ctrlKey || e.altKey) return;
+        const w = wedgeFrom(e.target);
+        if (!w || document.activeElement !== w) return;
+        e.preventDefault();
+        keysPinned = !keysPinned;
+        show(w, true);
+    };
 
     wheelRoot.addEventListener('pointerover', onOver);
     wheelRoot.addEventListener('pointerleave', onLeave);
@@ -174,6 +189,7 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
     wheelRoot.addEventListener('focusout', onFocusOut);
     wheelRoot.addEventListener('wheel', onWheel, { passive: true });
     wheelRoot.addEventListener('keyup', onKey);
+    wheelRoot.addEventListener('keydown', onKeyDown);
 
     return {
         destroy() {
@@ -187,6 +203,7 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
             wheelRoot.removeEventListener('focusout', onFocusOut);
             wheelRoot.removeEventListener('wheel', onWheel);
             wheelRoot.removeEventListener('keyup', onKey);
+            wheelRoot.removeEventListener('keydown', onKeyDown);
             if (hideTimer) clearTimeout(hideTimer);
         },
     };

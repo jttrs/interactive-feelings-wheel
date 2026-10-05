@@ -108,8 +108,8 @@ describe('text', () => {
 describe('readWheelTokens', () => {
     it('falls back to constants when tokens are unset (bare jsdom)', () => {
         const t = readWheelTokens();
-        expect(t.lineColor).toBe('#4a453d');
-        expect(t.ringColor).toBe('#4a453d');
+        expect(t.lineColor).toBe('#6f665a');
+        expect(t.ringColor).toBe('#6f665a');
         expect(t.primaryRatio).toBeCloseTo(0.0028, 10);
         expect(t.secondaryRatio).toBeCloseTo(0.0012, 10);
         expect(t.dyadRatio).toBeCloseTo(0.0008, 10);

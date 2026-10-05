@@ -586,6 +586,10 @@ export class FeelingsWheelApp {
     // ===== ANIMATED RESET FUNCTIONALITY =====
 
     resetWithAnimation(): void {
+        // Reset works from any panel view; bring back the feelings view first so the
+        // list visibly clears and the Undo bar is where it can be seen.
+        if (this.currentView !== 'explore') this.showView('explore');
+
         // CRITICAL FIX: Only reset current mode, prevent cross-mode contamination
 
         // If nothing is selected and the wheel is (near) un-rotated, reset instantly.

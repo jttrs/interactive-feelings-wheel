@@ -176,7 +176,14 @@
                                 </button>
                                 <h2 class="view-title">How to use the wheel</h2>
                             </div>
-                            <div class="view-body view-body--help">
+                            <!-- Help has no links/buttons, so the scroll body itself takes
+                                 focus to let keyboard users scroll it (WCAG 2.1.1). -->
+                            <div
+                                class="view-body view-body--help"
+                                tabindex="0"
+                                role="group"
+                                aria-label="How to use the wheel"
+                            >
                                 <section class="help-part" aria-labelledby="help-part-session">
                                     <h3 class="help-part__title" id="help-part-session">
                                         During a session
@@ -482,6 +489,7 @@
                                 </svg>
                                 <span aria-hidden="true">Reset</span>
                             </button>
+                            <span class="hero-actions__sep" aria-hidden="true"></span>
 
                             <span class="hero-spacer" aria-hidden="true"></span>
 

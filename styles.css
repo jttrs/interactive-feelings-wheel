@@ -39,6 +39,7 @@
     --color-ink-faint: #736b5e; /* tertiary text */
     --color-border: #e2d9cb; /* decorative hairline */
     --color-border-strong: #c4b9a8; /* outlines on handles and keycaps (labelled controls) */
+    --color-chip-hover: var(--color-border); /* view-chip hover: one step deeper than sand */
 
     /* Accent (calm teal) */
     --color-accent: #4d7a71; /* dusty sage-teal: control fills */
@@ -64,6 +65,7 @@
     --wheel-selected-glow: drop-shadow(0 0 8px rgba(77, 122, 113, 0.5));
     --wheel-shadow-color: rgba(61, 52, 40, 0.28); /* warm, not cold black */
     --wheel-shadow-blur: 4px;
+    --wheel-label-ink: #2b2a28; /* emotion labels (fill: currentColor on the SVG) */
 
     /* Spacing scale (8px rhythm) */
     --space-1: 0.25rem;
@@ -84,6 +86,11 @@
     --elev-1: 0 1px 2px rgba(43, 42, 40, 0.06), 0 1px 3px rgba(43, 42, 40, 0.08);
     --elev-2: 0 4px 12px rgba(43, 42, 40, 0.08), 0 2px 4px rgba(43, 42, 40, 0.06);
     --elev-3: 0 12px 32px rgba(43, 42, 40, 0.12), 0 4px 10px rgba(43, 42, 40, 0.08);
+    /* Warm panel shadows (brown-tinted, from one base colour) */
+    --shadow-warm-rgb: 70, 55, 35;
+    --shadow-panel-edge: -12px 0 40px rgba(var(--shadow-warm-rgb), 0.07); /* desktop sidebar */
+    --shadow-sheet: 0 -12px 40px rgba(var(--shadow-warm-rgb), 0.1); /* phone sheet */
+    --shadow-footer-lift: 0 -14px 20px -16px rgba(var(--shadow-warm-rgb), 0.18); /* panel footer */
 
     /* Motion (gentle, eased) */
     --motion-fast: 0.15s;
@@ -368,7 +375,7 @@ body {
     border: none;
     border-radius: 0;
     /* Docked, but edged with a soft falloff rather than a ruled line. */
-    box-shadow: -12px 0 40px rgba(70, 55, 35, 0.07);
+    box-shadow: var(--shadow-panel-edge);
 
     display: flex;
     flex-direction: column;
@@ -394,11 +401,13 @@ body {
         /* Tall phones: the wheel is width-bound, so the sheet can take up to 45% of
            the height, or every pixel the wheel can't use (height minus width), for more
            chosen-feelings room without shrinking the wheel. */
-        max-height: max(350px, min(45vh, 420px), calc(100dvh - 100vw - 60px));
+        /* The rem term never binds at default text size; at large text it lets the
+           sheet grow so the chosen feelings keep room above the taller footer. */
+        max-height: max(350px, min(45vh, 420px), calc(100dvh - 100vw - 60px), min(17rem, 68dvh));
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         margin: 0;
         border: none;
-        box-shadow: 0 -12px 40px rgba(70, 55, 35, 0.1);
+        box-shadow: var(--shadow-sheet);
         padding-bottom: env(safe-area-inset-bottom);
     }
 
@@ -1165,7 +1174,7 @@ body {
     padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
     background: var(--color-surface);
     /* No ruled line: a soft lift separates it from the list scrolling beneath. */
-    box-shadow: 0 -14px 20px -16px rgba(70, 55, 35, 0.18);
+    box-shadow: var(--shadow-footer-lift);
 }
 
 /* Names the chip group, so Focused/Simplified read as views, not feeling words. */
@@ -1220,7 +1229,7 @@ body {
 
 @media (hover: hover) {
     .view-chip:hover {
-        background: #e2d9cb;
+        background: var(--color-chip-hover);
         color: var(--color-accent-text);
     }
 }
@@ -1258,6 +1267,15 @@ body {
     align-items: center;
     gap: var(--space-1);
 }
+/* Reset clears the session, so it stands apart from the routine icons: a hairline
+   and open space between them, never a confirm dialog (Undo covers mistakes). */
+.hero-actions__sep {
+    width: 1px;
+    height: 24px;
+    margin: 0 auto 0 var(--space-2);
+    background: var(--color-border-strong);
+    flex-shrink: 0;
+}
 
 /* Tablet sheet: room for the footer on one row (views left, actions right), so
    the chosen feelings get the height instead of two stretched rows of chrome. */
@@ -1280,6 +1298,47 @@ body {
     }
     .hero-actions {
         grid-area: actions;
+    }
+}
+
+/* Large text (WCAG 1.4.4): measured in rem, so this only fires when the user's text
+   size outgrows the panel (never at default size, where every panel is >= 17.5rem).
+   The hairline becomes a line break — Reset keeps its own row, still set apart, and
+   the icons sit on the next row at full size instead of squeezing off the edge. */
+@container (max-width: 17rem) {
+    .view-head {
+        padding-top: var(--space-3);
+    }
+    /* The explore view scrolls as one; this keeps the chosen feelings from being
+       squeezed to nothing between the heading and the footer. */
+    .view-body--explore {
+        min-height: 3rem;
+    }
+    .panel-footer {
+        gap: var(--space-1);
+        padding-top: var(--space-2);
+        padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+    }
+    /* Words over icons, so both views can share a row wherever they fit. */
+    .view-chip {
+        padding: 0 var(--space-2);
+    }
+    .view-chip .hero-ic {
+        display: none;
+    }
+    .hero-actions {
+        flex-wrap: wrap;
+        row-gap: var(--space-1);
+    }
+    .hero-btn {
+        flex-shrink: 0;
+    }
+    .hero-actions__sep {
+        flex-basis: 100%;
+        width: auto;
+        height: 0;
+        margin: 0;
+        background: none;
     }
 }
 
@@ -1470,6 +1529,12 @@ body {
    part sit closer together. */
 .view-body--help {
     gap: var(--space-6);
+}
+/* The Help body is focusable so keyboard users can scroll it; the ring goes
+   inward so the scroll container doesn't clip it. */
+.view-body--help:focus-visible {
+    outline-offset: calc(-1 * var(--focus-ring-width));
+    border-radius: 0;
 }
 .help-part {
     display: flex;
@@ -1663,7 +1728,7 @@ body {
     width: 100%;
     height: 100%;
     /* A faint pool of light behind the wheel; the room's edges stay in shade. */
-    background: radial-gradient(closest-side, #f6f1ea 0%, var(--color-bg) 100%);
+    background: radial-gradient(closest-side, var(--color-surface) 0%, var(--color-bg) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1688,7 +1753,7 @@ body {
         width: 100% !important;
         /* Height-aware: taller phones give the chosen feelings more room — up to every
            pixel the width-bound wheel can't use. Short screens are capped below. */
-        height: max(280px, min(45vh, 420px), calc(100dvh - 100vw - 60px));
+        height: max(280px, min(45vh, 420px), calc(100dvh - 100vw - 60px), min(17rem, 68dvh));
     }
 }
 
@@ -1698,9 +1763,9 @@ body {
    handle opens/closes it as usual. */
 @media (max-width: 767px) and (max-height: 600px) and (orientation: portrait) {
     .info-panel {
-        height: 236px;
+        height: max(236px, min(14.5rem, 62dvh));
         min-height: 0;
-        max-height: 236px;
+        max-height: max(236px, min(14.5rem, 62dvh));
     }
 
     .panel-content {
@@ -1732,6 +1797,13 @@ body {
 @media (max-width: 767px) and (max-height: 700px) and (orientation: portrait) {
     .empty-hint__long {
         display: none;
+    }
+
+    /* Once feelings are chosen the record matters more: the sheet grows one step
+       (the wheel re-fits above it), so several feelings read without scrolling. */
+    .info-panel:not(.minimized):has(.feeling-node) {
+        height: max(min(52vh, 360px), min(14.5rem, 62dvh));
+        max-height: max(min(52vh, 360px), min(14.5rem, 62dvh));
     }
 
     #view-explore:has(.feeling-node) .view-head {
@@ -1865,6 +1937,11 @@ svg text {
 #wheel-container [data-focused-rest] {
     opacity: 0.22;
     pointer-events: none;
+}
+/* Rested words recede further than their wedges: the ring shapes still show the
+   whole map, but their words don't compete with the ring being explored. */
+#wheel-container text[data-focused-rest] {
+    opacity: 0.1;
 }
 
 /* Focused view caption: pinned to the wheel area (never rotates with the wheel),

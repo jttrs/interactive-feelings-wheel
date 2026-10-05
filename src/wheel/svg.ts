@@ -193,15 +193,18 @@ export function text({
 // returns '' so the fallback keeps rendering deterministic. Weights are ratios of wheel
 // size; color tokens are real colors.
 export const WHEEL_TOKEN_FALLBACKS: Record<string, string> = {
-    '--wheel-line': '#4a453d',
+    '--wheel-line': '#6f665a',
     '--wheel-line-primary': '0.0028',
     '--wheel-line-secondary': '0.0012',
     '--wheel-line-dyad': '0.0008',
-    '--wheel-ring': '#4a453d',
+    '--wheel-ring': '#6f665a',
     '--wheel-ring-weight': '0.0022',
+    '--wheel-label-ink': '#2b2a28',
+    '--wheel-shadow-color': 'rgba(61, 52, 40, 0.28)',
+    '--wheel-shadow-blur': '4px',
 };
 
-function readToken(name: string): string {
+export function readToken(name: string): string {
     let raw = '';
     try {
         raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();

@@ -25,8 +25,8 @@ describe('calculateResponsiveScaling', () => {
         expect(scaling.ringStroke).toBeCloseTo(1.32, 10); // 600 * 0.0022
         expect(scaling.wedgeStroke).toBeUndefined(); // fill-only wedges
         // Separator colors come from the tokens (fallbacks in jsdom).
-        expect(scaling.lineColor).toBe('#4a453d');
-        expect(scaling.ringColor).toBe('#4a453d');
+        expect(scaling.lineColor).toBe('#6f665a');
+        expect(scaling.ringColor).toBe('#6f665a');
         expect(scaling.fontScale).toBe(0.0075);
         expect(scaling.touchTargetScale).toBe(1.5);
         expect(scaling.generalScale).toBe(1.5);

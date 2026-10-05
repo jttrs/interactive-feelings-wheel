@@ -528,26 +528,23 @@ export class FeelingsWheelApp {
             getFamilyColor: (family) => FEELINGS_DATA.getCoreEmotionColor(family),
         });
 
-        const hidden = this.hiddenSelectionCount();
-        if (hidden) {
-            const note = document.createElement('p');
-            note.className = 'hidden-ring-note';
-            note.textContent =
-                hidden === 1
-                    ? 'One of these is in the outer ring, which Simplified view hides. It stays chosen.'
-                    : `${hidden} of these are in the outer ring, which Simplified view hides. They stay chosen.`;
-            container.replaceChildren(note, element);
-        } else {
-            container.replaceChildren(element);
-        }
+        container.replaceChildren(element);
+        // Hidden-but-chosen feelings are named in the view status line.
+        this.updateViewStatus();
     }
 
-    // Chosen feelings that exist but aren't drawn (outer ring while Simplified is on).
+    // Chosen feelings that exist but aren't drawn (outer ring while Simplified is on),
+    // in wheel order.
+    hiddenSelections(): string[] {
+        if (!this.wheelGenerator?.isSimplifiedMode) return [];
+        return [...this.wheelGenerator.selectedWedges]
+            .map((id) => this.wheelGenerator.parseUniqueWedgeId(id))
+            .filter((m) => m.level === 'tertiary')
+            .map((m) => m.emotion);
+    }
+
     hiddenSelectionCount(): number {
-        if (!this.wheelGenerator?.isSimplifiedMode) return 0;
-        return [...this.wheelGenerator.selectedWedges].filter(
-            (id) => this.wheelGenerator.parseUniqueWedgeId(id).level === 'tertiary'
-        ).length;
+        return this.hiddenSelections().length;
     }
 
     isSimplifiedActive(): boolean {
@@ -695,13 +692,20 @@ export class FeelingsWheelApp {
                           'Simplified view: outer ring hidden, simpler meanings.',
                       ]
                     : ['', ''];
+        // Name what Simplified is hiding but still counts as chosen, so nothing chosen is
+        // ever invisible without being said.
+        const hidden = this.hiddenSelections();
+        const hiddenLong = hidden.length ? ` Still chosen but hidden: ${hidden.join(', ')}.` : '';
+        const hiddenShort = hidden.length
+            ? ` ${hidden.length} hidden choice${hidden.length === 1 ? '' : 's'}.`
+            : '';
         // Short form for the cramped phone sheet; the full explanation everywhere else.
         const s = document.createElement('span');
         s.className = 'view-status__short';
-        s.textContent = short;
+        s.textContent = short + hiddenShort;
         const l = document.createElement('span');
         l.className = 'view-status__long';
-        l.textContent = long;
+        l.textContent = long + hiddenLong;
         text.replaceChildren(s, l);
     }
 

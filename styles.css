@@ -882,14 +882,6 @@ body {
     }
 }
 
-/* Shown when Simplified view hides chosen outer-ring feelings: they stay chosen. */
-.hidden-ring-note {
-    margin: 0;
-    font-size: var(--text-def);
-    line-height: var(--leading-def);
-    color: var(--color-ink-muted);
-}
-
 /* ===== FEELINGS TREE =====
    The selected feelings, grouped by their core family into a "growing stem". Each
    family is a vertical line tinted with that emotion's wheel color; feelings hang off

@@ -628,3 +628,61 @@ test('short phones: the sheet grows once feelings are chosen, and shrinks back w
     await page.keyboard.press('r');
     await expect.poll(h).toBeLessThan(before + 5);
 });
+
+// WCAG 1.4.4 Resize Text: with the user's text size doubled, the panel footer must
+// degrade gracefully — nothing clipped off the panel, no controls overlapping, and
+// (on the phone sheet) the chosen-feelings area keeps usable room.
+for (const vp of [
+    { name: 'desktop', width: 1280, height: 800 },
+    { name: 'phone', width: 390, height: 844 },
+]) {
+    test(`panel footer survives 200% text (${vp.name} ${vp.width}x${vp.height})`, async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width: vp.width, height: vp.height });
+        await page.evaluate(() => {
+            document.documentElement.style.fontSize = '200%';
+        });
+        await page.waitForTimeout(300);
+
+        const { panel, controls, exploreBody } = await page.evaluate(() => {
+            const box = (el: Element) => {
+                const r = el.getBoundingClientRect();
+                return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+            };
+            const footer = document.querySelector('.panel-footer')!;
+            return {
+                panel: box(document.querySelector('.info-panel')!),
+                controls: [...footer.querySelectorAll('button, label, .footer-label')].map(
+                    (el) => ({ id: el.id || el.textContent!.trim(), ...box(el) })
+                ),
+                exploreBody: box(document.querySelector('.view-body--explore')!),
+            };
+        });
+
+        expect(controls.length).toBeGreaterThanOrEqual(8);
+        for (const c of controls) {
+            expect(c.left, `${c.id} left`).toBeGreaterThanOrEqual(Math.max(0, panel.left) - 0.5);
+            expect(c.right, `${c.id} right`).toBeLessThanOrEqual(
+                Math.min(vp.width, panel.right) + 0.5
+            );
+            expect(c.top, `${c.id} top`).toBeGreaterThanOrEqual(0);
+            expect(c.bottom, `${c.id} bottom`).toBeLessThanOrEqual(vp.height + 0.5);
+        }
+        for (let i = 0; i < controls.length; i++) {
+            for (let j = i + 1; j < controls.length; j++) {
+                const a = controls[i];
+                const b = controls[j];
+                const overlap =
+                    Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 &&
+                    Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
+                expect(overlap, `${a.id} overlaps ${b.id}`).toBe(false);
+            }
+        }
+
+        if (vp.name === 'phone') {
+            // Measured ~103px with the fix (0px before); 96px = three 200%-size lines' room.
+            expect(exploreBody.bottom - exploreBody.top).toBeGreaterThanOrEqual(96);
+        }
+    });
+}

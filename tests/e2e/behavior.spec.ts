@@ -504,3 +504,67 @@ test('keyboard toggling keeps focus on the wheel, even when guided view rests th
     await expect(playful).toHaveAttribute('data-guided-rest', '');
     await expect(happy).toBeFocused();
 });
+
+// Guided view hint: a calm on-wheel caption that explains the dimmed rings, then
+// steps aside once the user is moving through them.
+test('guided hint: hidden by default, walks the first two steps, returns on reset', async ({
+    page,
+}) => {
+    const hint = page.locator('#guided-hint');
+    await expect(hint).toBeHidden();
+
+    await page.locator('label[for="guided-mode-panel"]').click();
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveText('Choose a core feeling to open the next ring.');
+    await expect(hint).toHaveAttribute('aria-hidden', 'true');
+
+    await page.locator('.core-wedge[data-emotion="Happy"]').click();
+    await expect(hint).toHaveText('Now choose a closer word in the next ring.');
+
+    await page.locator('.secondary-wedge[data-emotion="Playful"]').click();
+    await expect(hint).toBeHidden();
+
+    await page.locator('#reset-btn-panel').click();
+    await expect(page.locator('.wedge.selected')).toHaveCount(0);
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveText('Choose a core feeling to open the next ring.');
+
+    await page.locator('label[for="guided-mode-panel"]').click();
+    await expect(hint).toBeHidden();
+});
+
+for (const vp of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+    { width: 320, height: 568 },
+]) {
+    test(`guided hint stays clear of reachable wedges at ${vp.width}x${vp.height}`, async ({
+        page,
+    }) => {
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(300);
+        await page.locator('label[for="guided-mode-panel"]').click();
+        const hint = page.locator('#guided-hint');
+        await expect(hint).toBeVisible();
+        await page.waitForTimeout(500);
+        const box = (await hint.boundingBox())!;
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+        // The hint may only ever sit over wedges that are at rest.
+        const coversReachable = await page.evaluate(() => {
+            const h = document.getElementById('guided-hint')!.getBoundingClientRect();
+            const pts: [number, number][] = [];
+            for (let x = h.left + 2; x < h.right - 2; x += 6)
+                for (let y = h.top + 2; y < h.bottom - 2; y += 6) pts.push([x, y]);
+            const hint = document.getElementById('guided-hint')!;
+            hint.style.visibility = 'hidden';
+            const hit = pts.some(([x, y]) => {
+                const el = document.elementFromPoint(x, y);
+                return !!el?.closest('.wedge:not([data-guided-rest])');
+            });
+            hint.style.visibility = '';
+            return hit;
+        });
+        expect(coversReachable).toBe(false);
+    });
+}

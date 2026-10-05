@@ -3,6 +3,7 @@
 import { FeelingsWheelGenerator } from './feelings-wheel-engine.ts';
 import { FEELINGS_DATA } from './feelings-data.ts';
 import { renderFeelingsTree } from './src/ui/feelings-tree.ts';
+import { createGuidedHint } from './src/ui/guided-hint.ts';
 import type { Selection, EmotionSelectedDetail } from './src/types.ts';
 
 export class FeelingsWheelApp {
@@ -296,8 +297,13 @@ export class FeelingsWheelApp {
         // and rotation are untouched, so switching it off returns the whole wheel as-is.
         const guidedToggle = document.getElementById('guided-mode-panel') as HTMLInputElement;
         guidedToggle.checked = false;
+        const guidedHint = createGuidedHint(
+            document.getElementById('guided-hint')!,
+            document.getElementById('wheel-container')!
+        );
         guidedToggle.addEventListener('change', () => {
             this.wheelGenerator.setGuidedMode(guidedToggle.checked);
+            guidedHint.setEnabled(guidedToggle.checked);
             this.announce(
                 guidedToggle.checked
                     ? 'Guided view on. Choose a core feeling to open the next ring.'

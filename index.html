@@ -164,153 +164,118 @@
                                 </button>
                                 <h2 class="view-title">How to use the wheel</h2>
                             </div>
-                            <div class="view-body">
+                            <div class="view-body view-body--help">
                                 <section class="help-group">
-                                    <h3 class="help-group__title">Explore feelings</h3>
+                                    <h3 class="help-group__title">Using the wheel</h3>
                                     <p class="help-line">
-                                        Choose any feeling on the wheel to add it to your list, with
-                                        what it means.
-                                    </p>
-                                    <p class="help-line">
-                                        Pick as many as fit. To remove one, choose it on the wheel
-                                        again — or press Reset to start over.
-                                    </p>
-                                    <p class="help-line">
-                                        In your list, tap a feeling’s name to show or hide its
-                                        meaning.
-                                    </p>
-                                    <p class="help-line">
-                                        Words too small to read? Press and hold one to see it larger
-                                        — slide away to cancel.
+                                        Choose any feeling to add it to the list with its meaning;
+                                        choose it again to remove it. Tap a name in the list to show
+                                        or hide its meaning. Drag or scroll to turn the wheel; press
+                                        and hold a small word to read it larger.
                                     </p>
                                 </section>
 
                                 <section class="help-group">
-                                    <h3 class="help-group__title">Rotate the wheel</h3>
+                                    <h3 class="help-group__title">Views</h3>
+                                    <dl class="help-defs">
+                                        <dt>Full wheel</dt>
+                                        <dd>The default — the whole spectrum of feelings.</dd>
+                                        <dt>Simplified</dt>
+                                        <dd>
+                                            For younger clients: hides the outer ring and uses
+                                            simpler meanings. Anything chosen there stays chosen.
+                                        </dd>
+                                        <dt>Focused</dt>
+                                        <dd>
+                                            Starts with the core feelings and opens each ring as a
+                                            feeling is chosen, to explore one step at a time.
+                                        </dd>
+                                    </dl>
+                                </section>
+
+                                <section class="help-group">
+                                    <h3 class="help-group__title">Start a session in a view</h3>
                                     <p class="help-line">
-                                        Drag it, scroll over it, or press the
-                                        <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> arrow keys
-                                        to spin it — hold to keep spinning.
+                                        The page address keeps the current view, so you can bookmark
+                                        it. For a younger client, open
+                                        <code class="help-code">?view=simplified</code>; also
+                                        <code class="help-code">?view=focused</code> and
+                                        <code class="help-code">&amp;panel=hidden</code>.
                                     </p>
                                 </section>
 
                                 <section class="help-group">
-                                    <h3 class="help-group__title">Move with the keyboard</h3>
-                                    <p class="help-line">
-                                        Press <kbd class="kbd">Tab</kbd> to reach the wheel, then
-                                        <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> to move
-                                        around a ring, <kbd class="kbd">↓</kbd> to step out to more
-                                        specific feelings and <kbd class="kbd">↑</kbd> to step back
-                                        in.
-                                    </p>
-                                    <p class="help-line">
-                                        <kbd class="kbd">[</kbd><kbd class="kbd">]</kbd> or Page Up
-                                        / Page Down jump to the next family;
-                                        <kbd class="kbd">Enter</kbd> or
-                                        <kbd class="kbd">Space</kbd> chooses a feeling.
-                                    </p>
-                                    <p class="help-line">
-                                        Press <kbd class="kbd">?</kbd> on the wheel to show these
-                                        keys beside the word you’re on.
-                                    </p>
+                                    <h3 class="help-group__title">Shortcuts</h3>
+                                    <table class="help-keys">
+                                        <tbody>
+                                            <tr>
+                                                <th scope="row"><kbd class="kbd">S</kbd></th>
+                                                <td>Simplified view</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row"><kbd class="kbd">F</kbd></th>
+                                                <td>Focused view</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row"><kbd class="kbd">P</kbd></th>
+                                                <td>Hide or show this panel</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row"><kbd class="kbd">R</kbd></th>
+                                                <td>Reset — clear chosen feelings</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row"><kbd class="kbd">F11</kbd></th>
+                                                <td>
+                                                    Fullscreen (<kbd class="kbd">Esc</kbd> to leave)
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </section>
 
-                                <section class="help-group">
-                                    <h3 class="help-group__title">View and actions</h3>
-                                    <ul class="help-actions">
-                                        <li class="help-action">
-                                            <span class="help-action__ic" aria-hidden="true">
-                                                <svg class="hero-ic" viewBox="0 0 24 24">
-                                                    <circle
-                                                        cx="12"
-                                                        cy="12"
-                                                        r="9"
-                                                        stroke-dasharray="2 3"
-                                                    ></circle>
-                                                    <circle cx="12" cy="12" r="3.5"></circle>
-                                                </svg>
-                                            </span>
-                                            <span class="help-action__text">
-                                                <span class="help-action__name">Focused view</span>
-                                                starts with the core feelings and opens each ring as
-                                                a feeling is chosen, so you can explore one step at
-                                                a time. The full wheel stays in view behind it.
-                                            </span>
-                                            <kbd class="kbd">F</kbd>
-                                        </li>
-                                        <li class="help-action">
-                                            <span class="help-action__ic" aria-hidden="true">
-                                                <svg class="hero-ic" viewBox="0 0 24 24">
-                                                    <circle cx="12" cy="12" r="9"></circle>
-                                                    <circle cx="12" cy="12" r="4"></circle>
-                                                </svg>
-                                            </span>
-                                            <span class="help-action__text">
-                                                <span class="help-action__name"
-                                                    >Simplified view</span
-                                                >
-                                                is for younger clients: it hides the outer ring and
-                                                uses simpler meanings. Anything chosen there stays
-                                                chosen.
-                                            </span>
-                                            <kbd class="kbd">S</kbd>
-                                        </li>
-                                        <li class="help-action">
-                                            <span class="help-action__ic" aria-hidden="true">
-                                                <svg class="hero-ic" viewBox="0 0 24 24">
-                                                    <path
-                                                        d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"
-                                                    ></path>
-                                                </svg>
-                                            </span>
-                                            <span class="help-action__text">
-                                                <span class="help-action__name">Fullscreen</span>
-                                                gives the wheel the whole screen; press Esc to
-                                                leave.
-                                            </span>
-                                            <kbd class="kbd">F11</kbd>
-                                        </li>
-                                        <li class="help-action">
-                                            <span class="help-action__ic" aria-hidden="true">
-                                                <svg class="hero-ic" viewBox="0 0 24 24">
-                                                    <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
-                                                    <path d="M3 3v5h5"></path>
-                                                </svg>
-                                            </span>
-                                            <span class="help-action__text">
-                                                <span class="help-action__name">Reset</span>
-                                                clears your chosen feelings and re-centres the
-                                                wheel.
-                                            </span>
-                                            <kbd class="kbd">R</kbd>
-                                        </li>
-                                        <li class="help-action">
-                                            <span class="help-action__ic" aria-hidden="true">
-                                                <svg class="hero-ic" viewBox="0 0 24 24">
-                                                    <rect
-                                                        x="3"
-                                                        y="4"
-                                                        width="18"
-                                                        height="16"
-                                                        rx="2.5"
-                                                    ></rect>
-                                                    <path d="M15 4v16"></path>
-                                                </svg>
-                                            </span>
-                                            <span class="help-action__text">
-                                                <span class="help-action__name">Hide panel</span>
-                                                tucks this panel away to give the wheel more room.
-                                            </span>
-                                            <kbd class="kbd">P</kbd>
-                                        </li>
-                                    </ul>
-                                    <p class="help-line">
-                                        The page address keeps the current view (Simplified,
-                                        Focused, panel hidden) — bookmark it to start the next
-                                        session the same way, e.g. a link that always opens in
-                                        Simplified view for a younger client.
-                                    </p>
-                                </section>
+                                <details class="help-more">
+                                    <summary>Moving around the wheel with a keyboard</summary>
+                                    <table class="help-keys">
+                                        <tbody>
+                                            <tr>
+                                                <th scope="row"><kbd class="kbd">Tab</kbd></th>
+                                                <td>Reach the wheel</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">
+                                                    <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd>
+                                                </th>
+                                                <td>
+                                                    Move around a ring (or spin the wheel when no
+                                                    feeling has focus)
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">
+                                                    <kbd class="kbd">↓</kbd><kbd class="kbd">↑</kbd>
+                                                </th>
+                                                <td>
+                                                    Step out to more specific feelings / back in
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">
+                                                    <kbd class="kbd">[</kbd><kbd class="kbd">]</kbd>
+                                                </th>
+                                                <td>Previous / next family (or Page Up / Down)</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row"><kbd class="kbd">Enter</kbd></th>
+                                                <td>Choose the feeling (or Space)</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row"><kbd class="kbd">?</kbd></th>
+                                                <td>Show these keys beside the word you’re on</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </details>
                             </div>
                         </div>
 

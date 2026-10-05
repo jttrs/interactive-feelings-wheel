@@ -496,3 +496,18 @@ test('switching views or hiding the panel by shortcut keeps keyboard focus on th
     await page.waitForTimeout(500);
     await expect(page.locator('.wedge:focus')).toHaveCount(1);
 });
+
+test('Help leads with views and start-up links; keyboard detail is tucked away', async ({
+    page,
+}) => {
+    await page.locator('#help-btn-panel').click();
+    const help = page.locator('#view-help');
+    const titles = await help.locator('.help-group__title').allInnerTexts();
+    expect(titles.slice(0, 3)).toEqual(['Using the wheel', 'Views', 'Start a session in a view']);
+    await expect(help).toContainText('For younger clients');
+    await expect(help).toContainText('?view=simplified');
+    const more = help.locator('details.help-more');
+    await expect(more).not.toHaveAttribute('open', '');
+    await more.locator('summary').click();
+    await expect(more).toContainText('Step out to more specific feelings');
+});

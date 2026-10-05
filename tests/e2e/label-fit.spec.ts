@@ -109,6 +109,22 @@ test.describe('small-screen tip', () => {
         await expect(page.locator('#screen-nudge')).toBeHidden();
     });
 
+    // Regression: the legibility check scaled by the SVG's width, not the fitted square,
+    // so wide/landscape boxes looked ~2x roomier than they render and never showed the tip.
+    test('shows on a landscape phone, where outer words render under 9px', async ({ page }) => {
+        await open(page, 844, 390);
+        await expect(page.locator('#wheel-container')).toHaveAttribute(
+            'data-labels-cramped',
+            'true'
+        );
+        await expect(page.locator('#screen-nudge')).toBeVisible();
+    });
+
+    test('stays hidden on a typical telehealth window (1280x720)', async ({ page }) => {
+        await open(page, 1280, 720);
+        await expect(page.locator('#screen-nudge')).toBeHidden();
+    });
+
     test('dismisses by keyboard, stays dismissed after reload, leaves the view alone', async ({
         page,
     }) => {

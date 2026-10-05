@@ -833,9 +833,12 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
                 ceiling = targets[level]!;
             });
 
-            // Rendered px per SVG unit (viewBox matches CSS size, but stay honest).
+            // Rendered px per SVG unit. The <svg> fills its container but its square viewBox
+            // is fitted (meet) to the SHORTER side, so scale by that — using the width
+            // overstated label size ~2x on wide/landscape boxes and hid cramped wheels.
             const rect = this.svg?.getBoundingClientRect();
-            const scale = rect && rect.width > 0 ? rect.width / this.containerSize : 1;
+            const side = rect ? Math.min(rect.width, rect.height) : 0;
+            const scale = side > 0 ? side / this.containerSize : 1;
 
             let tooSmall = 0;
             measured.forEach((m) => {

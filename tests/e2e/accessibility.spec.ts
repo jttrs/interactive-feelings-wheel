@@ -103,9 +103,7 @@ test('Left/Right stay in the core ring and wrap', async ({ page }) => {
     await expect(page.locator('.wedge[tabindex="0"]')).toHaveCount(1);
 });
 
-test('Down steps out to specific feelings, Up steps back, and Down remembers', async ({
-    page,
-}) => {
+test('Down steps out to specific feelings, Up steps back, and Down remembers', async ({ page }) => {
     await page.locator('.core-wedge[data-emotion="Happy"]').focus();
     await page.keyboard.press('ArrowDown');
     expect(await focusedId(page)).toBe('secondary-Happy-Playful');
@@ -157,9 +155,7 @@ test('Page Down / ] jump to the next family in the same ring; Home/End to ring e
     );
 });
 
-test('guided view: navigation skips rested wedges and explains closed rings', async ({
-    page,
-}) => {
+test('guided view: navigation skips rested wedges and explains closed rings', async ({ page }) => {
     await page.keyboard.press('g');
     await page.locator('.core-wedge[data-emotion="Happy"]').focus();
     await page.keyboard.press('ArrowDown');
@@ -175,9 +171,9 @@ test('guided view: navigation skips rested wedges and explains closed rings', as
     expect(await page.evaluate(() => document.activeElement!.getAttribute('data-parent'))).toBe(
         'Happy'
     );
-    expect(await page.evaluate(() => document.activeElement!.hasAttribute('data-guided-rest'))).toBe(
-        false
-    );
+    expect(
+        await page.evaluate(() => document.activeElement!.hasAttribute('data-guided-rest'))
+    ).toBe(false);
     await expect(page.locator('.wedge[tabindex="0"]')).toHaveCount(1);
 });
 
@@ -343,7 +339,11 @@ test('page has an h1 and a skip link that lands in the (re-opened) panel', async
     await expect(skip).toBeInViewport();
     await page.keyboard.press('Enter');
     await expect(page.locator('.info-panel')).not.toHaveClass(/minimized/);
-    await expect(page.locator('#panel-content')).toBeFocused();
+    const heading = page.locator('#view-explore .view-title');
+    await expect(heading).toBeFocused();
+    // The landing spot shows a real focus ring.
+    const outline = await heading.evaluate((el) => getComputedStyle(el).outlineStyle);
+    expect(outline).not.toBe('none');
 });
 
 test('the skip link is the first tab stop on a fresh page', async ({ page }) => {
@@ -356,4 +356,36 @@ test('the skip link is the first tab stop on a fresh page', async ({ page }) => 
 test('desktop collapse tab is a comfortable target (>= 32px wide)', async ({ page }) => {
     const box = (await page.locator('#panel-minimize-tab').boundingBox())!;
     expect(box.width).toBeGreaterThanOrEqual(32);
+});
+
+test('collapsing the panel never strands focus inside it, and its controls leave the tab order', async ({
+    page,
+}) => {
+    const reset = page.locator('#reset-btn-panel');
+    await reset.focus();
+    await page.keyboard.press('p'); // collapse via shortcut while focus is in the footer
+    await expect(page.locator('.info-panel')).toHaveClass(/minimized/);
+    await expect(page.locator('#panel-minimize-tab')).toBeFocused();
+
+    // Tabbing onward never lands on an off-screen panel control.
+    for (let i = 0; i < 6; i++) {
+        await page.keyboard.press('Tab');
+        const inPanel = await page.evaluate(
+            () => !!document.activeElement?.closest('.panel-content, .panel-footer')
+        );
+        expect(inPanel).toBe(false);
+    }
+
+    await page.locator('#panel-minimize-tab').click(); // reopen
+    await expect(reset).not.toHaveJSProperty('inert', true);
+});
+
+test('on mobile, collapsing from inside the sheet moves focus to the sheet handle', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(200);
+    await page.locator('#reset-btn-panel').focus();
+    await page.keyboard.press('p');
+    await expect(page.locator('#mobile-collapse-handle')).toBeFocused();
 });

@@ -226,6 +226,13 @@
     outline: none;
 }
 
+/* Skip-link landing spot: the visible view's heading shows the standard ring. */
+.view-title:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: var(--focus-ring-offset);
+    border-radius: var(--radius-sm);
+}
+
 .sr-only {
     position: absolute;
     width: 1px;

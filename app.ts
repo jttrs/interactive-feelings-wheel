@@ -303,7 +303,7 @@ export class FeelingsWheelApp {
             if (document.getElementById('info-panel')?.classList.contains('minimized')) {
                 this.togglePanelMinimization();
             }
-            document.getElementById('panel-content')?.focus();
+            this.focusPanelHeading();
         });
 
         // Setup panel controls (moved from floating controls)
@@ -625,16 +625,41 @@ export class FeelingsWheelApp {
         if (handleArrow) handleArrow.textContent = minimized ? '▲' : '▼';
     }
 
+    // Land keyboard/screen-reader focus on the visible panel view's heading, with a
+    // visible ring, so arriving in the panel is announced and seen.
+    focusPanelHeading(): void {
+        const title = document.querySelector<HTMLElement>('.panel-view:not([hidden]) .view-title');
+        if (!title) return;
+        title.tabIndex = -1;
+        title.focus();
+    }
+
     togglePanelMinimization(): void {
         const panel = document.querySelector('.info-panel')!;
         const mainLayout = document.querySelector('.main-layout')!;
 
         const wheelBox = document.getElementById('wheel-container');
         const before = this.wheelRect();
+        const focusWasInside =
+            document.activeElement instanceof Element &&
+            !!document.activeElement.closest('.panel-content, .panel-footer');
 
-        panel.classList.toggle('minimized');
+        const minimized = panel.classList.toggle('minimized');
         mainLayout.classList.toggle('panel-minimized'); // For wheel centering
         this.syncSheetHeight(); // mobile: reserve the new sheet height before measuring
+
+        // A tucked-away panel (slid off-screen on desktop) must not keep tab stops, and
+        // focus must never be stranded inside it: hand it to the visible reopen control.
+        for (const sel of ['.panel-content', '.panel-footer']) {
+            const el = panel.querySelector<HTMLElement>(sel);
+            if (el) el.inert = minimized;
+        }
+        if (minimized && focusWasInside) {
+            const handle = document.getElementById('mobile-collapse-handle');
+            const tab = document.getElementById('panel-minimize-tab');
+            const reopen = handle && handle.offsetParent !== null ? handle : tab;
+            reopen?.focus();
+        }
 
         // Glide the wheel to its new centre/size with a transform (FLIP) rather than
         // animating layout: the box snaps to its final layout, then we play the

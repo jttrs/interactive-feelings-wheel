@@ -389,3 +389,28 @@ test('on mobile, collapsing from inside the sheet moves focus to the sheet handl
     await page.keyboard.press('p');
     await expect(page.locator('#mobile-collapse-handle')).toBeFocused();
 });
+
+test('shortcuts are exposed on their controls', async ({ page }) => {
+    await expect(page.locator('#guided-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'G');
+    await expect(page.locator('#simplified-mode-panel')).toHaveAttribute('aria-keyshortcuts', 'S');
+    await expect(page.locator('#reset-btn-panel')).toHaveAttribute('aria-keyshortcuts', 'R');
+    await expect(page.locator('#panel-minimize-tab')).toHaveAttribute('aria-keyshortcuts', 'P');
+    await expect(page.locator('#fullscreen-btn-panel')).toHaveAttribute('aria-keyshortcuts', 'F11');
+});
+
+test('the keyboard lens teaches the keys for the first few feelings, then gets quiet', async ({
+    page,
+}) => {
+    const keys = page.locator('#wheel-lens .wheel-lens__keys');
+    await page.locator('.core-wedge[data-emotion="Angry"]').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(keys).toBeVisible();
+    await expect(keys).toContainText('change ring');
+    for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowRight');
+    await expect(keys).toBeHidden();
+    await expect(page.locator('#wheel-lens .wheel-lens__word')).toBeVisible();
+});
+
+test('the empty state mentions that the wheel turns', async ({ page }) => {
+    await expect(page.locator('#panel-instructions')).toContainText('Drag the wheel to turn it.');
+});

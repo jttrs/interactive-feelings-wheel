@@ -8,6 +8,9 @@
 // It is aria-hidden: wedges already carry full accessible names.
 
 export const LENS_SMALL_LABEL_PX = 14;
+// The keyboard lens teaches the keys for its first few appearances, then gets quiet.
+export const LENS_KEYS_KEY = 'ifw:lens-key-hints-shown';
+export const LENS_KEYS_TIMES = 6;
 const TAP_LINGER_MS = 1400;
 const DRAG_CANCEL_PX = 10;
 
@@ -59,12 +62,34 @@ export interface WheelLens {
 export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): WheelLens {
     const wordEl = lens.querySelector<HTMLElement>('.wheel-lens__word')!;
     const pathEl = lens.querySelector<HTMLElement>('.wheel-lens__path')!;
+    const keysEl = lens.querySelector<HTMLElement>('.wheel-lens__keys');
+    let keyHintsShown = 0;
+    try {
+        keyHintsShown = Number(localStorage.getItem(LENS_KEYS_KEY)) || 0;
+    } catch {
+        // storage unavailable: hints just show for this page load
+    }
+    let lastKeyboardWedge: SVGElement | null = null;
     let hideTimer: ReturnType<typeof setTimeout> | null = null;
     let down: { x: number; y: number; wedge: SVGElement } | null = null;
 
-    const show = (wedge: SVGElement) => {
+    const show = (wedge: SVGElement, viaKeyboard = false) => {
         const content = lensWordFor(wedge.dataset);
         if (!content) return;
+        if (keysEl) {
+            // Count each newly reached wedge once, not every key press on it.
+            const teach = viaKeyboard && keyHintsShown < LENS_KEYS_TIMES;
+            keysEl.hidden = !teach;
+            if (teach && wedge !== lastKeyboardWedge) {
+                keyHintsShown++;
+                try {
+                    localStorage.setItem(LENS_KEYS_KEY, String(keyHintsShown));
+                } catch {
+                    // ignore
+                }
+            }
+            if (viaKeyboard) lastKeyboardWedge = wedge;
+        }
         if (hideTimer) clearTimeout(hideTimer);
         hideTimer = null;
         wordEl.textContent = content.word;
@@ -126,7 +151,7 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
     };
     const onFocusIn = (e: FocusEvent) => {
         const w = wedgeFrom(e.target);
-        if (w && w.matches(':focus-visible')) show(w);
+        if (w && w.matches(':focus-visible')) show(w, true);
     };
     const onFocusOut = (e: FocusEvent) => {
         if (!wedgeFrom(e.relatedTarget)) hide();
@@ -136,7 +161,7 @@ export function createWheelLens(lens: HTMLElement, wheelRoot: HTMLElement): Whee
     // arrived by script/mouse (where :focus-visible didn't match) or the key couldn't move.
     const onKey = (e: KeyboardEvent) => {
         const w = wedgeFrom(e.target);
-        if (w && document.activeElement === w) show(w);
+        if (w && document.activeElement === w) show(w, true);
     };
 
     wheelRoot.addEventListener('pointerover', onOver);

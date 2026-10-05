@@ -7,6 +7,7 @@ import {
     group as makeGroup,
     readWheelTokens,
 } from './svg.ts';
+import { maxFittingFontSize, ringTargetSize, LEGIBLE_PX } from './label-fit.ts';
 import type {
     Ctor,
     WheelInstance,
@@ -476,13 +477,6 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
 
             const cssSize = this.computeAvailableWheelSize();
 
-            // SMART ADAPTATION: If wheel becomes too small, suggest simplified mode
-            if (window.innerWidth <= 767 && cssSize < 250 && !this.isSimplifiedMode) {
-                console.info(
-                    'ℹ️ Wheel is quite small. Consider using Simplified Mode for better text readability.'
-                );
-            }
-
             // Update DPI information
             this.dpr = window.devicePixelRatio || 1;
             this.effectiveSize = cssSize * Math.min(this.dpr, 2); // Cap at 2x for reasonable scaling
@@ -684,6 +678,14 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
 
             this.container.appendChild(this.svg);
 
+            // Labels can only be measured once attached; refit when the web font lands
+            // (metrics change) as long as this is still the live SVG.
+            this.fitLabels();
+            const svgAtFit = this.svg;
+            document.fonts?.ready?.then(() => {
+                if (this.svg === svgAtFit) this.fitLabels();
+            });
+
             // Mark current mode as initialized
             const currentState = this.isSimplifiedMode
                 ? this.simplifiedModeState
@@ -775,14 +777,91 @@ export const RenderingMixin = <T extends Ctor>(Base: T) =>
                 dataset,
             });
             if (!textEl) return;
+            const innerR =
+                level === 'core' ? 0 : level === 'secondary' ? this.coreRadius : this.middleRadius;
+            const outerR =
+                level === 'core'
+                    ? this.coreRadius
+                    : level === 'secondary'
+                      ? this.middleRadius
+                      : this.outerRadius;
             this.textElements.push({
                 element: textEl,
                 baseAngle: textPos.baseAngle,
                 flipAngle,
                 x: textPos.x,
                 y: textPos.y,
+                level,
+                fit: { innerR, outerR, r: radius, spanDeg: Math.abs(end - start) },
             });
             (this.wheelGroup as SVGGElement).appendChild(textEl);
+        }
+
+        // ===== PER-LABEL FIT =====
+        // Size every label to its own wedge: each ring settles on an even target size
+        // (lower quartile of what its labels can hold), and only the words that can't
+        // reach it shrink — so one long word no longer shrinks the whole ring. Fit
+        // always wins over any minimum, so no word ever spills out of its wedge.
+        // Then report whether the visible rings are below a legible size, so the UI
+        // can gently offer Simplified/Guided (it never switches view by itself).
+        fitLabels(): void {
+            const measured = this.textElements
+                .filter((te) => te.fit && te.level)
+                .map((te) => {
+                    const el = te.element;
+                    const current = parseFloat(el.getAttribute('font-size') || '') || 12;
+                    let length = 0;
+                    let height = 0;
+                    try {
+                        length = el.getComputedTextLength();
+                        height = el.getBBox().height;
+                    } catch {
+                        // jsdom / detached: fall back to estimates below.
+                    }
+                    const lengthPerPx =
+                        length > 0 ? length / current : 0.55 * (el.textContent || '').length;
+                    const heightPerPx = height > 0 ? height / current : 1.2;
+                    return {
+                        el,
+                        level: te.level as Level,
+                        fit: maxFittingFontSize(te.fit!, lengthPerPx, heightPerPx),
+                    };
+                });
+            if (measured.length === 0) return;
+
+            const levels: Level[] = ['core', 'secondary', 'tertiary'];
+            const cap = this.containerSize * 0.08;
+            const targets: Partial<Record<Level, number>> = {};
+            let ceiling = cap;
+            levels.forEach((level) => {
+                const fits = measured.filter((m) => m.level === level).map((m) => m.fit);
+                if (fits.length === 0) return;
+                // Keep the ring hierarchy: an outer ring never out-sizes an inner one.
+                targets[level] = Math.min(ceiling, ringTargetSize(fits));
+                ceiling = targets[level]!;
+            });
+
+            // Rendered px per SVG unit (viewBox matches CSS size, but stay honest).
+            const rect = this.svg?.getBoundingClientRect();
+            const scale = rect && rect.width > 0 ? rect.width / this.containerSize : 1;
+
+            let tooSmall = 0;
+            measured.forEach((m) => {
+                const size = Math.max(0.5, Math.min(targets[m.level]!, m.fit));
+                m.el.setAttribute('font-size', `${size.toFixed(2)}px`);
+                if (size * scale < LEGIBLE_PX[m.level]) tooSmall++;
+            });
+
+            // Cramped when a meaningful share of words render below the legible floor.
+            const cramped = tooSmall / measured.length > 0.2;
+            // Mirror the state on the container so late listeners can read it.
+            this.container.setAttribute('data-labels-cramped', String(cramped));
+            this.container.dispatchEvent(
+                new CustomEvent('wheel:labelfit', {
+                    bubbles: true,
+                    detail: { cramped, tooSmall, total: measured.length },
+                })
+            );
         }
 
         createShadowCopy(originalWedge: SVGElement, wedgeId: string): void {

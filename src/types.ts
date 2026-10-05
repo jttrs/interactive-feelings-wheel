@@ -68,6 +68,9 @@ export interface TextEl {
     x: number;
     y: number;
     lastRotation?: number;
+    // Wedge geometry for per-label shrink-to-fit (see wheel/label-fit.ts).
+    level?: Level;
+    fit?: { innerR: number; outerR: number; r: number; spanDeg: number };
 }
 
 // Per-mode snapshot for the simplified/full toggle.

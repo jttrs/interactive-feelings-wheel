@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 // Serves whichever directory SERVE_DIR points at (repo root by default). The same
 // snapshots must pass against both the current source and the built dist/, which is
 // how we prove the refactor preserves appearance + behavior.
-const PORT = 4321;
+const PORT = Number(process.env.PW_PORT) || 4321; // PW_PORT: run parallel suites (e.g. sibling worktrees) without sharing a server
 
 export default defineConfig({
     testDir: './tests/e2e',
